@@ -125,23 +125,42 @@ export function DownloadPNGButton({ elementId, title }: ExportProps) {
 export function ExportToCSVButton({ data, title }: { data: any[], title: string }) {
   const { toast } = useToast();
 
-  const handleExport = () => {
-    if (!data || !data.length) {
-      toast({ title: "No Data", description: "There is no data to export." });
-      return;
+  const escapeCSV = (val: unknown): string => {
+    const str = val == null ? "" : String(val);
+    if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+      return `"${str.replace(/"/g, '""')}"`;
     }
+    return str;
+  };
 
-    const headers = Object.keys(data[0]).join(",");
-    const rows = data.map(row => Object.values(row).join(",")).join("\n");
-    const csvContent = `data:text/csv;charset=utf-8,${headers}\n${rows}`;
+  const handleExport = () => {
+    try {
+      if (!data || !data.length) {
+        toast({ title: "No Data", description: "There is no data to export." });
+        return;
+      }
 
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `${title.replace(/\s+/g, '-').toLowerCase()}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      const headers = Object.keys(data[0]);
+      const csvLines = [
+        headers.map(escapeCSV).join(","),
+        ...data.map(row => headers.map(h => escapeCSV(row[h])).join(","))
+      ];
+      const csvString = csvLines.join("\n");
+
+      const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${title.replace(/\s+/g, '-').toLowerCase()}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast({ title: "CSV Downloaded", description: "Your data has been saved as a CSV file." });
+    } catch (err) {
+      console.error("CSV export error:", err);
+      toast({ title: "Export Failed", description: "Could not generate CSV.", variant: "destructive" });
+    }
   };
 
   return (
