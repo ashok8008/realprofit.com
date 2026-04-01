@@ -14,7 +14,7 @@ export function Navbar() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full bg-[#1a2e2e] shadow-md">
+    <header className="sticky top-0 z-50 w-full bg-gradient-to-r from-[#0d9488] via-[#0ea5a5] to-[#14b8c2]">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center gap-2">
@@ -57,7 +57,7 @@ export function Navbar() {
       </div>
 
       {isOpen && (
-        <div className="lg:hidden bg-[#1a2e2e] border-t border-white/10 p-4 space-y-3">
+        <div className="lg:hidden bg-[#0d9488] border-t border-white/10 p-4 space-y-3">
           {links.map((link) => (
             <Link 
               key={link.href} 
