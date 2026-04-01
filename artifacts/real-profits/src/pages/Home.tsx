@@ -262,10 +262,16 @@ export default function Home() {
             </p>
             
             <div className="flex flex-wrap justify-center gap-2 mb-12">
-              {["Explore Further", "Taxes", "Debt", "Investing", "Budgeting"].map((tab, i) => (
-                <button key={i} className={`px-5 py-2 rounded-full text-xs font-bold transition-colors ${i === 0 ? 'bg-gray-900 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100'}`}>
-                  {tab}
-                </button>
+              {[
+                { label: "Explore Further", href: "/articles" },
+                { label: "Taxes", href: "/category/taxes" },
+                { label: "Debt", href: "/category/debt-credit" },
+                { label: "Investing", href: "/category/saving-vs-investing" },
+                { label: "Budgeting", href: "/category/money-basics" },
+              ].map((tab, i) => (
+                <Link key={i} href={tab.href} className={`px-5 py-2 rounded-full text-xs font-bold transition-colors ${i === 0 ? 'bg-gray-900 text-white hover:bg-gray-800' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100'}`}>
+                  {tab.label}
+                </Link>
               ))}
             </div>
           </div>
