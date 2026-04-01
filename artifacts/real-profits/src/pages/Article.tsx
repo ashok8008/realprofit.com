@@ -6,6 +6,96 @@ import { categories } from "@/data/categories";
 import { ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
+function renderInlineMarkdown(text: string): React.ReactNode {
+  const parts: React.ReactNode[] = [];
+  let remaining = text;
+  let key = 0;
+
+  while (remaining.length > 0) {
+    const boldMatch = remaining.match(/\*\*(.+?)\*\*/);
+    if (boldMatch && boldMatch.index !== undefined) {
+      if (boldMatch.index > 0) {
+        parts.push(remaining.substring(0, boldMatch.index));
+      }
+      parts.push(<strong key={key++}>{boldMatch[1]}</strong>);
+      remaining = remaining.substring(boldMatch.index + boldMatch[0].length);
+    } else {
+      parts.push(remaining);
+      break;
+    }
+  }
+  return parts;
+}
+
+function renderMarkdownContent(content: string) {
+  const lines = content.split('\n');
+  const elements: React.ReactNode[] = [];
+  let currentBlock: string[] = [];
+  let key = 0;
+
+  function flushBlock() {
+    if (currentBlock.length === 0) return;
+    const text = currentBlock.join('\n').trim();
+    if (!text) { currentBlock = []; return; }
+
+    if (text.match(/^[-*]\s/m) && text.split('\n').every(l => !l.trim() || l.trim().match(/^[-*]\s/))) {
+      const items = text.split('\n').filter(l => l.trim());
+      elements.push(
+        <ul key={key++} className="list-disc pl-6 mb-6 space-y-2">
+          {items.map((item, j) => (
+            <li key={j} className="text-foreground/90 leading-relaxed">
+              {renderInlineMarkdown(item.replace(/^[-*]\s+/, ''))}
+            </li>
+          ))}
+        </ul>
+      );
+    } else if (text.match(/^\d+\.\s/m) && text.split('\n').every(l => !l.trim() || l.trim().match(/^\d+\.\s/))) {
+      const items = text.split('\n').filter(l => l.trim());
+      elements.push(
+        <ol key={key++} className="list-decimal pl-6 mb-6 space-y-2">
+          {items.map((item, j) => (
+            <li key={j} className="text-foreground/90 leading-relaxed">
+              {renderInlineMarkdown(item.replace(/^\d+\.\s+/, ''))}
+            </li>
+          ))}
+        </ol>
+      );
+    } else {
+      elements.push(
+        <p key={key++} className="mb-6 text-foreground/90 leading-relaxed">
+          {renderInlineMarkdown(text)}
+        </p>
+      );
+    }
+    currentBlock = [];
+  }
+
+  for (const line of lines) {
+    if (line.startsWith('### ')) {
+      flushBlock();
+      elements.push(
+        <h3 key={key++} className="text-xl font-bold mt-8 mb-3 font-serif">
+          {renderInlineMarkdown(line.replace('### ', ''))}
+        </h3>
+      );
+    } else if (line.startsWith('## ')) {
+      flushBlock();
+      elements.push(
+        <h2 key={key++} className="text-2xl font-bold mt-10 mb-4 font-serif">
+          {renderInlineMarkdown(line.replace('## ', ''))}
+        </h2>
+      );
+    } else if (line.trim() === '') {
+      flushBlock();
+    } else {
+      currentBlock.push(line);
+    }
+  }
+  flushBlock();
+
+  return elements;
+}
+
 export default function ArticleDetail() {
   const { slug } = useParams<{ slug: string }>();
   const article = articles.find(a => a.slug === slug);
@@ -61,13 +151,7 @@ export default function ArticleDetail() {
         </header>
         
         <div className="prose prose-lg prose-headings:font-serif prose-a:text-primary hover:prose-a:text-primary/80 max-w-none">
-          {/* Simple markdown parsing for the example content */}
-          {article.content.split('\n\n').map((paragraph, i) => {
-            if (paragraph.startsWith('## ')) {
-              return <h2 key={i} className="text-2xl font-bold mt-10 mb-4">{paragraph.replace('## ', '')}</h2>;
-            }
-            return <p key={i} className="mb-6 text-foreground/90 leading-relaxed">{paragraph}</p>;
-          })}
+          {renderMarkdownContent(article.content)}
         </div>
 
         <div className="mt-16 bg-muted/30 border p-8 rounded-xl flex items-center justify-between">

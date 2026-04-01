@@ -32,7 +32,7 @@ function SliderPreview({ label, value, color, pct }: { label: string; value: str
 }
 
 export default function Home() {
-  const latestArticles = articles.slice(0, 4);
+  const latestArticles = [...articles].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 4);
   
   return (
     <div className="w-full">

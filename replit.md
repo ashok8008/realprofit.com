@@ -97,7 +97,7 @@ Frontend-only React + Vite personal finance content site (RealProfits.com). No b
 
 - **Stack**: React, Vite, wouter (routing), Recharts (charts), jsPDF (PDF export), react-helmet-async (SEO), Tailwind CSS, shadcn/ui
 - **Sections**:
-  - **Articles**: 12+ editorial articles across 8 categories (money-basics, income-side-hustles, taxes, saving-vs-investing, debt-credit, life-decisions, etc.)
+  - **Articles**: 55 editorial articles across 8 categories (money-basics, income-side-hustles, taxes, saving-vs-investing, debt-credit, life-decisions, real-stories). Markdown content rendered with custom parser supporting ##/### headings, bold, bullet/numbered lists.
   - **Calculators**: 39+ financial calculators at /calculators and /calculators/:slug (savings, mortgage, auto loan, retirement, debt, tax, investment, etc.)
   - **Tools**: 7 interactive utility tools at /tools and /tools/:slug:
     - Freelance Invoice Generator (full invoice creation with PDF export)

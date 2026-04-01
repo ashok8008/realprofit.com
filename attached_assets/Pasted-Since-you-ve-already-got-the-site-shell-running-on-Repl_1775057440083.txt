@@ -1,0 +1,67 @@
+Since you’ve already got the site shell running on Replit, it’s time to turn it into a high-traffic machine. You need to prompt the Replit Agent to build the **logic** that handles thousands of pages without manual work.
+
+Here are the specific prompts to feed Replit, broken down by SEO strategy.
+
+---
+
+### 1. The pSEO (Programmatic) Engine Prompt
+**Goal:** To create 1,000+ pages instantly using data instead of writing them one by one.
+
+> "I need to set up a **Programmatic SEO (pSEO) engine**. 
+> 1. Create a directory `/data/` and a file called `pseo-dataset.json`. 
+> 2. Populate it with 10 sample entries for 'Tax on [X] Income' and 'Savings for [X] Goal'.
+> 3. Create a **Dynamic Route** at `/guides/[slug]` and `/calculators/[slug]`.
+> 4. Write a script that maps the JSON data to these routes so that each entry generates a unique page with:
+>    * A custom H1 (e.g., 'How much tax do you pay on 85,000 income?')
+>    * Dynamic calculations performed on-page based on the data.
+>    * A 'Compare with other brackets' sidebar that links to 5 other random pSEO pages."
+
+---
+
+### 2. The "Link Bait" & Data Visualization Prompt
+**Goal:** To make pages that people (and Reddit/Twitter) want to share and link to.
+
+> "Add a **'Shareable Insights'** component to all calculator pages. 
+> 1. When a user runs a calculation (like Debt Payoff), generate a **summary card** with a clear 'Result' visual.
+> 2. Add a 'Copy Link to Results' button and a 'Download as PNG/Infographic' button using the `html2canvas` library.
+> 3. Create a **'National Benchmarks'** table at the bottom of these pages that shows 'Average [Savings/Tax/Debt] by Age' to encourage journalists and bloggers to cite our data."
+
+---
+
+### 3. The GEO (Generative Engine Optimization) Prompt
+**Goal:** To get cited by ChatGPT, Perplexity, and Google SGE.
+
+> "Optimize the site for **Generative Engine Optimization (GEO)**.
+> 1. In the article and calculator templates, add a 'TL;DR' or **'Direct Answer'** block immediately under the H1. It must be wrapped in a specific `<div>` with the ID `ai-summary`. 
+> 2. Ensure this block is 40–60 words of factual, concise data.
+> 3. Implement **JSON-LD Schema** for every page. Specifically:
+>    * `HowTo` schema for the guides.
+>    * `SoftwareApplication` schema for the calculators.
+>    * `FAQPage` schema for the bottom of every page."
+
+---
+
+### 4. The "Internal Linking" Automation Prompt
+**Goal:** To keep users on the site and pass SEO "juice" between pages.
+
+> "Build an **Automated Internal Linking System**. 
+> 1. Create a logic that scans the content of an article for keywords found in our tool titles (e.g., 'Tax Estimator', 'Invoice Generator').
+> 2. Automatically turn those keywords into links to the corresponding tool.
+> 3. Add a **'You Might Also Need'** widget at the bottom of every page that uses a basic 'category' match to suggest 3 related tools (e.g., if on a 'Salary' page, suggest the 'Tax' and 'Rent vs Buy' calculators)."
+
+---
+
+### 5. The "Bait & Retention" Tool Prompt
+**Goal:** High-utility tools that make people bookmark the site.
+
+> "Build a **'Subscription Cost Analyzer'** as a standalone tool.
+> 1. Allow users to input their monthly streaming/SaaS costs.
+> 2. Show a 'Lifetime Cost' (over 10/20 years) visual using a line chart.
+> 3. Add a 'Bait' feature: A 'Compare to Average User' toggle that shows how their spending compares to others.
+> 4. Make this tool accessible at `/tools/subscription-analyzer` and link it in the main header."
+
+---
+
+### 💡 Pro-Tip for the Replit Agent
+If the Agent gets stuck or produces "dummy" code, tell it: 
+*"Use **Server-Side Rendering (SSR)** for the pSEO pages to ensure Google can crawl the dynamic content immediately. Do not use client-side only fetching for the data pages."*
