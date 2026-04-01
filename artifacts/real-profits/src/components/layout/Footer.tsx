@@ -27,11 +27,8 @@ export function Footer() {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-5 gap-10 mb-12">
             <div>
-              <Link href="/" className="flex items-center gap-2 mb-4">
-                <svg viewBox="0 0 24 24" className="w-8 h-8" fill="#22c55e">
-                  <path d="M17 8C8 10 5.9 16.17 3.82 21.34l1.89.66.95-2.71c.79-.47 1.58-.9 2.34-1.29C12 16 15.69 14.37 19.5 14A7.5 7.5 0 0 0 22 2c-4 0-8 1-11 4-2 2-3 4-3 6 .08.68.24 1.35.48 2Z"/>
-                </svg>
-                <span className="font-serif font-bold text-xl text-white">RealProfits</span>
+              <Link href="/" className="flex items-center mb-4">
+                <span className="font-serif font-bold text-2xl text-white">RealProfits<span className="text-[#f5c542]">.</span></span>
               </Link>
             </div>
             

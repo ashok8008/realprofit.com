@@ -18,12 +18,9 @@ export function Navbar() {
     <header className="sticky top-0 z-50 w-full bg-gradient-to-r from-[#0d9488] via-[#0ea5a5] to-[#14b8c2]">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-2">
-            <svg viewBox="0 0 24 24" className="w-7 h-7" fill="#22c55e">
-              <path d="M17 8C8 10 5.9 16.17 3.82 21.34l1.89.66.95-2.71c.79-.47 1.58-.9 2.34-1.29C12 16 15.69 14.37 19.5 14A7.5 7.5 0 0 0 22 2c-4 0-8 1-11 4-2 2-3 4-3 6 .08.68.24 1.35.48 2Z"/>
-            </svg>
-            <span className="font-serif font-bold text-xl tracking-tight text-white">
-              RealProfits
+          <Link href="/" className="flex items-center">
+            <span className="font-serif font-bold text-2xl tracking-tight text-white">
+              RealProfits<span className="text-[#f5c542]">.</span>
             </span>
           </Link>
           
