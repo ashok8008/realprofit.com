@@ -16,6 +16,41 @@ const SaveVsInvestCalc = lazy(() => import("@/components/calculators/SaveVsInves
 const SimpleTaxCalc = lazy(() => import("@/components/calculators/SimpleTaxEstimator").then(m => ({ default: m.SimpleTaxEstimator })));
 const CreditCardCalc = lazy(() => import("@/components/calculators/CreditCardPayoffCalculator").then(m => ({ default: m.CreditCardPayoffCalculator })));
 
+// 12 Fallbacks
+const ExpenseBreakdownTool = lazy(() => import("@/components/calculators/ExpenseBreakdownTool").then(m => ({ default: m.ExpenseBreakdownTool })));
+const MonthlyIncomeEstimator = lazy(() => import("@/components/calculators/MonthlyIncomeEstimator").then(m => ({ default: m.MonthlyIncomeEstimator })));
+const SideHustleEarnings = lazy(() => import("@/components/calculators/SideHustleEarnings").then(m => ({ default: m.SideHustleEarnings })));
+const HourlyRateCalculator = lazy(() => import("@/components/calculators/HourlyRateCalculator").then(m => ({ default: m.HourlyRateCalculator })));
+const TaxSetAsideCalculator = lazy(() => import("@/components/calculators/TaxSetAsideCalculator").then(m => ({ default: m.TaxSetAsideCalculator })));
+const QuarterlyTaxCalculator = lazy(() => import("@/components/calculators/QuarterlyTaxCalculator").then(m => ({ default: m.QuarterlyTaxCalculator })));
+const SelfEmploymentTaxCalculator = lazy(() => import("@/components/calculators/SelfEmploymentTaxCalculator").then(m => ({ default: m.SelfEmploymentTaxCalculator })));
+const InvestmentGrowthCalculator = lazy(() => import("@/components/calculators/InvestmentGrowthCalculator").then(m => ({ default: m.InvestmentGrowthCalculator })));
+const LoanInterestCalculator = lazy(() => import("@/components/calculators/LoanInterestCalculator").then(m => ({ default: m.LoanInterestCalculator })));
+const DebtSnowballCalculator = lazy(() => import("@/components/calculators/DebtSnowballCalculator").then(m => ({ default: m.DebtSnowballCalculator })));
+const CostOfLivingComparison = lazy(() => import("@/components/calculators/CostOfLivingComparison").then(m => ({ default: m.CostOfLivingComparison })));
+const SalaryRealityCalculator = lazy(() => import("@/components/calculators/SalaryRealityCalculator").then(m => ({ default: m.SalaryRealityCalculator })));
+
+// 19 New
+const SimpleSavingsCalculator = lazy(() => import("@/components/calculators/SimpleSavingsCalculator").then(m => ({ default: m.SimpleSavingsCalculator })));
+const MonthlySavingsCalculator = lazy(() => import("@/components/calculators/MonthlySavingsCalculator").then(m => ({ default: m.MonthlySavingsCalculator })));
+const SavingsIncomeCalculator = lazy(() => import("@/components/calculators/SavingsIncomeCalculator").then(m => ({ default: m.SavingsIncomeCalculator })));
+const MortgageCalculator = lazy(() => import("@/components/calculators/MortgageCalculator").then(m => ({ default: m.MortgageCalculator })));
+const MortgageAmortizationCalculator = lazy(() => import("@/components/calculators/MortgageAmortizationCalculator").then(m => ({ default: m.MortgageAmortizationCalculator })));
+const PersonalLoanCalculator = lazy(() => import("@/components/calculators/PersonalLoanCalculator").then(m => ({ default: m.PersonalLoanCalculator })));
+const AutoLoanCalculator = lazy(() => import("@/components/calculators/AutoLoanCalculator").then(m => ({ default: m.AutoLoanCalculator })));
+const BusinessLoanCalculator = lazy(() => import("@/components/calculators/BusinessLoanCalculator").then(m => ({ default: m.BusinessLoanCalculator })));
+const LoanAffordabilityCalculator = lazy(() => import("@/components/calculators/LoanAffordabilityCalculator").then(m => ({ default: m.LoanAffordabilityCalculator })));
+const ExtraPaymentCalculator = lazy(() => import("@/components/calculators/ExtraPaymentCalculator").then(m => ({ default: m.ExtraPaymentCalculator })));
+const InvestmentReturnCalculator = lazy(() => import("@/components/calculators/InvestmentReturnCalculator").then(m => ({ default: m.InvestmentReturnCalculator })));
+const SIPCalculator = lazy(() => import("@/components/calculators/SIPCalculator").then(m => ({ default: m.SIPCalculator })));
+const RetirementGrowthCalculator = lazy(() => import("@/components/calculators/RetirementGrowthCalculator").then(m => ({ default: m.RetirementGrowthCalculator })));
+const DebtAvalancheCalculator = lazy(() => import("@/components/calculators/DebtAvalancheCalculator").then(m => ({ default: m.DebtAvalancheCalculator })));
+const InterestCalculator = lazy(() => import("@/components/calculators/InterestCalculator").then(m => ({ default: m.InterestCalculator })));
+const MinimumPaymentTrapCalculator = lazy(() => import("@/components/calculators/MinimumPaymentTrapCalculator").then(m => ({ default: m.MinimumPaymentTrapCalculator })));
+const ProfitMarginCalculator = lazy(() => import("@/components/calculators/ProfitMarginCalculator").then(m => ({ default: m.ProfitMarginCalculator })));
+const NetIncomeCalculator = lazy(() => import("@/components/calculators/NetIncomeCalculator").then(m => ({ default: m.NetIncomeCalculator })));
+const CanIAffordThisCalculator = lazy(() => import("@/components/calculators/CanIAffordThisCalculator").then(m => ({ default: m.CanIAffordThisCalculator })));
+
 function FallbackCalculator() {
   return (
     <div className="py-12 text-center text-muted-foreground border rounded-xl bg-muted/20">
@@ -34,6 +69,42 @@ function getCalculatorComponent(slug: string) {
     case 'save-vs-invest-calculator': return SaveVsInvestCalc;
     case 'simple-tax-estimator': return SimpleTaxCalc;
     case 'credit-card-payoff-calculator': return CreditCardCalc;
+    
+    // 12 Fallbacks
+    case 'expense-breakdown-tool': return ExpenseBreakdownTool;
+    case 'monthly-income-estimator': return MonthlyIncomeEstimator;
+    case 'side-hustle-earnings': return SideHustleEarnings;
+    case 'hourly-rate-calculator': return HourlyRateCalculator;
+    case 'tax-set-aside-calculator': return TaxSetAsideCalculator;
+    case 'quarterly-tax-calculator': return QuarterlyTaxCalculator;
+    case 'self-employment-tax-calculator': return SelfEmploymentTaxCalculator;
+    case 'investment-growth-calculator': return InvestmentGrowthCalculator;
+    case 'loan-interest-calculator': return LoanInterestCalculator;
+    case 'debt-snowball-calculator': return DebtSnowballCalculator;
+    case 'cost-of-living-comparison': return CostOfLivingComparison;
+    case 'salary-reality-calculator': return SalaryRealityCalculator;
+    
+    // 19 New
+    case 'simple-savings-calculator': return SimpleSavingsCalculator;
+    case 'monthly-savings-calculator': return MonthlySavingsCalculator;
+    case 'savings-income-calculator': return SavingsIncomeCalculator;
+    case 'mortgage-calculator': return MortgageCalculator;
+    case 'mortgage-amortization-calculator': return MortgageAmortizationCalculator;
+    case 'personal-loan-calculator': return PersonalLoanCalculator;
+    case 'auto-loan-calculator': return AutoLoanCalculator;
+    case 'business-loan-calculator': return BusinessLoanCalculator;
+    case 'loan-affordability-calculator': return LoanAffordabilityCalculator;
+    case 'extra-payment-calculator': return ExtraPaymentCalculator;
+    case 'investment-return-calculator': return InvestmentReturnCalculator;
+    case 'sip-calculator': return SIPCalculator;
+    case 'retirement-growth-calculator': return RetirementGrowthCalculator;
+    case 'debt-avalanche-calculator': return DebtAvalancheCalculator;
+    case 'interest-calculator': return InterestCalculator;
+    case 'minimum-payment-trap-calculator': return MinimumPaymentTrapCalculator;
+    case 'profit-margin-calculator': return ProfitMarginCalculator;
+    case 'net-income-calculator': return NetIncomeCalculator;
+    case 'can-i-afford-this-calculator': return CanIAffordThisCalculator;
+    
     default: return FallbackCalculator;
   }
 }

@@ -1,0 +1,1216 @@
+Absolutely. Below is a Replit-ready calculator formula spec for the full gold calculator clusters.
+
+This is written so your dev team can turn each one into:
+	•	a reusable formula utility
+	•	a calculator page
+	•	pSEO scenario pages later
+
+I’m structuring it as:
+	1.	Inputs
+	2.	Core formula
+	3.	Outputs
+	4.	Edge cases / rules
+
+⸻
+
+RealProfits — Gold Calculator Formula Spec
+
+Global implementation rules
+
+Use these conventions across all calculators:
+
+// percent helper
+const pct = (value: number) => value / 100;
+
+// monthly rate from annual %
+const monthlyRate = (annualRate: number) => annualRate / 12 / 100;
+
+// yearly to monthly
+const monthlyFromAnnual = (annual: number) => annual / 12;
+
+// standard rounding for UI only
+const round2 = (n: number) => Math.round(n * 100) / 100;
+
+General rules
+	•	Store raw math in full precision
+	•	Round only for display
+	•	Reject negative values unless explicitly allowed
+	•	If denominator is 0, return safe fallback
+	•	If payment does not exceed monthly interest in amortization calculators, show warning and stop loop
+
+⸻
+
+1) SAVINGS CALCULATORS
+
+1. Simple Savings Calculator
+
+Inputs
+	•	initialDeposit
+	•	monthlyContribution
+	•	annualInterestRate
+	•	years
+
+Formula
+
+Monthly compounding with recurring monthly additions:
+
+const r = annualInterestRate / 12 / 100;
+const months = years * 12;
+
+let balance = initialDeposit;
+let totalContributions = initialDeposit;
+
+for (let i = 1; i <= months; i++) {
+  balance = balance * (1 + r) + monthlyContribution;
+  totalContributions += monthlyContribution;
+}
+
+const interestEarned = balance - totalContributions;
+
+Outputs
+	•	endingBalance
+	•	totalContributions
+	•	interestEarned
+	•	monthly/yearly projection array
+
+Edge cases
+	•	if rate = 0, balance = initial + contributions only
+	•	if contribution = 0, grow deposit only
+
+⸻
+
+2. Compound Interest Calculator
+
+Inputs
+	•	principal
+	•	annualInterestRate
+	•	years
+	•	compoundsPerYear
+	•	monthlyContribution
+
+Formula
+
+If using exact compound formula without monthly additions:
+
+const r = annualInterestRate / 100;
+const n = compoundsPerYear;
+const t = years;
+const compoundOnly = principal * Math.pow(1 + r / n, n * t);
+
+If monthly contributions are included, use month-by-month simulation:
+
+const monthlyR = annualInterestRate / 12 / 100;
+const months = years * 12;
+
+let balance = principal;
+let totalContributions = principal;
+
+for (let i = 1; i <= months; i++) {
+  balance = balance * (1 + monthlyR) + monthlyContribution;
+  totalContributions += monthlyContribution;
+}
+
+Outputs
+	•	endingBalance
+	•	principalContributed
+	•	recurringContributions
+	•	totalInterest
+
+⸻
+
+3. Savings Goal Calculator
+
+Inputs
+	•	targetAmount
+	•	currentSavings
+	•	monthlyContribution
+	•	annualInterestRate
+
+Formula
+
+Simulate until target reached:
+
+const r = annualInterestRate / 12 / 100;
+let balance = currentSavings;
+let months = 0;
+let totalContributions = currentSavings;
+
+while (balance < targetAmount && months < 1200) {
+  balance = balance * (1 + r) + monthlyContribution;
+  totalContributions += monthlyContribution;
+  months++;
+}
+
+const interestEarned = balance - totalContributions;
+
+Outputs
+	•	monthsToGoal
+	•	yearsToGoal
+	•	finalBalanceAtGoal
+	•	totalContributions
+	•	interestEarned
+
+Edge cases
+	•	if currentSavings >= targetAmount => 0 months
+	•	if monthlyContribution = 0 and balance never grows enough => unreachable
+
+⸻
+
+4. Monthly Savings Calculator
+
+Inputs
+	•	targetAmount
+	•	currentSavings
+	•	yearsToGoal
+	•	annualInterestRate
+
+Formula
+
+Solve for monthly contribution by iterative search or future value annuity formula.
+
+Recommended iterative approach for simplicity:
+
+function requiredMonthlySavings(target, current, years, annualRate) {
+  const r = annualRate / 12 / 100;
+  const months = years * 12;
+  let low = 0;
+  let high = target;
+
+  for (let j = 0; j < 100; j++) {
+    const mid = (low + high) / 2;
+    let balance = current;
+
+    for (let i = 0; i < months; i++) {
+      balance = balance * (1 + r) + mid;
+    }
+
+    if (balance >= target) high = mid;
+    else low = mid;
+  }
+
+  return high;
+}
+
+Outputs
+	•	requiredMonthlyContribution
+	•	totalContributions
+	•	projectedInterest
+
+⸻
+
+5. Savings Income Calculator
+
+Inputs
+	•	depositAmount
+	•	annualYieldPercent
+	•	payoutFrequency (monthly/yearly)
+
+Formula
+
+Simple annual yield income:
+
+const annualIncome = depositAmount * (annualYieldPercent / 100);
+const monthlyIncome = annualIncome / 12;
+
+If compounding display is needed, separate “income” vs “reinvested growth”.
+
+Outputs
+	•	annualSavingsIncome
+	•	monthlySavingsIncome
+
+⸻
+
+6. Emergency Fund Calculator
+
+Inputs
+	•	housing
+	•	food
+	•	transportation
+	•	insurance
+	•	utilities
+	•	otherEssentials
+	•	targetMonths
+	•	optionalMonthsToBuild
+
+Formula
+
+const monthlyEssentials =
+  housing + food + transportation + insurance + utilities + otherEssentials;
+
+const targetFund = monthlyEssentials * targetMonths;
+
+const monthlyNeededToBuild =
+  optionalMonthsToBuild > 0 ? targetFund / optionalMonthsToBuild : null;
+
+Outputs
+	•	monthlyEssentials
+	•	targetFund
+	•	monthlyNeededToBuild
+
+⸻
+
+7. Save $X Calculator
+
+This is a pSEO wrapper over Savings Goal Calculator.
+
+Inputs
+	•	targetAmount preset from slug
+	•	currentSavings
+	•	monthlyContribution
+	•	annualInterestRate
+
+Use same formula as Savings Goal Calculator.
+
+Examples:
+	•	/calculators/save-5000
+	•	/calculators/save-10000
+	•	/calculators/save-50000
+
+⸻
+
+8. Save $1M Calculator
+
+Same as Savings Goal Calculator with target preset to 1,000,000.
+
+Inputs
+	•	currentSavings
+	•	monthlyContribution
+	•	annualInterestRate
+
+Use same formula.
+
+⸻
+
+2) LOAN CALCULATORS
+
+9. Mortgage Calculator
+
+Inputs
+	•	homePrice
+	•	downPayment
+	•	annualInterestRate
+	•	loanTermYears
+	•	annualPropertyTax
+	•	annualHomeInsurance
+	•	monthlyHOA
+	•	monthlyPMI
+
+Formula
+
+const loanAmount = homePrice - downPayment;
+const r = annualInterestRate / 12 / 100;
+const n = loanTermYears * 12;
+
+const principalAndInterest =
+  r === 0
+    ? loanAmount / n
+    : loanAmount * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+
+const monthlyPropertyTax = annualPropertyTax / 12;
+const monthlyInsurance = annualHomeInsurance / 12;
+
+const totalMonthlyPayment =
+  principalAndInterest +
+  monthlyPropertyTax +
+  monthlyInsurance +
+  monthlyHOA +
+  monthlyPMI;
+
+const totalRepaymentPI = principalAndInterest * n;
+const totalInterest = totalRepaymentPI - loanAmount;
+
+Outputs
+	•	loanAmount
+	•	principalAndInterest
+	•	totalMonthlyPayment
+	•	totalInterest
+	•	totalRepaymentPI
+	•	amortization schedule
+
+⸻
+
+10. Mortgage Amortization Calculator
+
+Inputs
+
+Same as mortgage calculator, minus optional extras if desired.
+
+Formula
+
+Month-by-month loop:
+
+let balance = loanAmount;
+const schedule = [];
+
+for (let month = 1; month <= n; month++) {
+  const interest = balance * r;
+  const principal = principalAndInterest - interest;
+  balance = Math.max(0, balance - principal);
+
+  schedule.push({
+    month,
+    payment: principalAndInterest,
+    principal,
+    interest,
+    balance,
+  });
+
+  if (balance <= 0) break;
+}
+
+Outputs
+	•	full amortization schedule
+	•	yearly rollups
+	•	total interest
+	•	payoff date
+
+⸻
+
+11. Personal Loan Calculator
+
+Inputs
+	•	loanAmount
+	•	annualInterestRate
+	•	termMonths
+
+Formula
+
+const r = annualInterestRate / 12 / 100;
+const n = termMonths;
+
+const monthlyPayment =
+  r === 0
+    ? loanAmount / n
+    : loanAmount * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+
+const totalRepayment = monthlyPayment * n;
+const totalInterest = totalRepayment - loanAmount;
+
+Outputs
+	•	monthlyPayment
+	•	totalRepayment
+	•	totalInterest
+
+⸻
+
+12. Auto Loan Calculator
+
+Inputs
+	•	carPrice
+	•	downPayment
+	•	tradeInValue
+	•	salesTaxRate
+	•	fees
+	•	annualInterestRate
+	•	loanTermMonths
+
+Formula
+
+const taxablePrice = Math.max(0, carPrice - tradeInValue);
+const salesTax = taxablePrice * (salesTaxRate / 100);
+const financedAmount = carPrice - downPayment - tradeInValue + salesTax + fees;
+
+const r = annualInterestRate / 12 / 100;
+const n = loanTermMonths;
+
+const monthlyPayment =
+  r === 0
+    ? financedAmount / n
+    : financedAmount * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+
+Outputs
+	•	financedAmount
+	•	monthlyPayment
+	•	totalInterest
+	•	totalRepayment
+
+⸻
+
+13. Business Loan Calculator
+
+Inputs
+	•	loanAmount
+	•	annualInterestRate
+	•	termMonths
+	•	paymentFrequency (monthly or weekly)
+
+Formula
+
+If monthly:
+use standard amortization.
+
+If weekly:
+
+const periodsPerYear = 52;
+const r = annualInterestRate / periodsPerYear / 100;
+const n = termMonths * (52 / 12);
+
+const payment =
+  r === 0
+    ? loanAmount / n
+    : loanAmount * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+
+Outputs
+	•	paymentPerPeriod
+	•	totalRepayment
+	•	totalInterest
+
+⸻
+
+14. Loan Affordability Calculator
+
+Inputs
+	•	grossMonthlyIncome
+	•	debtToIncomeLimitPercent
+	•	existingMonthlyDebt
+	•	annualInterestRate
+	•	loanTermMonths
+
+Formula
+
+const maxDebtAllowed = grossMonthlyIncome * (debtToIncomeLimitPercent / 100);
+const availableForNewLoan = Math.max(0, maxDebtAllowed - existingMonthlyDebt);
+
+Then reverse-solve loan amount from payment. Binary search is easiest:
+
+function maxAffordableLoan(payment, annualRate, months) {
+  const r = annualRate / 12 / 100;
+  let low = 0;
+  let high = 10000000;
+
+  for (let i = 0; i < 100; i++) {
+    const mid = (low + high) / 2;
+    const monthly =
+      r === 0
+        ? mid / months
+        : mid * (r * Math.pow(1 + r, months)) / (Math.pow(1 + r, months) - 1);
+
+    if (monthly <= payment) low = mid;
+    else high = mid;
+  }
+
+  return low;
+}
+
+Outputs
+	•	maxAffordableMonthlyPayment
+	•	maxLoanAmount
+
+⸻
+
+15. Extra Payment Calculator
+
+Inputs
+	•	loanAmount
+	•	annualInterestRate
+	•	termMonths
+	•	extraMonthlyPayment
+
+Formula
+
+Run amortization with payment = scheduled payment + extra payment.
+
+Outputs
+	•	new payoff months
+	•	months saved
+	•	interest saved
+
+⸻
+
+3) TAX CALCULATORS
+
+16. Simple Tax Estimator
+
+Inputs
+	•	filingStatus
+	•	grossIncome
+	•	deductions
+	•	stateTaxRate
+
+Formula
+
+const taxableIncome = Math.max(0, grossIncome - deductions);
+
+Federal tax should use a simplified bracket table in code.
+
+Example structure:
+
+const federalBrackets = {
+  single: [
+    { upTo: 11600, rate: 0.10 },
+    { upTo: 47150, rate: 0.12 },
+    { upTo: 100525, rate: 0.22 },
+    // continue
+  ],
+  marriedJoint: [
+    { upTo: 23200, rate: 0.10 },
+    { upTo: 94300, rate: 0.12 },
+    { upTo: 201050, rate: 0.22 },
+    // continue
+  ],
+};
+
+Bracket calc:
+
+function calcProgressiveTax(income, brackets) {
+  let tax = 0;
+  let prev = 0;
+
+  for (const bracket of brackets) {
+    const upper = bracket.upTo;
+    const taxableAtThisRate = Math.min(income, upper) - prev;
+    if (taxableAtThisRate > 0) {
+      tax += taxableAtThisRate * bracket.rate;
+      prev = upper;
+    }
+    if (income <= upper) break;
+  }
+
+  return tax;
+}
+
+Then:
+
+const federalTax = calcProgressiveTax(taxableIncome, federalBrackets[filingStatus]);
+const stateTax = taxableIncome * (stateTaxRate / 100);
+const totalTax = federalTax + stateTax;
+const effectiveRate = grossIncome > 0 ? totalTax / grossIncome : 0;
+
+Outputs
+	•	taxableIncome
+	•	federalTax
+	•	stateTax
+	•	totalTax
+	•	effectiveRate
+
+⸻
+
+17. Self-Employment Tax Calculator
+
+Inputs
+	•	netSelfEmploymentIncome
+
+Formula
+
+const seTaxableIncome = netSelfEmploymentIncome * 0.9235;
+const selfEmploymentTax = seTaxableIncome * 0.153;
+const deductibleHalf = selfEmploymentTax / 2;
+const afterSETax = netSelfEmploymentIncome - selfEmploymentTax;
+
+Outputs
+	•	seTaxableIncome
+	•	selfEmploymentTax
+	•	deductibleHalf
+	•	afterSETax
+
+⸻
+
+18. Set-Aside Calculator
+
+Inputs
+	•	monthlyFreelanceIncome
+	•	expensePercent
+	•	taxPercent
+
+Formula
+
+const expenses = monthlyFreelanceIncome * (expensePercent / 100);
+const netIncome = monthlyFreelanceIncome - expenses;
+const taxSetAside = netIncome * (taxPercent / 100);
+const spendable = monthlyFreelanceIncome - expenses - taxSetAside;
+const annualSetAside = taxSetAside * 12;
+
+Outputs
+	•	expenses
+	•	netIncome
+	•	monthlyTaxSetAside
+	•	spendableAmount
+	•	annualSetAside
+
+⸻
+
+19. Quarterly Tax Calculator
+
+Inputs
+	•	annualEstimatedTax
+
+Formula
+
+const quarterlyPayment = annualEstimatedTax / 4;
+const dueDates = ["Apr 15", "Jun 15", "Sep 15", "Jan 15"];
+
+Outputs
+	•	payment1
+	•	payment2
+	•	payment3
+	•	payment4
+	•	dueDates
+
+⸻
+
+20. Tax on $X Income Calculator
+
+This is a pSEO wrapper around the Simple Tax Estimator.
+
+Inputs
+	•	income preset from slug
+	•	filingStatus
+	•	deductions
+	•	stateTaxRate
+
+Use same tax estimator formula.
+
+Examples:
+	•	/guides/tax-on-50000-income
+	•	/guides/tax-on-80000-self-employment-income
+
+⸻
+
+4) INVESTING CALCULATORS
+
+21. Investment Return Calculator
+
+Inputs
+	•	initialInvestment
+	•	annualReturnRate
+	•	years
+	•	monthlyContribution
+
+Formula
+
+Same simulation pattern as compound savings, but framed as investment growth.
+
+const r = annualReturnRate / 12 / 100;
+const months = years * 12;
+
+let balance = initialInvestment;
+let contributions = initialInvestment;
+
+for (let i = 1; i <= months; i++) {
+  balance = balance * (1 + r) + monthlyContribution;
+  contributions += monthlyContribution;
+}
+
+const growth = balance - contributions;
+
+Outputs
+	•	endingBalance
+	•	contributions
+	•	growth
+
+⸻
+
+22. SIP / Monthly Investing Calculator
+
+This is essentially a monthly investment growth calculator.
+
+Inputs
+	•	monthlyInvestment
+	•	years
+	•	annualReturnRate
+
+Formula
+
+let balance = 0;
+for (let i = 1; i <= years * 12; i++) {
+  balance = balance * (1 + annualReturnRate / 12 / 100) + monthlyInvestment;
+}
+
+Outputs
+	•	investedAmount
+	•	finalValue
+	•	gains
+
+⸻
+
+23. Save vs Invest Calculator
+
+Inputs
+	•	monthlyAmount
+	•	years
+	•	savingsAPY
+	•	investmentReturn
+
+Formula
+
+Run same month-by-month growth twice.
+
+function grow(monthlyAmount, years, annualRate) {
+  const r = annualRate / 12 / 100;
+  let balance = 0;
+  for (let i = 0; i < years * 12; i++) {
+    balance = balance * (1 + r) + monthlyAmount;
+  }
+  return balance;
+}
+
+const savingsValue = grow(monthlyAmount, years, savingsAPY);
+const investmentValue = grow(monthlyAmount, years, investmentReturn);
+const difference = investmentValue - savingsValue;
+
+Outputs
+	•	savingsValue
+	•	investmentValue
+	•	difference
+
+⸻
+
+24. Retirement Growth Calculator
+
+Inputs
+	•	currentAge
+	•	retirementAge
+	•	currentRetirementSavings
+	•	monthlyContribution
+	•	annualReturnRate
+
+Formula
+
+const years = retirementAge - currentAge;
+const months = years * 12;
+const r = annualReturnRate / 12 / 100;
+
+let balance = currentRetirementSavings;
+let contributions = currentRetirementSavings;
+
+for (let i = 0; i < months; i++) {
+  balance = balance * (1 + r) + monthlyContribution;
+  contributions += monthlyContribution;
+}
+
+Outputs
+	•	retirementBalance
+	•	totalContributions
+	•	growth
+
+⸻
+
+5) DEBT & CREDIT CALCULATORS
+
+25. Credit Card Payoff Calculator
+
+Inputs
+	•	balance
+	•	annualAPR
+	•	monthlyPayment
+
+Formula
+
+const r = annualAPR / 12 / 100;
+let currentBalance = balance;
+let months = 0;
+let totalInterest = 0;
+
+while (currentBalance > 0 && months < 1200) {
+  const interest = currentBalance * r;
+
+  if (monthlyPayment <= interest) {
+    throw new Error("Payment too low to ever pay off balance");
+  }
+
+  const principal = monthlyPayment - interest;
+  currentBalance = Math.max(0, currentBalance - principal);
+  totalInterest += interest;
+  months++;
+}
+
+Outputs
+	•	monthsToPayoff
+	•	totalInterest
+	•	payoffDateEstimate
+
+⸻
+
+26. Debt Snowball Calculator
+
+Inputs
+	•	debts: [{name, balance, apr, minPayment}]
+	•	extraPayment
+
+Formula
+	1.	Sort by smallest balance
+	2.	Pay minimums on all
+	3.	Apply extra to smallest
+	4.	When debt is cleared, roll freed minimum into next
+
+Implementation is month-by-month simulation.
+
+Outputs
+	•	payoff order
+	•	total months
+	•	total interest
+	•	debt-free date
+	•	timeline array
+
+⸻
+
+27. Debt Avalanche Calculator
+
+Inputs
+
+Same as snowball.
+
+Formula
+
+Same simulation, but sort by highest APR first.
+
+Outputs
+	•	payoff order
+	•	payoff time
+	•	total interest
+	•	comparison vs snowball if desired
+
+⸻
+
+28. Interest Calculator
+
+Inputs
+	•	principal
+	•	annualRate
+	•	timeYears
+	•	simpleOrCompound
+
+Formula
+
+Simple:
+
+const interest = principal * (annualRate / 100) * timeYears;
+const total = principal + interest;
+
+Compound:
+
+const total = principal * Math.pow(1 + annualRate / 100, timeYears);
+const interest = total - principal;
+
+Outputs
+	•	interest
+	•	totalAmount
+
+⸻
+
+29. Minimum Payment Trap Calculator
+
+Inputs
+	•	creditCardBalance
+	•	annualAPR
+	•	minimumPaymentPercent
+	•	minimumPaymentFloor
+
+Formula
+
+Each month:
+
+const minimumPayment = Math.max(balance * (minimumPaymentPercent / 100), minimumPaymentFloor);
+
+Then same payoff loop.
+
+Outputs
+	•	months to payoff
+	•	total interest
+	•	total amount paid
+
+⸻
+
+6) INCOME & FREELANCE CALCULATORS
+
+30. Freelance Income Estimator
+
+Inputs
+	•	averageProjectValue
+	•	projectsPerMonth
+	•	variabilityPercent
+
+Formula
+
+const averageIncome = averageProjectValue * projectsPerMonth;
+const lowIncome = averageIncome * (1 - variabilityPercent / 100);
+const highIncome = averageIncome * (1 + variabilityPercent / 100);
+
+Outputs
+	•	lowMonthlyIncome
+	•	averageMonthlyIncome
+	•	highMonthlyIncome
+
+⸻
+
+31. Hourly Rate Calculator
+
+Inputs
+	•	annualIncome
+	•	hoursPerWeek
+	•	weeksPerYear
+
+Formula
+
+const annualHours = hoursPerWeek * weeksPerYear;
+const hourlyRate = annualHours > 0 ? annualIncome / annualHours : 0;
+const monthlyIncome = annualIncome / 12;
+const weeklyIncome = annualIncome / weeksPerYear;
+
+Outputs
+	•	hourlyRate
+	•	monthlyIncome
+	•	weeklyIncome
+
+⸻
+
+32. Side Hustle Calculator
+
+Inputs
+	•	hourlyRate
+	•	hoursPerWeek
+	•	weeksPerMonth
+
+Formula
+
+const monthlyIncome = hourlyRate * hoursPerWeek * weeksPerMonth;
+const annualIncome = monthlyIncome * 12;
+
+Outputs
+	•	monthlyIncome
+	•	annualIncome
+
+⸻
+
+33. Profit Margin Calculator
+
+Inputs
+	•	revenue
+	•	costs
+
+Formula
+
+const profit = revenue - costs;
+const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
+
+Outputs
+	•	profit
+	•	marginPercent
+
+⸻
+
+34. Net Income Calculator
+
+Inputs
+	•	grossIncome
+	•	taxes
+	•	businessCosts
+	•	otherDeductions
+
+Formula
+
+const netIncome = grossIncome - taxes - businessCosts - otherDeductions;
+
+Outputs
+	•	netIncome
+	•	expenseRatio
+	•	remainingPercent
+
+⸻
+
+7) LIFE DECISION CALCULATORS
+
+35. Rent vs Buy Calculator
+
+Inputs
+	•	monthlyRent
+	•	homePrice
+	•	downPayment
+	•	annualMortgageRate
+	•	loanTermYears
+	•	annualPropertyTax
+	•	annualInsurance
+	•	annualMaintenancePercent
+	•	yearsStaying
+
+Formula
+
+Rent cost:
+
+const totalRentCost = monthlyRent * 12 * yearsStaying;
+
+Buy cost:
+	1.	calculate mortgage P&I
+	2.	sum property tax, insurance, maintenance over period
+	3.	add optional closing costs if included
+
+const loanAmount = homePrice - downPayment;
+const r = annualMortgageRate / 12 / 100;
+const n = loanTermYears * 12;
+
+const pi =
+  r === 0
+    ? loanAmount / n
+    : loanAmount * (r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1);
+
+const ownershipMonths = yearsStaying * 12;
+const maintenanceAnnual = homePrice * (annualMaintenancePercent / 100);
+
+const totalBuyCost =
+  pi * ownershipMonths +
+  (annualPropertyTax / 12) * ownershipMonths +
+  (annualInsurance / 12) * ownershipMonths +
+  (maintenanceAnnual / 12) * ownershipMonths;
+
+Outputs
+	•	totalRentCost
+	•	totalBuyCost
+	•	difference
+
+⸻
+
+36. Cost of Living Comparison Tool
+
+Inputs
+	•	currentRent
+	•	currentGroceries
+	•	currentTransport
+	•	currentUtilities
+	•	currentMisc
+	•	targetRent
+	•	targetGroceries
+	•	targetTransport
+	•	targetUtilities
+	•	targetMisc
+
+Formula
+
+const currentTotal =
+  currentRent + currentGroceries + currentTransport + currentUtilities + currentMisc;
+
+const targetTotal =
+  targetRent + targetGroceries + targetTransport + targetUtilities + targetMisc;
+
+const monthlyDifference = targetTotal - currentTotal;
+const annualDifference = monthlyDifference * 12;
+
+Outputs
+	•	currentMonthlyCost
+	•	targetMonthlyCost
+	•	monthlyDifference
+	•	annualDifference
+
+⸻
+
+37. Salary Reality Calculator
+
+Inputs
+	•	grossAnnualSalary
+	•	estimatedTaxRate
+	•	monthlyHousing
+	•	monthlyDebt
+	•	monthlyNecessities
+	•	monthlySavingsTarget
+
+Formula
+
+const annualAfterTax = grossAnnualSalary * (1 - estimatedTaxRate / 100);
+const monthlyTakeHome = annualAfterTax / 12;
+const leftover =
+  monthlyTakeHome -
+  monthlyHousing -
+  monthlyDebt -
+  monthlyNecessities -
+  monthlySavingsTarget;
+
+Outputs
+	•	annualAfterTax
+	•	monthlyTakeHome
+	•	leftover
+	•	allocation breakdown percentages
+
+⸻
+
+38. Can I Afford This? Calculator
+
+Inputs
+	•	monthlyTakeHome
+	•	currentMonthlyExpenses
+	•	newMonthlyCost
+
+Formula
+
+const currentLeftover = monthlyTakeHome - currentMonthlyExpenses;
+const afterPurchaseLeftover = currentLeftover - newMonthlyCost;
+const affordabilityRatio = monthlyTakeHome > 0 ? (newMonthlyCost / monthlyTakeHome) * 100 : 0;
+
+Outputs
+	•	currentLeftover
+	•	afterPurchaseLeftover
+	•	affordabilityRatio
+
+⸻
+
+39. Lifestyle Inflation Calculator
+
+Inputs
+	•	oldIncome
+	•	newIncome
+	•	oldExpenses
+	•	newExpenses
+
+Formula
+
+const incomeIncrease = newIncome - oldIncome;
+const expenseIncrease = newExpenses - oldExpenses;
+const inflationCaptureRate =
+  incomeIncrease > 0 ? (expenseIncrease / incomeIncrease) * 100 : 0;
+
+Outputs
+	•	incomeIncrease
+	•	expenseIncrease
+	•	inflationCaptureRate
+
+⸻
+
+Recommended reusable charts
+
+For Replit, tell it to generate chart data for each:
+	•	savings / investing: line chart over months/years
+	•	budget / salary / taxes: donut or bar chart
+	•	debt / mortgage: line chart for balance decline
+	•	loan amortization: stacked principal vs interest bars
+	•	rent vs buy / cost comparison: side-by-side bars
+
+⸻
+
+Recommended reusable export behavior
+
+Each calculator should expose:
+
+type CalculatorResultRow = {
+  label: string;
+  value: string | number;
+};
+
+Then support:
+	•	PDF summary export
+	•	CSV summary export
+	•	optional amortization CSV for loan calculators
+
+⸻
+
+What to paste into Replit next
+
+Use this instruction after the main build prompt:
+
+Implement formula utilities for all calculator clusters using reusable pure functions in a /lib/calculators folder.
+
+Each calculator must have:
+- typed input model
+- pure calculation function
+- chart data generator
+- CSV export mapper
+- PDF summary mapper
+- test cases for formula validation
+
+Start by fully implementing these first:
+1. Mortgage Calculator
+2. Simple Tax Estimator
+3. Savings Goal Calculator
+4. Credit Card Payoff Calculator
+5. Rent vs Buy Calculator
+
+Then extend the same architecture to the remaining calculators.
+
+If you want, next I can turn this into a developer handoff doc or a QA formula checklist spreadsheet format.

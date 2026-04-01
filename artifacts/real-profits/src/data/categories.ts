@@ -139,6 +139,7 @@ export const categories: Category[] = [
       { name: "Investing", slug: "investing-calc" },
       { name: "Debt & Credit", slug: "debt-credit-calc" },
       { name: "Life Decisions", slug: "life-decisions-calc" },
+      { name: "Loans", slug: "loans-calc" },
     ],
   }
 ];
