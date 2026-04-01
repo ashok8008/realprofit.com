@@ -173,19 +173,21 @@ export default function CalculatorDetail() {
       </div>
 
       <div className="container mx-auto px-4 max-w-5xl">
-        <div className="bg-card border rounded-2xl p-6 md:p-10 shadow-sm" id={`calc-${calculator.slug}`}>
+        <div className="bg-card border rounded-2xl p-6 md:p-10 shadow-sm">
           <div className="flex justify-between items-center mb-8 border-b pb-4">
             <h2 className="font-bold text-lg">Input Your Numbers</h2>
-            <div className="flex gap-2">
+            <div className="flex gap-2 export-buttons-toolbar">
                <ExportToPDFButton elementId={`calc-${calculator.slug}`} title={calculator.name} />
                <DownloadPNGButton elementId={`calc-${calculator.slug}`} title={calculator.name} />
                <ShareResultsButton />
             </div>
           </div>
 
-          <Suspense fallback={<div className="h-64 flex items-center justify-center">Loading calculator...</div>}>
-            <CalcComponent />
-          </Suspense>
+          <div id={`calc-${calculator.slug}`}>
+            <Suspense fallback={<div className="h-64 flex items-center justify-center">Loading calculator...</div>}>
+              <CalcComponent />
+            </Suspense>
+          </div>
         </div>
 
         <NationalBenchmarks calculatorCategory={calculator.category} />
