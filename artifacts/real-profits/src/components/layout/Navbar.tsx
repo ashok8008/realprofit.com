@@ -1,33 +1,38 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
-import { Search, Menu, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Menu, X } from "lucide-react";
 
 export function Navbar() {
   const [isOpen, setIsOpen] = React.useState(false);
   const [location] = useLocation();
 
   const links = [
-    { name: "Financial Calculators", href: "/calculators" },
-    { name: "What If", href: "/what-if" },
-    { name: "Articles", href: "/search" },
-    { name: "Tools", href: "/tools" },
-    { name: "About", href: "/about" },
+    { name: "FINANCIAL CALCULATORS", href: "/calculators" },
+    { name: "WHAT IF", href: "/what-if" },
+    { name: "ARTICLES", href: "/search" },
+    { name: "ABOUT", href: "/about" },
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 w-full bg-[#1a2e2e] shadow-md">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center gap-2">
-            <span className="font-serif font-bold text-2xl tracking-tight text-primary">
-              RealProfits.
+            <svg viewBox="0 0 24 24" className="w-7 h-7" fill="#22c55e">
+              <path d="M17 8C8 10 5.9 16.17 3.82 21.34l1.89.66.95-2.71c.79-.47 1.58-.9 2.34-1.29C12 16 15.69 14.37 19.5 14A7.5 7.5 0 0 0 22 2c-4 0-8 1-11 4-2 2-3 4-3 6 .08.68.24 1.35.48 2Z"/>
+            </svg>
+            <span className="font-serif font-bold text-xl tracking-tight text-white">
+              RealProfits
             </span>
           </Link>
           
-          <nav className="hidden md:flex items-center gap-6 text-sm font-medium">
+          <nav className="hidden lg:flex items-center gap-6 text-xs font-semibold tracking-wider">
             {links.map((link) => (
-              <Link key={link.href} href={link.href} className={`transition-colors hover:text-primary ${location.startsWith(link.href) ? "text-primary" : "text-muted-foreground"}`}>
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`transition-colors hover:text-[#f5c542] ${location.startsWith(link.href) ? "text-[#f5c542]" : "text-white/80"}`}
+              >
                 {link.name}
               </Link>
             ))}
@@ -35,35 +40,41 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/search" aria-label="Search">
-              <Search className="h-5 w-5" />
-            </Link>
-          </Button>
+          <Link
+            href="/contact"
+            className="hidden md:inline-flex bg-[#f5c542] text-gray-900 hover:bg-[#e5b732] rounded-full px-6 py-2 text-sm font-bold transition-colors"
+          >
+            Contact Us
+          </Link>
 
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="md:hidden"
+          <button 
+            className="lg:hidden text-white"
             onClick={() => setIsOpen(!isOpen)}
           >
-            {isOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
+            {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
         </div>
       </div>
 
       {isOpen && (
-        <div className="md:hidden border-t bg-background p-4 space-y-4">
+        <div className="lg:hidden bg-[#1a2e2e] border-t border-white/10 p-4 space-y-3">
           {links.map((link) => (
             <Link 
               key={link.href} 
               href={link.href}
-              className="block text-sm font-medium text-foreground py-2"
+              className="block text-sm font-semibold text-white/80 hover:text-[#f5c542] py-2"
               onClick={() => setIsOpen(false)}
             >
               {link.name}
             </Link>
           ))}
+          <Link
+            href="/contact"
+            className="block bg-[#f5c542] text-gray-900 rounded-full px-6 py-2 text-sm font-bold text-center mt-4"
+            onClick={() => setIsOpen(false)}
+          >
+            Contact Us
+          </Link>
         </div>
       )}
     </header>
