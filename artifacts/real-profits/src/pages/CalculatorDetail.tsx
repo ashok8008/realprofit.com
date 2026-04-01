@@ -1,12 +1,12 @@
 import React, { Suspense, lazy } from "react";
 import { useParams } from "wouter";
-import { Seo } from "@/components/Seo";
+import { Seo, buildSoftwareAppSchema, buildFAQSchema, buildBreadcrumbSchema } from "@/components/Seo";
 import { calculators } from "@/data/calculators";
-import { BreadcrumbNav, RelatedArticles } from "@/components/linking/InternalLinks";
-import { ExportToPDFButton, ExportToCSVButton, ShareResultsButton } from "@/components/export/ExportButtons";
+import { BreadcrumbNav, RelatedArticles, YouMightAlsoNeed } from "@/components/linking/InternalLinks";
+import { ExportToPDFButton, DownloadPNGButton, ShareResultsButton } from "@/components/export/ExportButtons";
+import { NationalBenchmarks } from "@/components/NationalBenchmarks";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 
-// Lazy load calculators to avoid massive bundle
 const SavingsGoalCalc = lazy(() => import("@/components/calculators/SavingsGoalCalculator").then(m => ({ default: m.SavingsGoalCalculator })));
 const EmergencyFundCalc = lazy(() => import("@/components/calculators/EmergencyFundCalculator").then(m => ({ default: m.EmergencyFundCalculator })));
 const MonthlyBudgetCalc = lazy(() => import("@/components/calculators/MonthlyBudgetCalculator").then(m => ({ default: m.MonthlyBudgetCalculator })));
@@ -16,7 +16,6 @@ const SaveVsInvestCalc = lazy(() => import("@/components/calculators/SaveVsInves
 const SimpleTaxCalc = lazy(() => import("@/components/calculators/SimpleTaxEstimator").then(m => ({ default: m.SimpleTaxEstimator })));
 const CreditCardCalc = lazy(() => import("@/components/calculators/CreditCardPayoffCalculator").then(m => ({ default: m.CreditCardPayoffCalculator })));
 
-// 12 Fallbacks
 const ExpenseBreakdownTool = lazy(() => import("@/components/calculators/ExpenseBreakdownTool").then(m => ({ default: m.ExpenseBreakdownTool })));
 const MonthlyIncomeEstimator = lazy(() => import("@/components/calculators/MonthlyIncomeEstimator").then(m => ({ default: m.MonthlyIncomeEstimator })));
 const SideHustleEarnings = lazy(() => import("@/components/calculators/SideHustleEarnings").then(m => ({ default: m.SideHustleEarnings })));
@@ -30,7 +29,6 @@ const DebtSnowballCalculator = lazy(() => import("@/components/calculators/DebtS
 const CostOfLivingComparison = lazy(() => import("@/components/calculators/CostOfLivingComparison").then(m => ({ default: m.CostOfLivingComparison })));
 const SalaryRealityCalculator = lazy(() => import("@/components/calculators/SalaryRealityCalculator").then(m => ({ default: m.SalaryRealityCalculator })));
 
-// 19 New
 const SimpleSavingsCalculator = lazy(() => import("@/components/calculators/SimpleSavingsCalculator").then(m => ({ default: m.SimpleSavingsCalculator })));
 const MonthlySavingsCalculator = lazy(() => import("@/components/calculators/MonthlySavingsCalculator").then(m => ({ default: m.MonthlySavingsCalculator })));
 const SavingsIncomeCalculator = lazy(() => import("@/components/calculators/SavingsIncomeCalculator").then(m => ({ default: m.SavingsIncomeCalculator })));
@@ -69,8 +67,6 @@ function getCalculatorComponent(slug: string) {
     case 'save-vs-invest-calculator': return SaveVsInvestCalc;
     case 'simple-tax-estimator': return SimpleTaxCalc;
     case 'credit-card-payoff-calculator': return CreditCardCalc;
-    
-    // 12 Fallbacks
     case 'expense-breakdown-tool': return ExpenseBreakdownTool;
     case 'monthly-income-estimator': return MonthlyIncomeEstimator;
     case 'side-hustle-earnings': return SideHustleEarnings;
@@ -83,8 +79,6 @@ function getCalculatorComponent(slug: string) {
     case 'debt-snowball-calculator': return DebtSnowballCalculator;
     case 'cost-of-living-comparison': return CostOfLivingComparison;
     case 'salary-reality-calculator': return SalaryRealityCalculator;
-    
-    // 19 New
     case 'simple-savings-calculator': return SimpleSavingsCalculator;
     case 'monthly-savings-calculator': return MonthlySavingsCalculator;
     case 'savings-income-calculator': return SavingsIncomeCalculator;
@@ -104,10 +98,23 @@ function getCalculatorComponent(slug: string) {
     case 'profit-margin-calculator': return ProfitMarginCalculator;
     case 'net-income-calculator': return NetIncomeCalculator;
     case 'can-i-afford-this-calculator': return CanIAffordThisCalculator;
-    
     default: return FallbackCalculator;
   }
 }
+
+const calcAiSummary: Record<string, string> = {
+  "savings-goal-calculator": "Enter your savings target and monthly contribution to see how long it takes to reach your goal. This calculator factors in interest to project your timeline accurately.",
+  "emergency-fund-calculator": "Calculate how much you need in your emergency fund based on your monthly expenses. Most financial experts recommend 3-6 months of essential costs.",
+  "monthly-budget-calculator": "Break down your income into needs, wants, and savings using the 50/30/20 rule. See exactly where your money goes each month.",
+  "compound-interest-calculator": "See how compound interest grows your money over time. Enter your principal, contribution, rate, and years to visualize exponential growth.",
+  "simple-tax-estimator": "Estimate your federal and state income tax liability based on your filing status and gross income. Uses current U.S. tax brackets.",
+  "credit-card-payoff-calculator": "Enter your credit card balance, interest rate, and monthly payment to see your payoff date and total interest paid.",
+  "rent-vs-buy-calculator": "Compare the total cost of renting versus buying a home over your planned time horizon, including opportunity cost of the down payment.",
+  "save-vs-invest-calculator": "Compare keeping money in a savings account versus investing it in the market over different time periods.",
+  "mortgage-calculator": "Calculate your monthly mortgage payment including principal, interest, taxes, and insurance based on the home price and your down payment.",
+  "debt-snowball-calculator": "Organize multiple debts by balance (smallest first) and see how the snowball method accelerates your debt-free date.",
+  "investment-growth-calculator": "Project your portfolio balance over time with regular contributions and compound growth at your expected rate of return.",
+};
 
 export default function CalculatorDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -119,42 +126,71 @@ export default function CalculatorDetail() {
 
   const CalcComponent = getCalculatorComponent(calculator.slug);
 
+  const softwareSchema = buildSoftwareAppSchema({
+    name: calculator.name,
+    description: calculator.description,
+    slug: calculator.slug,
+  });
+
+  const faqSchema = buildFAQSchema([
+    { question: "Is my data saved?", answer: "No. All calculations are performed directly in your browser. We do not store or track any of the financial numbers you input into this tool." },
+    { question: "How accurate is this calculator?", answer: "This calculator provides estimates based on standard formulas. Real-world results will vary based on inflation, exact daily compounding methods, and fee structures of specific financial institutions." },
+    { question: `What is the ${calculator.name} used for?`, answer: calculator.description },
+  ]);
+
+  const breadcrumbSchema = buildBreadcrumbSchema([
+    { name: "Home", url: "https://realprofits.com" },
+    { name: "Calculators", url: "https://realprofits.com/calculators" },
+    { name: calculator.name, url: `https://realprofits.com/calculators/${calculator.slug}` },
+  ]);
+
+  const aiSummary = calcAiSummary[calculator.slug] || calculator.description;
+
   return (
     <div className="w-full min-h-screen bg-muted/10 pb-20">
-      <Seo 
+      <Seo
         title={calculator.name}
         description={calculator.description}
         path={`/calculators/${calculator.slug}`}
+        jsonLd={[softwareSchema, faqSchema, breadcrumbSchema]}
       />
-      
+
       <div className="bg-background border-b pt-8 pb-12 mb-8">
         <div className="container mx-auto px-4 max-w-5xl">
           <BreadcrumbNav items={[
             { label: "Calculators", href: "/calculators" },
             { label: calculator.name, href: `/calculators/${calculator.slug}` }
           ]} />
-          
+
           <h1 className="font-serif text-4xl md:text-5xl font-bold mb-4 mt-4">{calculator.name}</h1>
           <p className="text-xl text-muted-foreground max-w-3xl">{calculator.description}</p>
+
+          <div id="ai-summary" className="bg-teal-50 border border-teal-200 rounded-xl p-5 mt-6 max-w-3xl">
+            <p className="text-sm font-semibold text-teal-800 mb-1">Quick Summary</p>
+            <p className="text-gray-800 text-sm">{aiSummary}</p>
+          </div>
         </div>
       </div>
-      
+
       <div className="container mx-auto px-4 max-w-5xl">
         <div className="bg-card border rounded-2xl p-6 md:p-10 shadow-sm" id={`calc-${calculator.slug}`}>
           <div className="flex justify-between items-center mb-8 border-b pb-4">
             <h2 className="font-bold text-lg">Input Your Numbers</h2>
             <div className="flex gap-2">
                <ExportToPDFButton elementId={`calc-${calculator.slug}`} title={calculator.name} />
+               <DownloadPNGButton elementId={`calc-${calculator.slug}`} title={calculator.name} />
                <ShareResultsButton />
             </div>
           </div>
-          
+
           <Suspense fallback={<div className="h-64 flex items-center justify-center">Loading calculator...</div>}>
             <CalcComponent />
           </Suspense>
         </div>
-        
-        <div className="mt-16">
+
+        <NationalBenchmarks calculatorCategory={calculator.category} />
+
+        <div className="mt-12">
           <h2 className="font-serif text-3xl font-bold mb-6">Frequently Asked Questions</h2>
           <Accordion type="single" collapsible className="bg-card border rounded-xl px-6">
             <AccordionItem value="item-1">
@@ -169,10 +205,18 @@ export default function CalculatorDetail() {
                 This calculator provides estimates based on standard formulas. Real-world results will vary based on inflation, exact daily compounding methods, and fee structures of specific financial institutions.
               </AccordionContent>
             </AccordionItem>
+            <AccordionItem value="item-3">
+              <AccordionTrigger>Can I share my results?</AccordionTrigger>
+              <AccordionContent>
+                Yes. Use the Share button to copy a link to this calculator. You can also download your results as a PNG image or PDF to share on social media or with a financial advisor.
+              </AccordionContent>
+            </AccordionItem>
           </Accordion>
         </div>
-        
+
         <RelatedArticles categorySlug={calculator.category} />
+
+        <YouMightAlsoNeed currentCategory={calculator.category} currentSlug={calculator.slug} />
       </div>
     </div>
   );

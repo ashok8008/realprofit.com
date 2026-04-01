@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Download, FileText, Printer, Share2 } from "lucide-react";
+import { Download, FileText, Printer, Share2, Image } from "lucide-react";
 import { jsPDF } from "jspdf";
 import { useToast } from "@/hooks/use-toast";
 
@@ -13,25 +13,34 @@ interface ExportProps {
 export function ExportToPDFButton({ elementId, title }: ExportProps) {
   const { toast } = useToast();
 
-  const handleExport = () => {
+  const handleExport = async () => {
     try {
-      const doc = new jsPDF();
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(20);
-      doc.text(title, 20, 20);
-      
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(12);
-      doc.text("RealProfits Financial Report", 20, 30);
-      
       const element = document.getElementById(elementId);
-      if (element) {
-        doc.text("Results have been generated. (Detailed export requires html2canvas)", 20, 50);
+      if (!element) {
+        toast({ title: "Export Failed", description: "Could not find the content to export.", variant: "destructive" });
+        return;
       }
-      
+
+      const html2canvas = (await import("html2canvas")).default;
+      const canvas = await html2canvas(element, { backgroundColor: "#ffffff", scale: 2, useCORS: true });
+      const imgData = canvas.toDataURL("image/png");
+
+      const doc = new jsPDF("p", "mm", "a4");
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const imgWidth = pageWidth - 20;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(14);
+      doc.text(title, 10, 12);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8);
+      doc.text("RealProfits.com", 10, 18);
+
+      doc.addImage(imgData, "PNG", 10, 22, imgWidth, Math.min(imgHeight, 260));
       doc.save(`${title.replace(/\s+/g, '-').toLowerCase()}-results.pdf`);
       toast({ title: "PDF Downloaded", description: "Your results have been saved as a PDF." });
-    } catch (e) {
+    } catch {
       toast({ title: "Export Failed", description: "Could not generate PDF.", variant: "destructive" });
     }
   };
@@ -39,6 +48,33 @@ export function ExportToPDFButton({ elementId, title }: ExportProps) {
   return (
     <Button variant="outline" size="sm" onClick={handleExport} className="flex items-center gap-2">
       <FileText className="w-4 h-4" /> PDF
+    </Button>
+  );
+}
+
+export function DownloadPNGButton({ elementId, title }: ExportProps) {
+  const { toast } = useToast();
+
+  const handleExport = async () => {
+    try {
+      const element = document.getElementById(elementId);
+      if (!element) return;
+
+      const html2canvas = (await import("html2canvas")).default;
+      const canvas = await html2canvas(element, { backgroundColor: "#ffffff", scale: 2, useCORS: true });
+      const link = document.createElement("a");
+      link.download = `${title.replace(/\s+/g, '-').toLowerCase()}-results.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+      toast({ title: "Image Downloaded", description: "Your results have been saved as a PNG." });
+    } catch {
+      toast({ title: "Export Failed", description: "Could not generate image.", variant: "destructive" });
+    }
+  };
+
+  return (
+    <Button variant="outline" size="sm" onClick={handleExport} className="flex items-center gap-2">
+      <Image className="w-4 h-4" /> PNG
     </Button>
   );
 }
@@ -51,11 +87,11 @@ export function ExportToCSVButton({ data, title }: { data: any[], title: string 
       toast({ title: "No Data", description: "There is no data to export." });
       return;
     }
-    
+
     const headers = Object.keys(data[0]).join(",");
     const rows = data.map(row => Object.values(row).join(",")).join("\n");
     const csvContent = `data:text/csv;charset=utf-8,${headers}\n${rows}`;
-    
+
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
@@ -87,7 +123,7 @@ export function ShareResultsButton() {
     try {
       await navigator.clipboard.writeText(window.location.href);
       toast({ title: "Link Copied", description: "You can now share your results with this link." });
-    } catch (e) {
+    } catch {
       toast({ title: "Error", description: "Failed to copy link." });
     }
   };

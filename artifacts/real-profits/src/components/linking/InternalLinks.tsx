@@ -1,8 +1,9 @@
 import React from "react";
 import { Link } from "wouter";
-import { ArrowRight, ChevronRight, Calculator } from "lucide-react";
+import { ArrowRight, ChevronRight, Calculator, Wrench } from "lucide-react";
 import { articles } from "@/data/articles";
 import { calculators } from "@/data/calculators";
+import { tools } from "@/data/tools";
 import { categories } from "@/data/categories";
 
 export function BreadcrumbNav({ items }: { items: { label: string, href: string }[] }) {
@@ -63,6 +64,123 @@ export function CalculatorInlineCard({ slug }: { slug: string }) {
       <Link href={`/calculators/${calc.slug}`} className="whitespace-nowrap inline-flex items-center justify-center rounded-md bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground shadow transition-colors hover:bg-primary/90">
         Try it now
       </Link>
+    </div>
+  );
+}
+
+const keywordMap: { keyword: string; href: string; label: string }[] = [
+  ...calculators.map(c => ({ keyword: c.name.replace(' Calculator', '').toLowerCase(), href: `/calculators/${c.slug}`, label: c.name })),
+  ...tools.map(t => ({ keyword: t.name.toLowerCase(), href: `/tools/${t.slug}`, label: t.name })),
+];
+
+export function autoLinkContent(text: string): React.ReactNode[] {
+  const parts: React.ReactNode[] = [];
+  let remaining = text;
+  let key = 0;
+  let linked = 0;
+
+  while (remaining.length > 0 && linked < 3) {
+    let earliest = -1;
+    let match: typeof keywordMap[0] | null = null;
+    let matchLen = 0;
+
+    for (const kw of keywordMap) {
+      const idx = remaining.toLowerCase().indexOf(kw.keyword);
+      if (idx !== -1 && (earliest === -1 || idx < earliest)) {
+        earliest = idx;
+        match = kw;
+        matchLen = kw.keyword.length;
+      }
+    }
+
+    if (match && earliest !== -1) {
+      if (earliest > 0) parts.push(remaining.substring(0, earliest));
+      const originalText = remaining.substring(earliest, earliest + matchLen);
+      parts.push(
+        <Link key={key++} href={match.href} className="text-teal-600 underline decoration-teal-300 hover:text-teal-800 transition-colors">
+          {originalText}
+        </Link>
+      );
+      remaining = remaining.substring(earliest + matchLen);
+      linked++;
+    } else {
+      parts.push(remaining);
+      break;
+    }
+  }
+
+  if (remaining.length > 0 && linked >= 3) {
+    parts.push(remaining);
+  }
+
+  return parts;
+}
+
+const categoryMapping: Record<string, string[]> = {
+  "savings-budget": ["investing-calc", "debt-credit-calc", "income-freelance"],
+  "income-freelance": ["taxes-calc", "savings-budget"],
+  "taxes-calc": ["income-freelance", "savings-budget"],
+  "investing-calc": ["savings-budget", "debt-credit-calc"],
+  "debt-credit-calc": ["savings-budget", "investing-calc"],
+  "life-decisions-calc": ["savings-budget", "investing-calc", "debt-credit-calc"],
+  "loans-calc": ["debt-credit-calc", "savings-budget"],
+  "income": ["taxes-calc", "savings-budget", "income-freelance"],
+  "budget": ["savings-budget", "debt-credit-calc"],
+  "wealth": ["investing-calc", "savings-budget"],
+  "money-basics": ["savings-budget", "debt-credit-calc"],
+  "income-side-hustles": ["income-freelance", "taxes-calc"],
+  "taxes": ["taxes-calc", "income-freelance"],
+  "saving-vs-investing": ["investing-calc", "savings-budget"],
+  "debt-credit": ["debt-credit-calc", "savings-budget"],
+  "life-decisions": ["life-decisions-calc", "savings-budget"],
+  "real-stories": ["savings-budget", "debt-credit-calc"],
+};
+
+export function YouMightAlsoNeed({ currentCategory, currentSlug }: { currentCategory: string; currentSlug?: string }) {
+  const relatedCategories = categoryMapping[currentCategory] || ["savings-budget", "investing-calc"];
+  const suggestions: { name: string; description: string; href: string; type: "calculator" | "tool" }[] = [];
+
+  for (const cat of relatedCategories) {
+    for (const c of calculators) {
+      if (c.category === cat && c.slug !== currentSlug && suggestions.length < 3) {
+        suggestions.push({ name: c.name, description: c.description, href: `/calculators/${c.slug}`, type: "calculator" });
+      }
+    }
+    if (suggestions.length >= 3) break;
+  }
+
+  if (suggestions.length < 3) {
+    for (const t of tools) {
+      if (t.slug !== currentSlug && suggestions.length < 3) {
+        suggestions.push({ name: t.name, description: t.description, href: `/tools/${t.slug}`, type: "tool" });
+      }
+    }
+  }
+
+  if (suggestions.length === 0) return null;
+
+  return (
+    <div className="mt-12 border-t pt-10">
+      <h3 className="font-serif text-2xl font-bold mb-6">You Might Also Need</h3>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        {suggestions.map(s => (
+          <Link key={s.href} href={s.href} className="group block">
+            <div className="border rounded-xl p-5 h-full transition-all hover:border-teal-400 hover:shadow-sm bg-white flex flex-col">
+              <div className="flex items-center gap-2 mb-2">
+                {s.type === "calculator"
+                  ? <Calculator className="h-4 w-4 text-teal-600" />
+                  : <Wrench className="h-4 w-4 text-teal-600" />}
+                <span className="text-[10px] uppercase tracking-wider font-bold text-teal-600">{s.type}</span>
+              </div>
+              <h4 className="font-bold text-sm mb-1 group-hover:text-teal-600 transition-colors">{s.name}</h4>
+              <p className="text-xs text-gray-500 flex-grow">{s.description}</p>
+              <div className="mt-3 text-xs font-bold text-teal-600 flex items-center">
+                Try Now <ArrowRight className="ml-1 h-3 w-3 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </div>
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }

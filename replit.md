@@ -108,12 +108,23 @@ Frontend-only React + Vite personal finance content site (RealProfits.com). No b
     - Income Tracker (log income entries with trends)
     - Expense Tracker (log expenses with category breakdown)
   - **What If Simulator**: 3-step financial planning wizard at /what-if with sliders, scenario modeling, and net worth projection chart (Recharts AreaChart)
-  - **pSEO**: Programmatic SEO pages at /guides/:slug
+  - **pSEO Engine**: 129 programmatic SEO pages at /guides/:slug with 3 page types:
+    - Salary guides (53): `/guides/[amount]-salary` - "Is $X a Good Salary?" with tax breakdowns, 50/30/20 budgets
+    - Tax guides (49): `/guides/tax-on-[amount]-income` - "How Much Tax Do You Pay on $X?" with progressive bracket calculations
+    - Savings guides (27): `/guides/save-[amount]` - "How to Save $X" with monthly savings plans for 6mo/1yr/2yr/5yr timelines
+    - Each page includes: Direct Answer (ai-summary) block, data tables, Compare With Others sidebar (5 random links), You Might Also Need widget, full JSON-LD (HowTo + FAQPage + BreadcrumbList)
+    - Data files: `src/data/pseo/salary-levels.ts`, `src/data/pseo/savings-targets.ts`
   - **Trust pages**: About, Contact, Privacy, Terms, Editorial Policy, Disclaimer
+- **SEO Systems**:
+  - **JSON-LD Schema**: `Seo.tsx` supports jsonLd prop (single or array). Helpers: `buildArticleSchema`, `buildFAQSchema`, `buildSoftwareAppSchema`, `buildHowToSchema`, `buildBreadcrumbSchema`
+  - **GEO Optimization**: Every article, calculator, and guide page has a `div#ai-summary` with TL;DR/Direct Answer/Quick Summary blocks for AI citation
+  - **Internal Linking**: `autoLinkContent()` scans text for calculator/tool keywords and auto-links them. `YouMightAlsoNeed` widget shows 3 related tools based on category mapping
+  - **National Benchmarks**: Data tables on calculator pages showing U.S. averages by age/category (savings, debt, tax, income, budget, investment, loan)
+  - **Shareable Insights**: `ShareableInsight` component with html2canvas PNG export. Calculator toolbar has PDF, PNG, and Share buttons
 - **Data files**: `src/data/calculators.ts`, `src/data/categories.ts`, `src/data/articles.ts`, `src/data/tools.ts`
 - **Calculator pattern**: Named export in `src/components/calculators/[Name].tsx`, lazy-loaded in CalculatorDetail.tsx
 - **Tool pattern**: Named export in `src/components/tools/[Name].tsx`, lazy-loaded in ToolDetail.tsx, localStorage persistence for all tools
-- **Export utilities**: `src/components/export/ExportButtons.tsx` (PDF, CSV, Print, Share)
+- **Export utilities**: `src/components/export/ExportButtons.tsx` (PDF with html2canvas, PNG, CSV, Print, Share)
 - **No emojis** in UI (explicit requirement)
 - **USA-only** audience
 

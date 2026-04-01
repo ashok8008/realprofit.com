@@ -1,10 +1,11 @@
 import React from "react";
 import { Link, useParams } from "wouter";
-import { Seo } from "@/components/Seo";
+import { Seo, buildArticleSchema, buildBreadcrumbSchema } from "@/components/Seo";
 import { articles } from "@/data/articles";
 import { categories } from "@/data/categories";
 import { ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { autoLinkContent, YouMightAlsoNeed, RelatedArticles } from "@/components/linking/InternalLinks";
 
 function renderInlineMarkdown(text: string): React.ReactNode {
   const parts: React.ReactNode[] = [];
@@ -15,12 +16,12 @@ function renderInlineMarkdown(text: string): React.ReactNode {
     const boldMatch = remaining.match(/\*\*(.+?)\*\*/);
     if (boldMatch && boldMatch.index !== undefined) {
       if (boldMatch.index > 0) {
-        parts.push(remaining.substring(0, boldMatch.index));
+        parts.push(...autoLinkContent(remaining.substring(0, boldMatch.index)));
       }
       parts.push(<strong key={key++}>{boldMatch[1]}</strong>);
       remaining = remaining.substring(boldMatch.index + boldMatch[0].length);
     } else {
-      parts.push(remaining);
+      parts.push(...autoLinkContent(remaining));
       break;
     }
   }
@@ -99,7 +100,7 @@ function renderMarkdownContent(content: string) {
 export default function ArticleDetail() {
   const { slug } = useParams<{ slug: string }>();
   const article = articles.find(a => a.slug === slug);
-  
+
   if (!article) {
     return <div className="container mx-auto py-20 text-center">Article not found</div>;
   }
@@ -107,15 +108,30 @@ export default function ArticleDetail() {
   const category = categories.find(c => c.slug === article.categorySlug);
   const subcategory = category?.subcategories.find(s => s.slug === article.subcategorySlug);
 
+  const articleSchema = buildArticleSchema({
+    title: article.title,
+    excerpt: article.excerpt,
+    author: article.author,
+    date: article.date,
+    slug: article.slug,
+  });
+
+  const breadcrumbSchema = buildBreadcrumbSchema([
+    { name: "Home", url: "https://realprofits.com" },
+    ...(category ? [{ name: category.name, url: `https://realprofits.com/category/${category.slug}` }] : []),
+    { name: article.title, url: `https://realprofits.com/articles/${article.slug}` },
+  ]);
+
   return (
     <div className="w-full bg-background">
-      <Seo 
+      <Seo
         title={article.title}
         description={article.excerpt}
         path={`/articles/${article.slug}`}
         type="article"
+        jsonLd={[articleSchema, breadcrumbSchema]}
       />
-      
+
       <article className="container mx-auto px-4 py-12 max-w-4xl">
         <nav className="flex items-center text-sm text-muted-foreground mb-8">
           <Link href="/" className="hover:text-foreground">Home</Link>
@@ -130,12 +146,17 @@ export default function ArticleDetail() {
             <Link href={`/category/${category?.slug}/${subcategory.slug}`} className="hover:text-foreground">{subcategory.name}</Link>
           )}
         </nav>
-        
-        <header className="mb-12">
+
+        <header className="mb-8">
           <h1 className="font-serif text-4xl md:text-5xl font-bold text-foreground leading-tight mb-6">
             {article.title}
           </h1>
-          
+
+          <div id="ai-summary" className="bg-teal-50 border border-teal-200 rounded-xl p-5 mb-6">
+            <p className="text-sm font-semibold text-teal-800 mb-1">TL;DR</p>
+            <p className="text-gray-800 text-sm">{article.excerpt}</p>
+          </div>
+
           <div className="flex items-center justify-between border-y py-4">
             <div className="flex items-center gap-4 text-sm">
               <div className="font-medium">{article.author}</div>
@@ -143,16 +164,20 @@ export default function ArticleDetail() {
               <div className="text-muted-foreground">&middot;</div>
               <div className="text-muted-foreground">{article.readTime} min read</div>
             </div>
-            
+
             <div className="flex gap-2">
                <Button variant="outline" size="sm">Share</Button>
             </div>
           </div>
         </header>
-        
+
         <div className="prose prose-lg prose-headings:font-serif prose-a:text-primary hover:prose-a:text-primary/80 max-w-none">
           {renderMarkdownContent(article.content)}
         </div>
+
+        <RelatedArticles categorySlug={article.categorySlug} currentSlug={article.slug} />
+
+        <YouMightAlsoNeed currentCategory={article.categorySlug} currentSlug={article.slug} />
 
         <div className="mt-16 bg-muted/30 border p-8 rounded-xl flex items-center justify-between">
           <div>
