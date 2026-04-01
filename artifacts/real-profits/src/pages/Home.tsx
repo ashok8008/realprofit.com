@@ -208,8 +208,52 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Articles */}
+      {/* Productive Tools */}
       <section className="py-20 bg-gray-50">
+        <div className="container mx-auto px-4 max-w-6xl">
+          <div className="text-center mb-14">
+            <h2 className="font-serif text-3xl md:text-4xl font-bold mb-3">Productive Tools</h2>
+            <p className="text-gray-500 max-w-lg mx-auto">
+              Hands-on utilities to manage invoices, track spending, split bills, and stay on top of your finances.
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+            {[
+              { title: "Freelance Invoice Generator", desc: "Create professional invoices and download them as PDF.", slug: "freelance-invoice-generator", color: "bg-amber-100 text-amber-600" },
+              { title: "Subscription Cost Analyzer", desc: "Track and analyze your monthly subscription spending.", slug: "subscription-cost-analyzer", color: "bg-rose-100 text-rose-600" },
+              { title: "Bill Split Tool", desc: "Split bills fairly among friends or roommates.", slug: "bill-split-tool", color: "bg-blue-100 text-blue-600" },
+              { title: "Net Worth Calculator", desc: "Calculate your total assets minus liabilities.", slug: "net-worth-calculator", color: "bg-emerald-100 text-emerald-600" },
+              { title: "Income Tracker", desc: "Log income entries and see earning patterns over time.", slug: "income-tracker", color: "bg-violet-100 text-violet-600" },
+              { title: "Expense Tracker", desc: "Record expenses and understand spending habits.", slug: "expense-tracker", color: "bg-cyan-100 text-cyan-600" },
+            ].map((tool, i) => (
+              <Link key={i} href={`/tools/${tool.slug}`} className="group block h-full">
+                <div className="h-full rounded-2xl border bg-white p-6 shadow-sm transition-all hover:shadow-lg hover:border-teal-400 flex flex-col">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-4 ${tool.color}`}>
+                    <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/>
+                    </svg>
+                  </div>
+                  <h3 className="font-bold text-base mb-1.5 group-hover:text-teal-600 transition-colors">{tool.title}</h3>
+                  <p className="text-gray-500 text-xs mb-4 flex-grow">{tool.desc}</p>
+                  <div className="font-bold text-teal-600 text-sm flex items-center">
+                    Use Tool <ArrowRight className="ml-1 h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+          
+          <div className="text-center">
+            <Link href="/tools" className="inline-block border-2 border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50 rounded-full px-8 py-3 font-bold text-sm transition-colors">
+              View All Tools
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Articles */}
+      <section className="py-20">
         <div className="container mx-auto px-4 max-w-6xl">
           <div className="text-center mb-8">
             <h2 className="font-serif text-3xl md:text-4xl font-bold mb-3">Learn With RealProfits</h2>

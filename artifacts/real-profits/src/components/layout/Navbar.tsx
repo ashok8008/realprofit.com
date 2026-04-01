@@ -8,6 +8,7 @@ export function Navbar() {
 
   const links = [
     { name: "FINANCIAL CALCULATORS", href: "/calculators" },
+    { name: "PRODUCTIVE TOOLS", href: "/tools" },
     { name: "WHAT IF", href: "/what-if" },
     { name: "ARTICLES", href: "/search" },
     { name: "ABOUT", href: "/about" },
