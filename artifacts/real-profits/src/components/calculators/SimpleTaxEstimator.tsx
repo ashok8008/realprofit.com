@@ -68,7 +68,7 @@ export function SimpleTaxEstimator() {
       </div>
 
       <div className="h-[250px]" id="simple-tax-chart">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
           <PieChart>
             <Pie
               data={data}

@@ -201,7 +201,7 @@ export function IncomeTracker() {
             <div className="bg-card border rounded-xl p-6 shadow-sm">
               <h3 className="font-bold mb-4">Income Trend</h3>
               <div className="h-48">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                   <LineChart data={monthlyData}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} />
                     <XAxis dataKey="month" tickFormatter={v => v.substring(5, 7) + '/' + v.substring(2, 4)} tick={{fontSize: 12}} />
@@ -218,7 +218,7 @@ export function IncomeTracker() {
             <div className="bg-card border rounded-xl p-6 shadow-sm">
               <h3 className="font-bold mb-4">By Category</h3>
               <div className="h-48">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                   <BarChart data={categoryData} layout="vertical" margin={{ left: 20 }}>
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                     <XAxis type="number" tickFormatter={v => `$${v > 1000 ? v/1000+'k' : v}`} tick={{fontSize: 12}} />

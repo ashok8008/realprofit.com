@@ -190,7 +190,7 @@ export function ExpenseTracker() {
             <div className="bg-card border rounded-xl p-6 shadow-sm">
               <h3 className="font-bold mb-4 text-center">Spending by Category</h3>
               <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                   <PieChart>
                     <Pie data={categoryData} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={2} dataKey="value">
                       {categoryData.map((entry, index) => (

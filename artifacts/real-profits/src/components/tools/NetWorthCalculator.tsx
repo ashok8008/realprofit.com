@@ -183,7 +183,7 @@ export function NetWorthCalculator() {
           <div className="bg-card border rounded-xl p-6 shadow-sm">
             <h3 className="text-center font-bold mb-4">Assets vs Liabilities</h3>
             <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                 <PieChart>
                   <Pie data={pieData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
                     {pieData.map((entry, index) => (
@@ -199,7 +199,7 @@ export function NetWorthCalculator() {
           <div className="bg-card border rounded-xl p-6 shadow-sm">
             <h3 className="text-center font-bold mb-4">Major Categories</h3>
             <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                 <BarChart data={barData} layout="vertical" margin={{ top: 0, right: 30, left: 40, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                   <XAxis type="number" tickFormatter={v => `$${v > 1000 ? v/1000+'k' : v}`} />

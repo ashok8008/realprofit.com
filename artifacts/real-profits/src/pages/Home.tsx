@@ -79,7 +79,7 @@ export default function Home() {
               <div className="absolute top-16 right-64 bg-white rounded-xl p-5 shadow-2xl -rotate-6 w-52 z-10">
                 <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Debt Payoff Calculator</div>
                 <div className="h-16 w-full mb-2">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                     <LineChart data={[{v:100},{v:85},{v:60},{v:30},{v:0}]}>
                       <Line type="monotone" dataKey="v" stroke="#f97316" strokeWidth={2} dot={false} />
                     </LineChart>
@@ -91,7 +91,7 @@ export default function Home() {
               <div className="absolute top-52 right-8 bg-white rounded-xl p-5 shadow-2xl rotate-2 w-60 z-30">
                 <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Compound Interest</div>
                 <div className="h-16 w-full mb-2">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                     <LineChart data={dummyChartData.slice(0, 5)}>
                       <Line type="monotone" dataKey="value" stroke="#0d9488" strokeWidth={2} dot={false} />
                     </LineChart>
@@ -383,7 +383,7 @@ export default function Home() {
                 <div className="text-xs text-gray-400">Projected</div>
               </div>
               <div className="h-64 w-full">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                   <LineChart data={dummyChartData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                     <XAxis dataKey="age" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />

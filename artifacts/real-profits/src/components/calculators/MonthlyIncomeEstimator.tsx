@@ -51,7 +51,7 @@ export function MonthlyIncomeEstimator() {
       </div>
 
       <div className="h-[250px]" id="monthly-income-chart">
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
           <BarChart data={data}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis dataKey="name" />

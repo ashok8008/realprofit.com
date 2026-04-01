@@ -77,7 +77,7 @@ export function RetirementGrowthCalculator() {
 
       {years > 0 && (
         <div className="h-[300px]">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
             <AreaChart data={data}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="age" tickFormatter={v => `Age ${v}`} />

@@ -161,7 +161,7 @@ export function SubscriptionCostAnalyzer() {
 
           {processedSubs.length > 0 && (
             <div className="h-64 border rounded-lg p-4 pt-6">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                 <BarChart data={processedSubs} layout="vertical" margin={{ top: 0, right: 30, left: 40, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                   <XAxis type="number" tickFormatter={v => `$${v}`} />
@@ -214,7 +214,7 @@ export function SubscriptionCostAnalyzer() {
             <div className="bg-card border rounded-xl p-6 shadow-sm">
               <h3 className="font-bold mb-4">By Category (Monthly)</h3>
               <div className="h-48">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                   <PieChart>
                     <Pie data={categoryData} cx="50%" cy="50%" innerRadius={40} outerRadius={70} paddingAngle={2} dataKey="value">
                       {categoryData.map((entry, index) => (

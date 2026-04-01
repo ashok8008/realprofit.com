@@ -128,7 +128,7 @@ export function PaycheckCalculator() {
           <div className="bg-card border rounded-xl p-6 shadow-sm">
             <h3 className="font-bold text-center mb-6">Paycheck Breakdown</h3>
             <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                 <PieChart>
                   <Pie data={chartData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={2} dataKey="value">
                     {chartData.map((entry, index) => (

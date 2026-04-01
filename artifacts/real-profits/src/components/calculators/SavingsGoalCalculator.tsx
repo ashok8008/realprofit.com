@@ -62,7 +62,7 @@ export function SavingsGoalCalculator() {
 
       {data.length > 0 && months < 1200 && (
         <div className="h-[300px] mt-8" id="savings-goal-chart">
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
             <LineChart data={data}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ccc" />
               <XAxis dataKey="month" tickFormatter={(v) => `${Math.floor(v/12)}y`} />
