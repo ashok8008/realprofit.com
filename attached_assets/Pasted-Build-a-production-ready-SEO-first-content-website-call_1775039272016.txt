@@ -1,0 +1,881 @@
+Build a production-ready, SEO-first content website called **RealProfits.com** using **Next.js 14+ App Router, TypeScript, Tailwind CSS, and MDX/content collections**.
+
+The site must be architected for:
+1. High-volume editorial content
+2. Programmatic SEO (pSEO)
+3. Calculator landing pages
+4. Strong internal linking
+5. Fast performance / Core Web Vitals
+6. Future ad monetization
+7. Scalable category + slug structure
+8. Schema markup / rich results
+9. AI search / GEO readiness
+10. Easy CMS-like content management without a heavy backend initially
+11. Rich calculator UX with charts and downloadable results
+
+## BRAND
+- Site name: RealProfits.com
+- Positioning: A mass-market personal finance and money education site for everyday people in the United States
+- Tone: Calm, practical, non-hype, editorial
+- Audience: Beginners, workers, freelancers, side-hustlers, savers, debt-payoff readers, people making everyday money decisions
+
+---
+
+## TECH STACK
+Use:
+- Next.js App Router
+- TypeScript
+- Tailwind CSS
+- Static generation wherever possible
+- MDX or contentlayer-style content architecture
+- JSON/YAML/TS data files for pSEO datasets
+- Dynamic metadata generation per page
+- next-sitemap or equivalent sitemap generation
+- robots.txt generation
+- Structured data JSON-LD
+- Responsive design
+- Accessible components
+- Clean reusable component architecture
+- Recharts for charts/graphs
+- jsPDF or pdf-lib for PDF export
+- CSV export utility for calculator results
+
+Do NOT use a heavy database initially unless required.
+Do NOT add authentication yet.
+Do NOT add user accounts yet.
+Do NOT add payment systems yet.
+
+---
+
+## REQUIRED SITE ARCHITECTURE
+
+Top navigation must include:
+- Home
+- Money Basics
+- Income & Side Hustles
+- Taxes
+- Saving vs Investing
+- Debt & Credit
+- Life Decisions
+- Real Stories
+- Calculators
+
+Footer must include:
+- About
+- Contact
+- Privacy Policy
+- Terms
+- Editorial Policy
+- Disclaimer
+- Sitemap
+
+---
+
+## CONTENT CATEGORY STRUCTURE
+
+Create category pages for:
+
+1. Money Basics
+   - Saving Money
+   - Budgeting
+   - Emergency Funds
+   - Living Paycheck to Paycheck
+   - Money Habits
+   - Financial Mistakes
+   - How Much Should I Have?
+   - Money Myths
+
+2. Income & Side Hustles
+   - Freelancing Basics
+   - Gig Economy
+   - Side Hustle Ideas
+   - Irregular Income
+   - Passive Income Reality
+   - Online Income
+   - Career Switching
+   - Increasing Your Income
+
+3. Taxes
+   - Do I Need to File?
+   - Tax Deadlines
+   - Estimated Taxes
+   - Freelance & Gig Taxes
+   - Tax Mistakes
+   - Tax Myths
+   - IRS Letters & Notices
+   - Filing Options Explained
+
+4. Saving vs Investing
+   - Saving Accounts
+   - High-Yield Savings
+   - Investing Basics
+   - Stocks vs ETFs
+   - Retirement Basics
+   - Risk & Returns
+   - When to Invest
+   - Long-Term Planning
+
+5. Debt & Credit
+   - Credit Cards
+   - Credit Scores
+   - Loans & Interest
+   - Debt Payoff Strategies
+   - Student Loans
+   - Buy Now Pay Later
+   - Credit Myths
+   - Bad Debt vs Good Debt
+
+6. Life Decisions
+   - Renting vs Buying
+   - Marriage & Money
+   - Kids & Family Finances
+   - Moving Cities
+   - Lifestyle Inflation
+   - Big Purchases
+   - Career & Life Choices
+   - Cost of Living Comparisons
+
+7. Real Stories
+   - Income Case Studies
+   - Budget Breakdowns
+   - Financial Mistakes
+   - Money Transformations
+   - Salary Reality Checks
+   - Freelancer Stories
+   - Tax Shock Stories
+   - What I Wish I Knew
+
+8. Calculators
+   - Savings & Budget
+   - Income & Freelance
+   - Taxes
+   - Investing
+   - Debt & Credit
+   - Life Decisions
+
+---
+
+## URL STRUCTURE
+
+Implement SEO-friendly URLs like:
+
+- /
+- /category/money-basics
+- /category/money-basics/saving-money
+- /category/taxes
+- /category/taxes/estimated-taxes
+- /stories/salary-reality-checks
+- /calculators
+- /calculators/tax-estimator
+- /calculators/savings-goal-calculator
+- /articles/[slug]
+
+Allow content items to belong to:
+- top-level category
+- optional subcategory
+- calculator relationship
+- related article relationship
+
+---
+
+## HOMEPAGE REQUIREMENTS
+
+Homepage must include:
+1. Hero section with:
+   - Headline: practical money clarity for everyday life
+   - Short subheadline
+   - Search bar for content and calculators
+2. Featured categories grid
+3. Popular calculators section
+4. Latest articles section
+5. Trending / popular reads
+6. Internal linking blocks:
+   - “Start with the basics”
+   - “Popular tax questions”
+   - “Debt and credit tools”
+7. Newsletter/email capture placeholder component
+8. Clean ad slots placeholders in non-intrusive positions
+9. Mobile-first design
+
+---
+
+## CALCULATORS SECTION
+
+Create dedicated pages and reusable calculator components for these 20 calculators:
+
+### Savings & Budget
+1. Savings Goal Calculator
+2. Emergency Fund Calculator
+3. Monthly Budget Calculator
+4. Expense Breakdown Tool
+
+### Income & Freelance
+5. Monthly Income Estimator
+6. Side Hustle Earnings Calculator
+7. Hourly Rate Calculator
+
+### Taxes
+8. Simple Tax Estimator
+9. Set-Aside Calculator
+10. Quarterly Tax Calculator
+11. Self-Employment Tax Calculator
+
+### Investing
+12. Save vs Invest Calculator
+13. Compound Interest Calculator
+14. Investment Growth Calculator
+
+### Debt & Credit
+15. Credit Card Payoff Calculator
+16. Loan Interest Calculator
+17. Debt Snowball Calculator
+
+### Life Decisions
+18. Rent vs Buy Calculator
+19. Cost of Living Comparison Tool
+20. Salary Reality Calculator
+
+Each calculator page must include:
+- SEO title
+- SEO meta description
+- H1
+- short editorial explanation above calculator
+- calculator form
+- results panel
+- FAQ section
+- related articles section
+- related calculators section
+- JSON-LD where relevant
+- shareable slug
+- clean URL
+- mobile-friendly UI
+- strong readability
+- fast client-side interactions
+- downloadable results
+- chart/graph visualization
+- print-friendly results layout
+
+---
+
+## REQUIRED FORMULAS FOR CALCULATORS
+
+Implement real working formulas, not placeholders.
+
+### 1. Savings Goal Calculator
+Inputs:
+- savings target
+- current savings
+- monthly contribution
+- annual interest rate
+Formula:
+- monthly rate = annual rate / 12
+- future value projection using monthly contributions
+Outputs:
+- months to goal
+- projected balance over time
+- total contributions
+- interest earned
+
+### 2. Emergency Fund Calculator
+Inputs:
+- monthly housing
+- food
+- transportation
+- insurance
+- utilities
+- other essentials
+- target months (3, 6, 9, 12)
+Formula:
+- essential monthly total × target months
+Outputs:
+- required emergency fund
+- monthly savings needed for chosen deadline
+
+### 3. Monthly Budget Calculator
+Inputs:
+- net monthly income
+- housing
+- food
+- transportation
+- utilities
+- debt
+- savings
+- entertainment
+- miscellaneous
+Formula:
+- total expenses
+- leftover cash flow = income - expenses
+Outputs:
+- total expenses
+- remaining balance
+- savings ratio
+- debt ratio
+
+### 4. Expense Breakdown Tool
+Inputs:
+- expense categories and values
+Outputs:
+- category percentages
+- pie chart
+- top spending category
+
+### 5. Monthly Income Estimator
+Inputs:
+- average client/project income
+- number of projects
+- variable monthly range
+Outputs:
+- low estimate
+- average estimate
+- high estimate
+
+### 6. Side Hustle Earnings Calculator
+Inputs:
+- hourly earnings
+- hours per week
+- weeks per month
+Formula:
+- monthly earnings = hourly × hours × weeks
+- annual earnings = monthly × 12
+Outputs:
+- monthly income
+- annual income
+
+### 7. Hourly Rate Calculator
+Inputs:
+- annual salary or monthly income
+- hours per week
+- weeks per year
+Formula:
+- hourly rate = annual income / total annual hours
+Outputs:
+- hourly equivalent
+- monthly equivalent
+- weekly equivalent
+
+### 8. Simple Tax Estimator
+Inputs:
+- filing status
+- gross income
+- state tax rate
+- deductions estimate
+Formula:
+- taxable income = gross income - deductions
+- apply simplified progressive federal brackets
+- state tax = taxable income × state rate
+Outputs:
+- estimated federal tax
+- estimated state tax
+- total estimated tax
+- effective tax rate
+
+### 9. Set-Aside Calculator
+Inputs:
+- monthly freelance income
+- expense percentage
+- estimated tax percentage
+Formula:
+- net income = income - expense portion
+- tax set-aside = net income × tax percentage
+Outputs:
+- amount to set aside monthly
+- spendable amount
+- annual set-aside
+
+### 10. Quarterly Tax Calculator
+Inputs:
+- annual estimated tax
+Formula:
+- quarterly amount = annual estimated tax / 4
+Outputs:
+- 4 quarterly payment amounts
+- simple due date display
+
+### 11. Self-Employment Tax Calculator
+Inputs:
+- net self-employment income
+Formula:
+- SE taxable amount = net income × 0.9235
+- SE tax = SE taxable amount × 0.153
+Outputs:
+- self-employment tax
+- deductible half
+- net after SE tax
+
+### 12. Save vs Invest Calculator
+Inputs:
+- monthly amount
+- years
+- savings APY
+- investment annual return
+Formula:
+- compare future value of savings vs investment growth
+Outputs:
+- final savings value
+- final investment value
+- difference over time
+
+### 13. Compound Interest Calculator
+Inputs:
+- principal
+- monthly contribution
+- annual interest rate
+- years
+- compounding frequency
+Formula:
+- standard compound interest with recurring additions
+Outputs:
+- ending balance
+- principal contributed
+- total interest earned
+
+### 14. Investment Growth Calculator
+Inputs:
+- starting amount
+- monthly addition
+- annual return
+- years
+Outputs:
+- ending balance
+- total contributions
+- total growth
+- yearly projection chart
+
+### 15. Credit Card Payoff Calculator
+Inputs:
+- balance
+- APR
+- monthly payment
+Formula:
+- monthly rate = APR / 12
+- amortization style payoff loop
+Outputs:
+- months to payoff
+- total interest paid
+- payoff date estimate
+
+### 16. Loan Interest Calculator
+Inputs:
+- loan amount
+- interest rate
+- loan term in years
+Formula:
+- amortized monthly payment formula
+Outputs:
+- monthly payment
+- total repayment
+- total interest
+
+### 17. Debt Snowball Calculator
+Inputs:
+- multiple debts with balances, APRs, minimums
+Formula:
+- payoff smallest balance first while rolling payments forward
+Outputs:
+- payoff order
+- months to debt freedom
+- estimated total interest
+- simple timeline chart
+
+### 18. Rent vs Buy Calculator
+Inputs:
+- monthly rent
+- home price
+- down payment
+- mortgage rate
+- property tax
+- insurance
+- maintenance estimate
+- years staying
+Formula:
+- compare total renting cost vs ownership cost over chosen period
+Outputs:
+- estimated cost of renting
+- estimated cost of buying
+- difference
+- break-even style comparison chart
+
+### 19. Cost of Living Comparison Tool
+Inputs:
+- current city monthly costs
+- target city monthly costs
+- rent
+- groceries
+- transport
+- utilities
+- misc
+Outputs:
+- current total
+- target total
+- monthly difference
+- annual difference
+
+### 20. Salary Reality Calculator
+Inputs:
+- gross annual salary
+- estimated tax rate
+- monthly housing
+- monthly debt
+- monthly necessities
+- monthly savings target
+Formula:
+- after-tax pay = gross × (1 - tax rate)
+- monthly take-home = after-tax / 12
+- leftover = take-home - expenses - savings target
+Outputs:
+- annual after-tax income
+- monthly take-home
+- leftover amount
+- affordability snapshot
+
+---
+
+## CHARTS AND GRAPH VISUALS
+
+Use Recharts to create attractive, colorful, responsive charts.
+
+Each relevant calculator must include at least one useful chart:
+- line charts for growth over time
+- pie/donut charts for breakdowns
+- bar charts for comparisons
+- stacked bars where useful
+
+Design requirements:
+- modern, clean, visually attractive
+- color palette should feel trustworthy and energetic
+- do not use dull default charts
+- use distinct but tasteful colors
+- good legends and labels
+- mobile responsive
+
+Examples:
+- Savings Goal: growth line chart
+- Budget: expense pie chart
+- Tax calculators: tax breakdown bar or donut chart
+- Credit card payoff: balance over time chart
+- Rent vs Buy: comparison bar chart
+- Salary Reality: monthly allocation chart
+
+---
+
+## DOWNLOAD / EXPORT FEATURES
+
+Every major calculator result page must support:
+
+1. PDF Download
+- downloadable summary with branding
+- input values
+- outputs
+- chart snapshot if practical
+- clean print-friendly styling
+
+2. CSV Download
+- export results rows
+- useful for budgeting / record keeping
+
+3. Print Option
+- print-friendly result view
+- hide unnecessary UI on print
+
+4. Share Link
+- serialize calculator inputs into URL query params when reasonable
+- allow shareable result state
+
+Build reusable utilities/components for:
+- ExportToPDFButton
+- ExportToCSVButton
+- PrintResultsButton
+- ShareResultsButton
+
+---
+
+## SEO REQUIREMENTS
+
+This site must be SEO-first from the foundation.
+
+Implement:
+- semantic HTML
+- dynamic metadata per page
+- Open Graph tags
+- Twitter cards
+- canonical URLs
+- sitemap.xml
+- robots.txt
+- breadcrumb schema
+- article schema
+- FAQ schema where appropriate
+- calculator/software/application schema where appropriate
+- organization schema on site-level
+- search action schema if applicable
+
+Every article page must support:
+- title
+- meta title
+- meta description
+- excerpt
+- category
+- subcategory
+- publish date
+- updated date
+- featured image
+- FAQ block
+- related calculator
+- related articles
+
+Every category page must have:
+- unique intro copy
+- SEO metadata
+- list of subcategories
+- featured articles
+- calculator links
+- internal links to adjacent categories
+
+---
+
+## PROGRAMMATIC SEO (PSEO) ARCHITECTURE
+
+The codebase must be ready for programmatic SEO at scale.
+
+Build a reusable pSEO architecture that can generate pages from structured datasets such as:
+- income levels
+- debt levels
+- savings targets
+- salary ranges
+- cities/states
+- life situations
+- calculator scenarios
+
+Examples of future page patterns:
+- /guides/is-50000-a-good-salary
+- /guides/how-much-tax-on-80000-self-employment-income
+- /guides/how-long-to-save-10000
+- /locations/cost-of-living-in-austin-vs-denver
+- /calculators/tax-estimator/50000-income
+- /calculators/savings-goal/10000-target
+
+Requirements:
+- Create a pSEO utilities folder
+- Create example dataset files
+- Create template generators
+- Make page generation modular and safe
+- Avoid duplicate/thin content structure
+- Support adding intro copy, FAQ variations, and scenario-driven content
+- Ensure pages can be statically generated at scale
+
+Create at least a few example pSEO pages from sample data to prove architecture.
+
+---
+
+## GEO / AI SEARCH READINESS
+
+Structure content so it is easy for AI search engines to cite.
+
+Add support for:
+- concise direct-answer block near top of article/calculator pages
+- FAQ sections
+- clearly labeled explanatory sections
+- scannable headings
+- fact boxes / summary boxes
+- calm editorial summaries
+
+This is for GEO readiness, not spam.
+
+---
+
+## CONTENT SYSTEM
+
+Create a simple editorial content system using local content files.
+
+Support frontmatter fields:
+- title
+- slug
+- category
+- subcategory
+- excerpt
+- metaTitle
+- metaDescription
+- publishDate
+- updatedDate
+- featured
+- relatedCalculators
+- relatedArticles
+- tags
+- faq
+- image
+
+Create at least:
+- 12 sample articles across different categories
+- 1 sample article per major category if possible
+- all sample articles must look realistic and complete
+- do not use lorem ipsum
+
+Use clean editorial placeholder copy.
+
+---
+
+## INTERNAL LINKING SYSTEM
+
+Implement strong internal linking primitives:
+- related articles component
+- related calculators component
+- category jump links
+- subcategory carousels or lists
+- breadcrumb navigation
+- “You may also want to know” blocks
+- “Use this calculator” inline card component
+- “Read next” cards
+
+Internal linking must be strategic, not random.
+
+---
+
+## DESIGN REQUIREMENTS
+
+Design should be:
+- clean
+- modern
+- editorial
+- trustworthy
+- calm
+- light theme by default
+- excellent whitespace
+- readable font sizes
+- visually differentiated calculator cards
+- no clutter
+- ad-friendly layout without looking spammy
+
+Components needed:
+- header
+- mega menu or expandable nav
+- footer
+- article card
+- calculator card
+- category hero
+- FAQ accordion
+- breadcrumbs
+- search input
+- newsletter placeholder
+- ad slot placeholder
+- related content blocks
+
+---
+
+## PERFORMANCE REQUIREMENTS
+
+Optimize for:
+- fast static page loads
+- image optimization
+- lazy loading where appropriate
+- minimal JavaScript for article pages
+- calculator JS only where needed
+- good Lighthouse scores
+- scalable build structure
+
+---
+
+## SEARCH / FILTERING
+
+Implement a basic client-side or static search experience that lets users search:
+- articles
+- categories
+- calculators
+
+Also support browsing by:
+- category
+- subcategory
+- calculator type
+
+---
+
+## MONETIZATION READINESS
+
+Without adding real ad code yet, create ad placement placeholders in sensible spots:
+- homepage mid-content
+- article after intro
+- article sidebar/inline on desktop
+- calculator below result or below intro
+- category pages between cards
+
+Label them as placeholders only.
+
+The site must look compatible with:
+- display ads
+- affiliate content later
+- newsletter capture later
+- premium tools later
+
+---
+
+## COMPLIANCE / TRUST PAGES
+
+Create:
+- About page
+- Contact page
+- Privacy Policy
+- Terms
+- Editorial Policy
+- Disclaimer
+
+Tone should be credible and editorial, not corporate fluff.
+
+Include language appropriate for a personal finance education site:
+- informational content
+- not personalized financial advice
+- calculators are estimates
+- editorial independence language
+
+---
+
+## SAMPLE CONTENT + CALCULATOR CONNECTIONS
+
+Make sure article pages can connect to calculators like:
+- “How much money should you keep in savings?” -> Savings Goal Calculator, Emergency Fund Calculator
+- “Why freelancers get surprised by taxes” -> Set-Aside Calculator, Self-Employment Tax Calculator
+- “How credit card interest really works” -> Credit Card Payoff Calculator
+- “Is renting really throwing money away?” -> Rent vs Buy Calculator
+- “Why a $100k salary doesn’t feel rich anymore” -> Salary Reality Calculator
+
+---
+
+## DELIVERABLES
+
+Build the full starter project with:
+1. Working Next.js app
+2. All category pages
+3. Calculators hub
+4. 20 calculator pages with working UI and implemented formulas
+5. downloadable PDF/CSV/export features
+6. chart visualizations for key calculators
+7. 12+ sample article pages
+8. pSEO-ready architecture with sample generated pages
+9. SEO metadata system
+10. Schema implementation
+11. Sitemap/robots setup
+12. Reusable content and calculator components
+13. Clean responsive design
+14. Readme explaining how to add articles, datasets, calculators, exports, and charts
+
+---
+
+## IMPORTANT IMPLEMENTATION NOTES
+
+- Think like a senior product engineer and SEO architect
+- The architecture matters more than visual flair
+- Avoid hacks
+- Keep code modular and maintainable
+- Build for scale from day one
+- Make it easy to deploy on Vercel
+- Do not leave pseudocode where working code is expected
+- Use sensible placeholder content where final content is not yet available
+- Use reusable formula utilities for calculators
+- Use reusable chart config patterns
+- Use reusable export utilities
+
+At the end, provide:
+1. project file structure
+2. setup instructions
+3. explanation of SEO architecture
+4. explanation of pSEO architecture
+5. explanation of formula architecture
+6. explanation of export/download architecture
+7. explanation of how to add new articles and calculators
