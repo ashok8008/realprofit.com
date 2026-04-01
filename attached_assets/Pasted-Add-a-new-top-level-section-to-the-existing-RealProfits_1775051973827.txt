@@ -1,0 +1,531 @@
+Add a new top-level section to the existing RealProfits.com project called **Tools**.
+
+This section must be separate from **Calculators**.
+
+## GOAL
+Build a practical, reusable, product-style **Tools Hub** for everyday money tasks.
+These tools should feel more interactive and utility-driven than calculators.
+They must be easy to use, mobile-friendly, export-friendly, and designed for repeat usage.
+
+The Tools section should fit the overall RealProfits brand:
+- calm
+- modern
+- trustworthy
+- editorial but practical
+- clean UI
+- fast
+- no login required initially
+
+---
+
+## TOP NAV UPDATE
+Add **Tools** as a top-level navigation item.
+
+Create:
+- /tools
+- individual pages for each tool
+- tool category cards on the Tools hub page
+
+---
+
+## TOOLS HUB PAGE REQUIREMENTS
+
+Create a strong `/tools` page with:
+1. Hero section
+   - headline focused on practical money tools for everyday life
+   - short supporting text
+2. Grid of tool cards
+3. Tool categories or grouped sections if helpful
+4. Short editorial intros for each tool
+5. “Popular tools” section
+6. Search/filter support if easy to implement
+7. Internal links to related calculators and articles
+8. Ad placeholder blocks in sensible positions
+
+The Tools Hub should feel like a product directory, not a blog archive.
+
+---
+
+## BUILD THESE 7 TOOLS FIRST
+
+### 1. Freelance Invoice Generator
+URL: /tools/freelance-invoice-generator
+
+#### Goal
+Let users quickly create professional invoices and download them as PDF.
+
+#### Required features
+- invoice number
+- invoice date
+- due date
+- sender/business details
+- client details
+- multiple line items
+  - description
+  - quantity
+  - rate
+  - amount auto-calculated
+- subtotal
+- discount (optional)
+- tax percentage (optional)
+- notes section
+- payment terms field
+- auto total
+- invoice preview panel
+- PDF export
+- print-friendly version
+- save locally in browser using localStorage
+- reset / clear form
+- duplicate line items
+- delete line items
+- basic validation
+
+#### Nice-to-have
+- “set aside taxes from this invoice” inline suggestion linking to tax calculators
+- simple branding header
+- downloadable filename like `invoice-<number>.pdf`
+
+#### Output
+- invoice preview
+- subtotal
+- tax amount
+- grand total
+
+---
+
+### 2. Subscription Cost Analyzer
+URL: /tools/subscription-cost-analyzer
+
+#### Goal
+Help users understand how much they spend on subscriptions monthly and yearly.
+
+#### Required features
+- add subscription entries
+  - name
+  - monthly cost
+  - optional annual cost toggle
+  - category
+- auto-convert annual subscriptions to monthly equivalent where needed
+- total monthly subscription cost
+- total annual subscription cost
+- category breakdown
+- top 3 most expensive subscriptions
+- pie or donut chart using Recharts
+- bar chart by category or service
+- CSV export
+- PDF summary export
+- localStorage persistence
+- edit/delete subscriptions
+- reset button
+
+#### Output
+- monthly total
+- yearly total
+- average per subscription
+- most expensive subscription
+- chart visualizations
+
+---
+
+### 3. Bill Split Tool
+URL: /tools/bill-split-tool
+
+#### Goal
+Help users split bills fairly and clearly.
+
+#### Required features
+- total bill amount
+- tax amount or tax percentage
+- tip amount or tip percentage
+- number of people
+- equal split mode
+- custom split mode
+- optional “who paid” field
+- optional uneven share support
+- show per-person total
+- show who owes whom if one person paid
+- clean summary card
+- shareable result state via URL query params if practical
+- CSV export
+- print-friendly summary
+- localStorage support
+
+#### Output
+- total with tax/tip
+- per person amount
+- settlement summary
+
+---
+
+### 4. Net Worth Calculator
+URL: /tools/net-worth-calculator
+
+#### Goal
+Let users calculate assets minus liabilities with a clean visual summary.
+
+#### Required features
+- asset categories:
+  - cash
+  - savings
+  - investments
+  - retirement accounts
+  - property
+  - vehicles
+  - other assets
+- liability categories:
+  - mortgage
+  - student loans
+  - personal loans
+  - auto loans
+  - credit card debt
+  - other liabilities
+- total assets
+- total liabilities
+- net worth result
+- donut/pie chart of assets vs liabilities
+- category-level bar chart
+- CSV export
+- PDF export
+- localStorage persistence
+- print-friendly layout
+
+#### Output
+- total assets
+- total liabilities
+- net worth
+- breakdown charts
+
+---
+
+### 5. Paycheck Calculator
+URL: /tools/paycheck-calculator
+
+#### Goal
+Estimate net paycheck from gross income in a simple, approachable way.
+
+#### Required features
+- pay frequency:
+  - weekly
+  - biweekly
+  - semimonthly
+  - monthly
+  - annual
+- gross pay
+- estimated tax rate
+- optional deductions
+- optional retirement contribution
+- optional health insurance deduction
+- net pay estimate
+- annualized comparison
+- bar chart showing gross vs taxes vs deductions vs take-home
+- CSV export
+- PDF summary export
+- localStorage support
+
+#### Output
+- gross pay
+- taxes
+- deductions
+- retirement contribution
+- take-home pay
+- annual take-home equivalent
+
+#### Formula
+Keep it simple and educational:
+- total deductions = manual deductions + retirement + insurance
+- tax amount = gross × tax rate
+- take-home = gross - tax - total deductions
+- annualization based on selected pay frequency
+
+Do not market this as an official payroll tool.
+Clearly label it as an estimate.
+
+---
+
+### 6. Income Tracker
+URL: /tools/income-tracker
+
+#### Goal
+Let users log multiple income entries and see income patterns.
+
+#### Required features
+- add entries:
+  - date
+  - source
+  - category
+  - amount
+  - notes
+- monthly grouping
+- total monthly income
+- average monthly income
+- highest month
+- lowest month
+- line chart over time
+- category breakdown chart
+- CSV export of entries
+- PDF summary export
+- localStorage persistence
+- filter by date range
+- edit/delete entries
+
+#### Output
+- total income
+- monthly average
+- trend chart
+- source/category summary
+
+---
+
+### 7. Expense Tracker
+URL: /tools/expense-tracker
+
+#### Goal
+Let users record expenses and understand spending patterns without a full budgeting app.
+
+#### Required features
+- add expense entries:
+  - date
+  - category
+  - amount
+  - merchant/description
+  - notes
+- monthly grouping
+- total monthly expenses
+- category breakdown
+- top spending category
+- pie/donut chart
+- monthly trend chart
+- CSV export
+- PDF summary export
+- localStorage persistence
+- filter by date/category
+- edit/delete entries
+
+#### Output
+- total expenses
+- monthly average
+- top category
+- chart visualizations
+
+---
+
+## ARCHITECTURE REQUIREMENTS
+
+Build the Tools section cleanly and modularly.
+
+Create reusable architecture for:
+- tool page layout
+- form sections
+- result summary cards
+- chart blocks
+- table/list editors
+- localStorage utilities
+- CSV export utility
+- PDF export utility
+- print utility
+- validation helpers
+
+Suggested structure:
+
+- /app/tools/page.tsx
+- /app/tools/[toolSlug]/page.tsx or dedicated tool pages
+- /components/tools/
+- /lib/tools/
+- /lib/storage/
+- /lib/export/
+- /lib/validation/
+
+Each tool should have:
+- typed input model
+- typed output model
+- pure helper functions where applicable
+- reusable chart data transformer
+- export mapping functions
+
+---
+
+## UI / UX REQUIREMENTS
+
+The Tools UI should feel more “app-like” than the calculators.
+
+Use:
+- card-based layout
+- sticky summary panel where appropriate
+- responsive split-pane layout on desktop
+- single-column flow on mobile
+- clear labels
+- trust-building microcopy
+- clean empty states
+- obvious reset / clear / edit actions
+
+Use a visual style that is:
+- modern
+- polished
+- calm
+- not cluttered
+- not overly playful
+- ad-friendly
+- easy to scan
+
+---
+
+## CHARTS
+
+Use Recharts.
+
+Each relevant tool must include useful charts:
+- Subscription analyzer → donut + bar
+- Net worth → donut + bar
+- Paycheck → bar comparison
+- Income tracker → line + bar
+- Expense tracker → pie/donut + trend line
+
+Charts must be:
+- responsive
+- colorful but tasteful
+- clearly labeled
+- easy to read on mobile
+- not default ugly charts
+
+---
+
+## EXPORT / DOWNLOAD FEATURES
+
+Build reusable export components/utilities.
+
+For relevant tools, support:
+1. PDF export
+2. CSV export
+3. Print-friendly output
+4. shareable URL when practical
+
+### PDF requirements
+- include RealProfits branding
+- include input summary
+- include output summary
+- include charts when practical or summarize chart data
+- clean layout for printing
+
+### CSV requirements
+- useful column names
+- one-click download
+- accurate exported values
+
+### Print requirements
+- hide unnecessary UI and controls
+- clean summary-focused print layout
+
+---
+
+## LOCAL STORAGE
+
+All tools should work without login.
+
+Use localStorage to persist form state / entries where it makes sense:
+- invoice drafts
+- subscriptions list
+- bill split inputs
+- net worth data
+- income entries
+- expense entries
+
+Provide:
+- load saved state on page reopen
+- manual clear/reset option
+- robust handling if no saved data exists
+
+---
+
+## SEO REQUIREMENTS
+
+Even though this is the Tools section, it must remain SEO-friendly.
+
+Each tool page must have:
+- unique metadata title
+- meta description
+- H1
+- short intro paragraph
+- how it works section
+- FAQ section
+- related tools section
+- related calculators section
+- related articles section
+- canonical URL
+- structured data where relevant
+
+Implement appropriate JSON-LD for:
+- WebApplication / SoftwareApplication where reasonable
+- FAQPage
+- BreadcrumbList
+
+Tool pages should not feel thin.
+Each tool page must include supportive editorial content around the tool.
+
+---
+
+## INTERNAL LINKING
+
+Connect tools intelligently.
+
+Examples:
+- Freelance Invoice Generator → Set-Aside Calculator, Self-Employment Tax Calculator
+- Paycheck Calculator → Salary Reality Calculator
+- Expense Tracker → Budget Calculator, Expense Breakdown Tool
+- Net Worth Calculator → Debt calculators, savings calculators
+- Subscription Analyzer → budget content, savings calculators
+
+Build reusable “Related tools” and “Related resources” blocks.
+
+---
+
+## TRUST / COMPLIANCE LANGUAGE
+
+Because this is a finance-related site:
+- clearly label tools as educational / planning tools
+- state that estimates are informational
+- avoid sounding like official tax/payroll/accounting software
+- do not overclaim precision
+- keep tone calm and trustworthy
+
+---
+
+## MONETIZATION READINESS
+
+Place ad placeholders in sensible positions:
+- Tools hub between rows
+- tool pages below intro
+- tool pages below results or near FAQ
+
+Do not make the tools feel spammy.
+
+---
+
+## IMPLEMENTATION PRIORITY
+
+Build in this order:
+1. Tools hub page
+2. shared tool architecture
+3. Freelance Invoice Generator
+4. Subscription Cost Analyzer
+5. Bill Split Tool
+6. Net Worth Calculator
+7. Paycheck Calculator
+8. Income Tracker
+9. Expense Tracker
+
+If needed, fully complete the first 3 tools before scaffolding the rest.
+
+---
+
+## DELIVERABLES
+
+At the end, provide:
+1. project file structure for tools
+2. explanation of reusable tool architecture
+3. explanation of export architecture
+4. explanation of localStorage handling
+5. explanation of how to add new tools later
+
+Do not leave pseudocode where working code is expected.
+Build real pages, real components, and usable logic.
+Think like a senior product engineer building a scalable tools platform.

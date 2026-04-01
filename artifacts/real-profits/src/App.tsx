@@ -11,6 +11,8 @@ import Category from "@/pages/Category";
 import ArticleDetail from "@/pages/Article";
 import CalculatorHub from "@/pages/CalculatorHub";
 import CalculatorDetail from "@/pages/CalculatorDetail";
+import ToolsHub from "@/pages/ToolsHub";
+import ToolDetail from "@/pages/ToolDetail";
 import Search from "@/pages/Search";
 import PseoPage from "@/pages/PseoPage";
 
@@ -37,6 +39,9 @@ function Router() {
         
         <Route path="/calculators" component={CalculatorHub} />
         <Route path="/calculators/:slug" component={CalculatorDetail} />
+        
+        <Route path="/tools" component={ToolsHub} />
+        <Route path="/tools/:slug" component={ToolDetail} />
         
         <Route path="/guides/:slug" component={PseoPage} />
         <Route path="/search" component={Search} />

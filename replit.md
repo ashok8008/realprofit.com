@@ -91,6 +91,31 @@ Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used b
 
 Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
 
+### `artifacts/real-profits` (`@workspace/real-profits`)
+
+Frontend-only React + Vite personal finance content site (RealProfits.com). No backend — all content is in TypeScript data files.
+
+- **Stack**: React, Vite, wouter (routing), Recharts (charts), jsPDF (PDF export), react-helmet-async (SEO), Tailwind CSS, shadcn/ui
+- **Sections**:
+  - **Articles**: 12+ editorial articles across 8 categories (money-basics, income-side-hustles, taxes, saving-vs-investing, debt-credit, life-decisions, etc.)
+  - **Calculators**: 39+ financial calculators at /calculators and /calculators/:slug (savings, mortgage, auto loan, retirement, debt, tax, investment, etc.)
+  - **Tools**: 7 interactive utility tools at /tools and /tools/:slug:
+    - Freelance Invoice Generator (full invoice creation with PDF export)
+    - Subscription Cost Analyzer (track subscriptions with charts)
+    - Bill Split Tool (equal/custom split with settlement)
+    - Net Worth Calculator (assets vs liabilities with charts)
+    - Paycheck Calculator (take-home pay estimate)
+    - Income Tracker (log income entries with trends)
+    - Expense Tracker (log expenses with category breakdown)
+  - **pSEO**: Programmatic SEO pages at /guides/:slug
+  - **Trust pages**: About, Contact, Privacy, Terms, Editorial Policy, Disclaimer
+- **Data files**: `src/data/calculators.ts`, `src/data/categories.ts`, `src/data/articles.ts`, `src/data/tools.ts`
+- **Calculator pattern**: Named export in `src/components/calculators/[Name].tsx`, lazy-loaded in CalculatorDetail.tsx
+- **Tool pattern**: Named export in `src/components/tools/[Name].tsx`, lazy-loaded in ToolDetail.tsx, localStorage persistence for all tools
+- **Export utilities**: `src/components/export/ExportButtons.tsx` (PDF, CSV, Print, Share)
+- **No emojis** in UI (explicit requirement)
+- **USA-only** audience
+
 ### `scripts` (`@workspace/scripts`)
 
 Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.

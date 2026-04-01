@@ -14,6 +14,7 @@ export function Navbar() {
     { name: "Investing", href: "/category/saving-vs-investing" },
     { name: "Debt", href: "/category/debt-credit" },
     { name: "Calculators", href: "/calculators" },
+    { name: "Tools", href: "/tools" },
   ];
 
   return (
