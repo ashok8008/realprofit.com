@@ -8,13 +8,11 @@ export function Navbar() {
   const [location] = useLocation();
 
   const links = [
-    { name: "Money Basics", href: "/category/money-basics" },
-    { name: "Income", href: "/category/income-side-hustles" },
-    { name: "Taxes", href: "/category/taxes" },
-    { name: "Investing", href: "/category/saving-vs-investing" },
-    { name: "Debt", href: "/category/debt-credit" },
-    { name: "Calculators", href: "/calculators" },
+    { name: "Financial Calculators", href: "/calculators" },
+    { name: "What If", href: "/what-if" },
+    { name: "Articles", href: "/search" },
     { name: "Tools", href: "/tools" },
+    { name: "About", href: "/about" },
   ];
 
   return (

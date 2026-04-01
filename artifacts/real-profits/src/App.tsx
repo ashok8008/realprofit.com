@@ -15,6 +15,7 @@ import ToolsHub from "@/pages/ToolsHub";
 import ToolDetail from "@/pages/ToolDetail";
 import Search from "@/pages/Search";
 import PseoPage from "@/pages/PseoPage";
+import WhatIfSimulator from "@/pages/WhatIfSimulator";
 
 // Static pages
 import About from "@/pages/About";
@@ -39,6 +40,8 @@ function Router() {
         
         <Route path="/calculators" component={CalculatorHub} />
         <Route path="/calculators/:slug" component={CalculatorDetail} />
+        
+        <Route path="/what-if" component={WhatIfSimulator} />
         
         <Route path="/tools" component={ToolsHub} />
         <Route path="/tools/:slug" component={ToolDetail} />

@@ -107,6 +107,7 @@ Frontend-only React + Vite personal finance content site (RealProfits.com). No b
     - Paycheck Calculator (take-home pay estimate)
     - Income Tracker (log income entries with trends)
     - Expense Tracker (log expenses with category breakdown)
+  - **What If Simulator**: 3-step financial planning wizard at /what-if with sliders, scenario modeling, and net worth projection chart (Recharts AreaChart)
   - **pSEO**: Programmatic SEO pages at /guides/:slug
   - **Trust pages**: About, Contact, Privacy, Terms, Editorial Policy, Disclaimer
 - **Data files**: `src/data/calculators.ts`, `src/data/categories.ts`, `src/data/articles.ts`, `src/data/tools.ts`

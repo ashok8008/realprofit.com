@@ -218,3 +218,11 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+.hero-gradient {
+  background: linear-gradient(135deg, #0d9488 0%, #06b6d4 30%, #22d3ee 60%, #a7f3d0 100%);
+}
+
+.hero-gradient-dark {
+  background: linear-gradient(135deg, #134e4a 0%, #155e75 50%, #0d9488 100%);
+}
