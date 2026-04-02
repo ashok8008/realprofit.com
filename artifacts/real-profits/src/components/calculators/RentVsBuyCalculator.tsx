@@ -10,16 +10,20 @@ export function RentVsBuyCalculator() {
   const [rate, setRate] = useState(6.5);
   const [years, setYears] = useState(10);
 
-  // Simplified calc
-  const principal = price - downPayment;
+  const principal = Math.max(0, price - downPayment);
   const monthlyRate = rate / 100 / 12;
-  const numPayments = 30 * 12; // 30 yr mortgage assumed
+  const numPayments = 30 * 12;
   
-  const monthlyMortgage = principal * (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / (Math.pow(1 + monthlyRate, numPayments) - 1);
+  let monthlyMortgage = 0;
+  if (principal > 0 && monthlyRate > 0 && numPayments > 0) {
+    monthlyMortgage = principal * (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / (Math.pow(1 + monthlyRate, numPayments) - 1);
+  } else if (principal > 0 && numPayments > 0) {
+    monthlyMortgage = principal / numPayments;
+  }
   
-  const propertyTax = (price * 0.012) / 12; // 1.2% annual
+  const propertyTax = (price * 0.012) / 12;
   const insurance = 150;
-  const maintenance = (price * 0.01) / 12; // 1% annual
+  const maintenance = (price * 0.01) / 12;
   
   const monthlyBuyCost = monthlyMortgage + propertyTax + insurance + maintenance;
   
@@ -27,8 +31,8 @@ export function RentVsBuyCalculator() {
   const totalBuy = monthlyBuyCost * 12 * years;
   
   const data = [
-    { name: 'Renting', cost: totalRent, fill: '#f59e0b' },
-    { name: 'Buying (Total Costs)', cost: totalBuy, fill: '#059669' }
+    { name: 'Renting', cost: Math.round(totalRent), fill: '#f59e0b' },
+    { name: 'Buying (Total Costs)', cost: Math.round(totalBuy), fill: '#059669' }
   ];
 
   return (
@@ -36,23 +40,23 @@ export function RentVsBuyCalculator() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Current Rent ($/mo)</Label>
-          <Input type="number" value={rent} onChange={e => setRent(Number(e.target.value) || 0)} />
+          <Input type="number" min="0" value={rent} onChange={e => setRent(Math.max(0, Number(e.target.value) || 0))} />
         </div>
         <div className="space-y-2">
           <Label>Target Home Price ($)</Label>
-          <Input type="number" value={price} onChange={e => setPrice(Number(e.target.value) || 0)} />
+          <Input type="number" min="0" value={price} onChange={e => setPrice(Math.max(0, Number(e.target.value) || 0))} />
         </div>
         <div className="space-y-2">
           <Label>Down Payment ($)</Label>
-          <Input type="number" value={downPayment} onChange={e => setDownPayment(Number(e.target.value) || 0)} />
+          <Input type="number" min="0" value={downPayment} onChange={e => setDownPayment(Math.max(0, Number(e.target.value) || 0))} />
         </div>
         <div className="space-y-2">
           <Label>Mortgage Rate (%)</Label>
-          <Input type="number" value={rate} onChange={e => setRate(Number(e.target.value) || 0)} />
+          <Input type="number" min="0" max="30" step="0.1" value={rate} onChange={e => setRate(Math.max(0, Number(e.target.value) || 0))} />
         </div>
         <div className="space-y-2 md:col-span-2">
           <Label>Timeframe (Years)</Label>
-          <Input type="number" value={years} onChange={e => setYears(Number(e.target.value) || 0)} />
+          <Input type="number" min="1" max="50" value={years} onChange={e => setYears(Math.max(1, Math.min(50, Number(e.target.value) || 1)))} />
         </div>
       </div>
 
@@ -65,7 +69,7 @@ export function RentVsBuyCalculator() {
         <div>
           <h3 className="font-bold mb-1">Difference over {years} years</h3>
           <div className={`text-3xl font-serif font-bold ${totalBuy < totalRent ? 'text-primary' : 'text-amber-500'}`}>
-            ${Math.abs(totalRent - totalBuy).toLocaleString()}
+            ${Math.abs(Math.round(totalRent - totalBuy)).toLocaleString()}
           </div>
           <p className="text-xs text-muted-foreground mt-1">
             {totalBuy < totalRent ? 'Buying is cheaper' : 'Renting is cheaper'}
@@ -79,7 +83,7 @@ export function RentVsBuyCalculator() {
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis dataKey="name" />
             <YAxis tickFormatter={(v) => `$${v/1000}k`} />
-            <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
+            <Tooltip formatter={(value) => `$${Number(value).toLocaleString()}`} />
             <Bar dataKey="cost" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>

@@ -28,6 +28,10 @@ export function MonthlyBudgetCalculator() {
 
   const COLORS = ['#059669', '#10b981', '#34d399', '#6ee7b7', '#a7f3d0', '#f59e0b', '#fbbf24', '#fcd34d'];
 
+  const handleExpenseChange = (key: string, val: string) => {
+    setExpenses({ ...expenses, [key]: Math.max(0, Number(val) || 0) });
+  };
+
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
@@ -35,9 +39,10 @@ export function MonthlyBudgetCalculator() {
           <Label className="text-lg text-primary">Monthly Net Income ($)</Label>
           <Input 
             type="number" 
+            min="0"
             className="text-lg h-12"
             value={income} 
-            onChange={e => setIncome(Number(e.target.value) || 0)} 
+            onChange={e => setIncome(Math.max(0, Number(e.target.value) || 0))} 
           />
         </div>
         
@@ -46,8 +51,9 @@ export function MonthlyBudgetCalculator() {
             <Label className="capitalize">{key} ($)</Label>
             <Input 
               type="number" 
+              min="0"
               value={value} 
-              onChange={e => setExpenses({...expenses, [key]: Number(e.target.value) || 0})} 
+              onChange={e => handleExpenseChange(key, e.target.value)} 
             />
           </div>
         ))}

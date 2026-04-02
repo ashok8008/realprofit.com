@@ -14,29 +14,31 @@ export function BusinessLoanCalculator() {
   const periodRate = (rate / 100) / periodsPerYear;
 
   let payment = 0;
-  if (periodRate === 0) {
-    payment = loanAmount / totalPeriods;
-  } else if (totalPeriods > 0) {
-    payment = loanAmount * (periodRate * Math.pow(1 + periodRate, totalPeriods)) / (Math.pow(1 + periodRate, totalPeriods) - 1);
+  if (loanAmount > 0 && totalPeriods > 0) {
+    if (periodRate === 0) {
+      payment = loanAmount / totalPeriods;
+    } else {
+      payment = loanAmount * (periodRate * Math.pow(1 + periodRate, totalPeriods)) / (Math.pow(1 + periodRate, totalPeriods) - 1);
+    }
   }
 
   const totalRepayment = payment * totalPeriods;
-  const totalInterest = totalRepayment - loanAmount;
+  const totalInterest = Math.max(0, totalRepayment - loanAmount);
 
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="space-y-2">
           <Label>Loan Amount ($)</Label>
-          <Input type="number" value={loanAmount} onChange={e => setLoanAmount(Number(e.target.value) || 0)} data-testid="input-amount" />
+          <Input type="number" min="0" value={loanAmount} onChange={e => setLoanAmount(Math.max(0, Number(e.target.value) || 0))} data-testid="input-amount" />
         </div>
         <div className="space-y-2">
           <Label>Interest Rate (%)</Label>
-          <Input type="number" value={rate} step="0.1" onChange={e => setRate(Number(e.target.value) || 0)} data-testid="input-rate" />
+          <Input type="number" min="0" max="50" value={rate} step="0.1" onChange={e => setRate(Math.max(0, Number(e.target.value) || 0))} data-testid="input-rate" />
         </div>
         <div className="space-y-2">
           <Label>Term (Months)</Label>
-          <Input type="number" value={months} onChange={e => setMonths(Number(e.target.value) || 0)} data-testid="input-months" />
+          <Input type="number" min="1" max="360" value={months} onChange={e => setMonths(Math.max(1, Math.min(360, Number(e.target.value) || 1)))} data-testid="input-months" />
         </div>
         <div className="space-y-2">
           <Label>Payment Frequency</Label>

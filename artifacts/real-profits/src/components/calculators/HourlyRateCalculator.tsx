@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 export function HourlyRateCalculator() {
   const [annualIncome, setAnnualIncome] = useState(75000);
   const [hoursPerWeek, setHoursPerWeek] = useState(40);
-  const [weeksPerYear, setWeeksPerYear] = useState(50); // assuming 2 weeks off
+  const [weeksPerYear, setWeeksPerYear] = useState(50);
 
   const totalHours = hoursPerWeek * weeksPerYear;
   const hourly = totalHours > 0 ? annualIncome / totalHours : 0;
@@ -17,21 +17,21 @@ export function HourlyRateCalculator() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="space-y-2">
           <Label>Annual Salary ($)</Label>
-          <Input type="number" value={annualIncome} onChange={e => setAnnualIncome(Number(e.target.value) || 0)} />
+          <Input type="number" min="0" value={annualIncome} onChange={e => setAnnualIncome(Math.max(0, Number(e.target.value) || 0))} />
         </div>
         <div className="space-y-2">
-          <Label>Hours Worked / Week</Label>
-          <Input type="number" value={hoursPerWeek} onChange={e => setHoursPerWeek(Number(e.target.value) || 0)} />
+          <Label>Hours per Week</Label>
+          <Input type="number" min="1" max="168" value={hoursPerWeek} onChange={e => setHoursPerWeek(Math.max(1, Math.min(168, Number(e.target.value) || 1)))} />
         </div>
         <div className="space-y-2">
-          <Label>Weeks Worked / Year</Label>
-          <Input type="number" value={weeksPerYear} onChange={e => setWeeksPerYear(Number(e.target.value) || 0)} />
+          <Label>Working Weeks per Year</Label>
+          <Input type="number" min="1" max="52" value={weeksPerYear} onChange={e => setWeeksPerYear(Math.max(1, Math.min(52, Number(e.target.value) || 1)))} />
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-muted/30 p-6 rounded-xl border text-center">
         <div>
-          <h3 className="font-medium text-muted-foreground mb-1">True Hourly Rate</h3>
+          <h3 className="font-medium text-muted-foreground mb-1">Effective Hourly Rate</h3>
           <div className="text-3xl font-serif font-bold text-primary">${hourly.toFixed(2)} / hr</div>
         </div>
         <div>

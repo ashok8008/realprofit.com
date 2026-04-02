@@ -12,37 +12,41 @@ export function MortgageAmortizationCalculator() {
   const numPayments = years * 12;
 
   let monthlyPayment = 0;
-  if (monthlyRate === 0) {
-    monthlyPayment = loanAmount / numPayments;
-  } else if (numPayments > 0) {
-    monthlyPayment = loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / (Math.pow(1 + monthlyRate, numPayments) - 1);
+  if (loanAmount > 0 && numPayments > 0) {
+    if (monthlyRate === 0) {
+      monthlyPayment = loanAmount / numPayments;
+    } else {
+      monthlyPayment = loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / (Math.pow(1 + monthlyRate, numPayments) - 1);
+    }
   }
 
   const data = [];
   let balance = loanAmount;
   let totalInterest = 0;
 
-  for (let year = 1; year <= years; year++) {
-    let yearPrincipal = 0;
-    let yearInterest = 0;
-    for (let m = 0; m < 12; m++) {
-      if (balance <= 0) break;
-      const interest = balance * monthlyRate;
-      let principal = monthlyPayment - interest;
-      if (balance < principal) {
-        principal = balance;
+  if (loanAmount > 0 && numPayments > 0 && monthlyPayment > 0) {
+    for (let year = 1; year <= years; year++) {
+      let yearPrincipal = 0;
+      let yearInterest = 0;
+      for (let m = 0; m < 12; m++) {
+        if (balance <= 0) break;
+        const interest = balance * monthlyRate;
+        let principal = monthlyPayment - interest;
+        if (balance < principal) {
+          principal = balance;
+        }
+        yearInterest += interest;
+        yearPrincipal += principal;
+        balance -= principal;
+        totalInterest += interest;
       }
-      yearInterest += interest;
-      yearPrincipal += principal;
-      balance -= principal;
-      totalInterest += interest;
+      data.push({
+        year,
+        Principal: Math.round(yearPrincipal),
+        Interest: Math.round(yearInterest),
+        Balance: Math.max(0, Math.round(balance))
+      });
     }
-    data.push({
-      year,
-      Principal: Math.round(yearPrincipal),
-      Interest: Math.round(yearInterest),
-      Balance: Math.max(0, Math.round(balance))
-    });
   }
 
   return (
@@ -50,15 +54,15 @@ export function MortgageAmortizationCalculator() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="space-y-2">
           <Label>Loan Amount ($)</Label>
-          <Input type="number" value={loanAmount} onChange={e => setLoanAmount(Number(e.target.value) || 0)} data-testid="input-amount" />
+          <Input type="number" min="0" value={loanAmount} onChange={e => setLoanAmount(Math.max(0, Number(e.target.value) || 0))} data-testid="input-amount" />
         </div>
         <div className="space-y-2">
           <Label>Interest Rate (%)</Label>
-          <Input type="number" value={rate} step="0.1" onChange={e => setRate(Number(e.target.value) || 0)} data-testid="input-rate" />
+          <Input type="number" min="0" max="30" value={rate} step="0.1" onChange={e => setRate(Math.max(0, Number(e.target.value) || 0))} data-testid="input-rate" />
         </div>
         <div className="space-y-2">
           <Label>Loan Term (Years)</Label>
-          <Input type="number" value={years} onChange={e => setYears(Number(e.target.value) || 0)} data-testid="input-years" />
+          <Input type="number" min="1" max="50" value={years} onChange={e => setYears(Math.max(1, Math.min(50, Number(e.target.value) || 1)))} data-testid="input-years" />
         </div>
       </div>
 
@@ -73,18 +77,20 @@ export function MortgageAmortizationCalculator() {
         </div>
       </div>
 
-      <div className="h-[300px]">
-        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-          <BarChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="year" tickFormatter={v => `Yr ${v}`} />
-            <YAxis tickFormatter={v => `$${v/1000}k`} />
-            <Tooltip formatter={v => `$${Number(v).toLocaleString()}`} />
-            <Bar dataKey="Principal" stackId="a" fill="hsl(var(--primary))" />
-            <Bar dataKey="Interest" stackId="a" fill="hsl(var(--destructive))" />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+      {data.length > 0 && (
+        <div className="h-[300px]">
+          <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+            <BarChart data={data}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="year" tickFormatter={v => `Yr ${v}`} />
+              <YAxis tickFormatter={v => `$${v/1000}k`} />
+              <Tooltip formatter={v => `$${Number(v).toLocaleString()}`} />
+              <Bar dataKey="Principal" stackId="a" fill="hsl(var(--primary))" />
+              <Bar dataKey="Interest" stackId="a" fill="hsl(var(--destructive))" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
     </div>
   );
 }

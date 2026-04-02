@@ -15,15 +15,15 @@ export function SideHustleEarnings() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="space-y-2">
           <Label>Hourly Rate ($)</Label>
-          <Input type="number" value={hourlyRate} onChange={e => setHourlyRate(Number(e.target.value) || 0)} />
+          <Input type="number" min="0" value={hourlyRate} onChange={e => setHourlyRate(Math.max(0, Number(e.target.value) || 0))} />
         </div>
         <div className="space-y-2">
-          <Label>Hours / Week</Label>
-          <Input type="number" value={hoursPerWeek} onChange={e => setHoursPerWeek(Number(e.target.value) || 0)} />
+          <Label>Hours per Week</Label>
+          <Input type="number" min="0" value={hoursPerWeek} onChange={e => setHoursPerWeek(Math.max(0, Number(e.target.value) || 0))} />
         </div>
         <div className="space-y-2">
-          <Label>Weeks / Month</Label>
-          <Input type="number" value={weeksPerMonth} onChange={e => setWeeksPerMonth(Number(e.target.value) || 0)} />
+          <Label>Weeks per Month</Label>
+          <Input type="number" min="0" max="5" value={weeksPerMonth} onChange={e => setWeeksPerMonth(Math.max(0, Math.min(5, Number(e.target.value) || 0)))} />
         </div>
       </div>
 

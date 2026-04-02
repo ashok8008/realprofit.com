@@ -28,6 +28,10 @@ export function EmergencyFundCalculator() {
 
   const COLORS = ['#059669', '#34d399', '#10b981', '#6ee7b7', '#a7f3d0', '#d1fae5'];
 
+  const handleExpenseChange = (key: string, val: string) => {
+    setExpenses({ ...expenses, [key]: Math.max(0, Number(val) || 0) });
+  };
+
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
@@ -36,8 +40,9 @@ export function EmergencyFundCalculator() {
             <Label className="capitalize">{key} ($/mo)</Label>
             <Input 
               type="number" 
+              min="0"
               value={value} 
-              onChange={e => setExpenses({...expenses, [key]: Number(e.target.value) || 0})} 
+              onChange={e => handleExpenseChange(key, e.target.value)} 
             />
           </div>
         ))}

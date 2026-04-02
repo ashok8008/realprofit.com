@@ -13,9 +13,9 @@ export function MonthlyIncomeEstimator() {
   const highEstimate = baseEstimate * (1 + variability / 100);
 
   const data = [
-    { name: "Low (Pessimistic)", value: Math.round(lowEstimate) },
-    { name: "Average (Base)", value: Math.round(baseEstimate) },
-    { name: "High (Optimistic)", value: Math.round(highEstimate) },
+    { name: "Low (Pessimistic)", value: Math.round(Math.max(0, lowEstimate)) },
+    { name: "Average (Base)", value: Math.round(Math.max(0, baseEstimate)) },
+    { name: "High (Optimistic)", value: Math.round(Math.max(0, highEstimate)) },
   ];
 
   return (
@@ -23,30 +23,30 @@ export function MonthlyIncomeEstimator() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="space-y-2">
           <Label>Avg Project Value ($)</Label>
-          <Input type="number" value={projectValue} onChange={e => setProjectValue(Number(e.target.value) || 0)} />
+          <Input type="number" min="0" value={projectValue} onChange={e => setProjectValue(Math.max(0, Number(e.target.value) || 0))} />
         </div>
         <div className="space-y-2">
           <Label>Projects per Month</Label>
-          <Input type="number" value={projectsPerMonth} onChange={e => setProjectsPerMonth(Number(e.target.value) || 0)} />
+          <Input type="number" min="0" value={projectsPerMonth} onChange={e => setProjectsPerMonth(Math.max(0, Number(e.target.value) || 0))} />
         </div>
         <div className="space-y-2">
           <Label>Income Variability (%)</Label>
-          <Input type="number" value={variability} onChange={e => setVariability(Number(e.target.value) || 0)} />
+          <Input type="number" min="0" max="100" value={variability} onChange={e => setVariability(Math.max(0, Math.min(100, Number(e.target.value) || 0)))} />
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-muted/20 p-4 rounded-xl border text-center">
           <h4 className="text-sm text-muted-foreground">Low Estimate</h4>
-          <div className="text-2xl font-bold mt-1 text-destructive">${Math.round(lowEstimate).toLocaleString()}</div>
+          <div className="text-2xl font-bold mt-1 text-destructive">${Math.round(Math.max(0, lowEstimate)).toLocaleString()}</div>
         </div>
         <div className="bg-primary/10 p-4 rounded-xl border border-primary/20 text-center">
           <h4 className="text-sm font-medium text-primary">Base Estimate</h4>
-          <div className="text-3xl font-bold mt-1 text-primary">${Math.round(baseEstimate).toLocaleString()}</div>
+          <div className="text-3xl font-bold mt-1 text-primary">${Math.round(Math.max(0, baseEstimate)).toLocaleString()}</div>
         </div>
         <div className="bg-muted/20 p-4 rounded-xl border text-center">
           <h4 className="text-sm text-muted-foreground">High Estimate</h4>
-          <div className="text-2xl font-bold mt-1 text-emerald-600">${Math.round(highEstimate).toLocaleString()}</div>
+          <div className="text-2xl font-bold mt-1 text-emerald-600">${Math.round(Math.max(0, highEstimate)).toLocaleString()}</div>
         </div>
       </div>
 

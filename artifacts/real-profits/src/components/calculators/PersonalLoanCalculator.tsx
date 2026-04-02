@@ -10,29 +10,31 @@ export function PersonalLoanCalculator() {
   const monthlyRate = (rate / 100) / 12;
 
   let monthlyPayment = 0;
-  if (monthlyRate === 0) {
-    monthlyPayment = loanAmount / months;
-  } else if (months > 0) {
-    monthlyPayment = loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, months)) / (Math.pow(1 + monthlyRate, months) - 1);
+  if (loanAmount > 0 && months > 0) {
+    if (monthlyRate === 0) {
+      monthlyPayment = loanAmount / months;
+    } else {
+      monthlyPayment = loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, months)) / (Math.pow(1 + monthlyRate, months) - 1);
+    }
   }
 
   const totalRepayment = monthlyPayment * months;
-  const totalInterest = totalRepayment - loanAmount;
+  const totalInterest = Math.max(0, totalRepayment - loanAmount);
 
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="space-y-2">
           <Label>Loan Amount ($)</Label>
-          <Input type="number" value={loanAmount} onChange={e => setLoanAmount(Number(e.target.value) || 0)} data-testid="input-amount" />
+          <Input type="number" min="0" value={loanAmount} onChange={e => setLoanAmount(Math.max(0, Number(e.target.value) || 0))} data-testid="input-amount" />
         </div>
         <div className="space-y-2">
           <Label>Interest Rate (%)</Label>
-          <Input type="number" value={rate} step="0.1" onChange={e => setRate(Number(e.target.value) || 0)} data-testid="input-rate" />
+          <Input type="number" min="0" max="50" value={rate} step="0.1" onChange={e => setRate(Math.max(0, Number(e.target.value) || 0))} data-testid="input-rate" />
         </div>
         <div className="space-y-2">
           <Label>Term (Months)</Label>
-          <Input type="number" value={months} onChange={e => setMonths(Number(e.target.value) || 0)} data-testid="input-months" />
+          <Input type="number" min="1" max="360" value={months} onChange={e => setMonths(Math.max(1, Math.min(360, Number(e.target.value) || 1)))} data-testid="input-months" />
         </div>
       </div>
 

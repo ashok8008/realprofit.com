@@ -13,50 +13,52 @@ export function AutoLoanCalculator() {
 
   const taxableAmount = Math.max(0, price - tradeIn);
   const taxAmount = taxableAmount * (salesTax / 100);
-  const financed = price - downPayment - tradeIn + taxAmount + fees;
+  const financed = Math.max(0, price - downPayment - tradeIn + taxAmount + fees);
 
   const monthlyRate = (rate / 100) / 12;
 
   let monthlyPayment = 0;
-  if (monthlyRate === 0) {
-    monthlyPayment = financed / months;
-  } else if (months > 0) {
-    monthlyPayment = financed * (monthlyRate * Math.pow(1 + monthlyRate, months)) / (Math.pow(1 + monthlyRate, months) - 1);
+  if (financed > 0 && months > 0) {
+    if (monthlyRate === 0) {
+      monthlyPayment = financed / months;
+    } else {
+      monthlyPayment = financed * (monthlyRate * Math.pow(1 + monthlyRate, months)) / (Math.pow(1 + monthlyRate, months) - 1);
+    }
   }
 
   const totalRepayment = monthlyPayment * months;
-  const totalInterest = totalRepayment - financed;
+  const totalInterest = Math.max(0, totalRepayment - financed);
 
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="space-y-2">
           <Label>Car Price ($)</Label>
-          <Input type="number" value={price} onChange={e => setPrice(Number(e.target.value) || 0)} data-testid="input-price" />
+          <Input type="number" min="0" value={price} onChange={e => setPrice(Math.max(0, Number(e.target.value) || 0))} data-testid="input-price" />
         </div>
         <div className="space-y-2">
           <Label>Down Payment ($)</Label>
-          <Input type="number" value={downPayment} onChange={e => setDownPayment(Number(e.target.value) || 0)} data-testid="input-down" />
+          <Input type="number" min="0" value={downPayment} onChange={e => setDownPayment(Math.max(0, Number(e.target.value) || 0))} data-testid="input-down" />
         </div>
         <div className="space-y-2">
           <Label>Trade-In Value ($)</Label>
-          <Input type="number" value={tradeIn} onChange={e => setTradeIn(Number(e.target.value) || 0)} data-testid="input-tradein" />
+          <Input type="number" min="0" value={tradeIn} onChange={e => setTradeIn(Math.max(0, Number(e.target.value) || 0))} data-testid="input-tradein" />
         </div>
         <div className="space-y-2">
           <Label>Sales Tax Rate (%)</Label>
-          <Input type="number" value={salesTax} step="0.1" onChange={e => setSalesTax(Number(e.target.value) || 0)} data-testid="input-tax" />
+          <Input type="number" min="0" max="15" value={salesTax} step="0.1" onChange={e => setSalesTax(Math.max(0, Number(e.target.value) || 0))} data-testid="input-tax" />
         </div>
         <div className="space-y-2">
           <Label>Dealer Fees ($)</Label>
-          <Input type="number" value={fees} onChange={e => setFees(Number(e.target.value) || 0)} data-testid="input-fees" />
+          <Input type="number" min="0" value={fees} onChange={e => setFees(Math.max(0, Number(e.target.value) || 0))} data-testid="input-fees" />
         </div>
         <div className="space-y-2">
           <Label>Interest Rate (%)</Label>
-          <Input type="number" value={rate} step="0.1" onChange={e => setRate(Number(e.target.value) || 0)} data-testid="input-rate" />
+          <Input type="number" min="0" max="30" value={rate} step="0.1" onChange={e => setRate(Math.max(0, Number(e.target.value) || 0))} data-testid="input-rate" />
         </div>
         <div className="space-y-2">
           <Label>Loan Term (Months)</Label>
-          <Input type="number" value={months} onChange={e => setMonths(Number(e.target.value) || 0)} data-testid="input-months" />
+          <Input type="number" min="1" max="120" value={months} onChange={e => setMonths(Math.max(1, Math.min(120, Number(e.target.value) || 1)))} data-testid="input-months" />
         </div>
       </div>
 

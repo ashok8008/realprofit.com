@@ -9,14 +9,15 @@ export function SavingsGoalCalculator() {
   const [monthly, setMonthly] = useState<number>(200);
   const [rate, setRate] = useState<number>(4);
 
-  // Calculate
   const monthlyRate = (rate / 100) / 12;
   let balance = current;
   let months = 0;
   const data = [];
 
-  if (monthly > 0) {
-    while (balance < target && months < 1200) { // cap at 100 years
+  const alreadyMet = current >= target;
+
+  if (!alreadyMet && monthly > 0) {
+    while (balance < target && months < 1200) {
       balance += balance * monthlyRate + monthly;
       months++;
       if (months % 3 === 0 || balance >= target) {
@@ -32,31 +33,42 @@ export function SavingsGoalCalculator() {
   const years = Math.floor(months / 12);
   const remainingMonths = months % 12;
 
+  let timeDisplay = "";
+  if (alreadyMet) {
+    timeDisplay = "Goal already reached";
+  } else if (monthly <= 0) {
+    timeDisplay = "Add a monthly contribution";
+  } else if (months >= 1200) {
+    timeDisplay = "Over 100 years -- increase contributions";
+  } else {
+    timeDisplay = `${years} years, ${remainingMonths} months`;
+  }
+
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Savings Target ($)</Label>
-          <Input type="number" value={target} onChange={e => setTarget(Number(e.target.value) || 0)} />
+          <Input type="number" min="0" value={target} onChange={e => setTarget(Math.max(0, Number(e.target.value) || 0))} />
         </div>
         <div className="space-y-2">
           <Label>Current Savings ($)</Label>
-          <Input type="number" value={current} onChange={e => setCurrent(Number(e.target.value) || 0)} />
+          <Input type="number" min="0" value={current} onChange={e => setCurrent(Math.max(0, Number(e.target.value) || 0))} />
         </div>
         <div className="space-y-2">
           <Label>Monthly Contribution ($)</Label>
-          <Input type="number" value={monthly} onChange={e => setMonthly(Number(e.target.value) || 0)} />
+          <Input type="number" min="0" value={monthly} onChange={e => setMonthly(Math.max(0, Number(e.target.value) || 0))} />
         </div>
         <div className="space-y-2">
           <Label>Annual Interest Rate (%)</Label>
-          <Input type="number" value={rate} onChange={e => setRate(Number(e.target.value) || 0)} />
+          <Input type="number" min="0" max="100" value={rate} onChange={e => setRate(Math.max(0, Number(e.target.value) || 0))} />
         </div>
       </div>
 
       <div className="bg-muted/30 p-6 rounded-xl text-center border">
         <h3 className="text-lg font-bold mb-2">Time to Reach Goal</h3>
         <div className="text-4xl font-serif text-primary font-bold">
-          {months === 1200 ? "Never" : `${years} years, ${remainingMonths} months`}
+          {timeDisplay}
         </div>
       </div>
 

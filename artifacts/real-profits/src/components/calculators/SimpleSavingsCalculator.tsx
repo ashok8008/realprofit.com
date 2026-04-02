@@ -35,19 +35,19 @@ export function SimpleSavingsCalculator() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Initial Deposit ($)</Label>
-          <Input type="number" value={deposit} onChange={e => setDeposit(Number(e.target.value) || 0)} data-testid="input-deposit" />
+          <Input type="number" min="0" value={deposit} onChange={e => setDeposit(Math.max(0, Number(e.target.value) || 0))} data-testid="input-deposit" />
         </div>
         <div className="space-y-2">
           <Label>Monthly Contribution ($)</Label>
-          <Input type="number" value={monthly} onChange={e => setMonthly(Number(e.target.value) || 0)} data-testid="input-monthly" />
+          <Input type="number" min="0" value={monthly} onChange={e => setMonthly(Math.max(0, Number(e.target.value) || 0))} data-testid="input-monthly" />
         </div>
         <div className="space-y-2">
           <Label>Annual Interest Rate (%)</Label>
-          <Input type="number" value={rate} onChange={e => setRate(Number(e.target.value) || 0)} step="0.1" data-testid="input-rate" />
+          <Input type="number" min="0" max="100" value={rate} onChange={e => setRate(Math.max(0, Number(e.target.value) || 0))} step="0.1" data-testid="input-rate" />
         </div>
         <div className="space-y-2">
           <Label>Years</Label>
-          <Input type="number" value={years} onChange={e => setYears(Number(e.target.value) || 0)} data-testid="input-years" />
+          <Input type="number" min="1" max="50" value={years} onChange={e => setYears(Math.max(1, Math.min(50, Number(e.target.value) || 1)))} data-testid="input-years" />
         </div>
       </div>
 

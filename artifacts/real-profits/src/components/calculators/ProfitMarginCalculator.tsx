@@ -22,11 +22,11 @@ export function ProfitMarginCalculator() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
         <div className="space-y-2">
           <Label>Total Revenue ($)</Label>
-          <Input type="number" value={revenue} onChange={e => setRevenue(Number(e.target.value) || 0)} />
+          <Input type="number" min="0" value={revenue} onChange={e => setRevenue(Math.max(0, Number(e.target.value) || 0))} />
         </div>
         <div className="space-y-2">
           <Label>Total Costs ($)</Label>
-          <Input type="number" value={costs} onChange={e => setCosts(Number(e.target.value) || 0)} />
+          <Input type="number" min="0" value={costs} onChange={e => setCosts(Math.max(0, Number(e.target.value) || 0))} />
         </div>
       </div>
 

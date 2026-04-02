@@ -7,7 +7,6 @@ export function SimpleTaxEstimator() {
   const [income, setIncome] = useState(75000);
   const [stateRate, setStateRate] = useState(5);
   
-  // Simplified 2024 brackets for Single filer
   const standardDeduction = 14600;
   const taxable = Math.max(0, income - standardDeduction);
   
@@ -35,9 +34,9 @@ export function SimpleTaxEstimator() {
   const effectiveRate = income > 0 ? (totalTax / income) * 100 : 0;
 
   const data = [
-    { name: "Take Home", value: takeHome },
-    { name: "Federal Tax", value: federalTax },
-    { name: "State Tax", value: stateTax },
+    { name: "Take Home", value: Math.max(0, takeHome) },
+    { name: "Federal Tax", value: Math.max(0, federalTax) },
+    { name: "State Tax", value: Math.max(0, stateTax) },
   ];
   
   const COLORS = ['#059669', '#ef4444', '#f59e0b'];
@@ -47,11 +46,12 @@ export function SimpleTaxEstimator() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Gross Annual Income ($)</Label>
-          <Input type="number" value={income} onChange={e => setIncome(Number(e.target.value) || 0)} />
+          <Input type="number" min="0" value={income} onChange={e => setIncome(Math.max(0, Number(e.target.value) || 0))} />
         </div>
         <div className="space-y-2">
           <Label>State Tax Rate (%)</Label>
-          <Input type="number" value={stateRate} onChange={e => setStateRate(Number(e.target.value) || 0)} />
+          <Input type="number" min="0" max="15" step="0.1" value={stateRate} onChange={e => setStateRate(Math.max(0, Math.min(15, Number(e.target.value) || 0)))} />
+          <p className="text-xs text-muted-foreground">Enter your state's income tax rate (0% for states with no income tax)</p>
         </div>
       </div>
 
@@ -65,6 +65,15 @@ export function SimpleTaxEstimator() {
           <div className="text-3xl font-bold mt-1 text-primary">${Math.round(takeHome).toLocaleString()}</div>
           <p className="text-xs mt-1 opacity-80">Effective Tax Rate: {effectiveRate.toFixed(1)}%</p>
         </div>
+      </div>
+
+      <div className="bg-muted/20 p-4 rounded-lg border text-sm text-muted-foreground">
+        <p className="font-medium mb-1">How this works:</p>
+        <ul className="list-disc pl-5 space-y-1">
+          <li>Federal tax is calculated using 2024 single-filer brackets after a ${standardDeduction.toLocaleString()} standard deduction</li>
+          <li>State tax is applied at the flat rate you entered on your taxable income</li>
+          <li>This is an estimate -- actual taxes depend on filing status, deductions, and credits</li>
+        </ul>
       </div>
 
       <div className="h-[250px]" id="simple-tax-chart">
