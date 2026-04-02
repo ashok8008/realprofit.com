@@ -36,10 +36,11 @@ function ScrollToTop() {
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
 
-    if (typeof window.gtag === "function") {
-      window.gtag("event", "page_view", {
-        page_path: location,
-        page_title: document.title,
+    if (window.dataLayer) {
+      window.dataLayer.push({
+        event: "virtualPageview",
+        pagePath: location,
+        pageTitle: document.title,
       });
     }
   }, [location]);
