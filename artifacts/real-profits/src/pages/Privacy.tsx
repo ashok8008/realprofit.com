@@ -4,7 +4,7 @@ import { Seo } from "@/components/Seo";
 export default function Privacy() {
   return (
     <div className="container mx-auto px-4 py-20 max-w-3xl">
-      <Seo title="Privacy Policy" description="Privacy Policy for RealProfits" />
+      <Seo title="Privacy Policy" description="Privacy Policy for RealProfits. Learn how we protect your data and privacy." keywords="privacy policy, data protection, RealProfits privacy, personal information, cookies policy" path="/privacy" />
       <h1 className="font-serif text-4xl font-bold mb-8">Privacy Policy</h1>
       <div className="prose prose-lg prose-headings:font-serif">
         <p className="text-muted-foreground mb-8">Last Updated: October 2023</p>

@@ -10,9 +10,10 @@ export default function GuidesHub() {
   return (
     <>
       <Seo
-        title="Financial Guides | RealProfits.com"
+        title="Financial Guides"
         description="Browse 129+ free financial guides covering salary breakdowns, tax calculations, and savings plans for every income level."
-        canonical="/guides"
+        keywords="financial guides, salary breakdown, tax calculation guide, savings plan, income analysis, how much tax on salary, is my salary good, savings goal guide, personal finance guide, money guide"
+        path="/guides"
       />
 
       <div className="bg-gradient-to-br from-gray-50 to-white py-12">

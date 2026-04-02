@@ -135,6 +135,8 @@ Frontend-only React + Vite personal finance content site (RealProfits.com). No b
 - **Contact page**: Functional form with mailto-based submission (opens email client pre-filled), required field validation, success confirmation state.
 - **Subscribe (Footer)**: localStorage-based email capture with confirmation "Thank you for subscribing!" message replacing the form.
 - **Overflow protection**: Large currency output containers use `break-words` class to prevent horizontal overflow on big numbers.
+- **SEO meta keywords**: Seo component supports optional `keywords` prop. Every page has page-specific keywords. index.html has global meta tags: `robots` (index/follow), `author`, `language` (en-US), `geo.region` (US), `rating`, `distribution`. Dynamic pages (calculators, tools, articles, pSEO guides) generate keywords from page data.
+- **GTM**: Google Tag Manager (GTM-KQ9BHG4B) is in index.html. No separate Google Analytics script needed — GA4 can be configured through GTM.
 - **No emojis** in UI (explicit requirement)
 - **USA-only** audience
 

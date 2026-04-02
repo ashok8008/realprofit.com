@@ -49,6 +49,7 @@ export default function ToolDetail() {
       <Seo 
         title={tool.name}
         description={tool.description}
+        keywords={`${tool.name.toLowerCase()}, ${tool.slug.replace(/-/g, ' ')}, free financial tool, money management tool, personal finance tool, online ${tool.category} tool`}
         path={`/tools/${tool.slug}`}
       />
       

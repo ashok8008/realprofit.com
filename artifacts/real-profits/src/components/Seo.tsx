@@ -4,12 +4,13 @@ import { Helmet } from "react-helmet-async";
 interface SeoProps {
   title: string;
   description: string;
+  keywords?: string;
   type?: string;
   path?: string;
   jsonLd?: Record<string, unknown> | Record<string, unknown>[];
 }
 
-export function Seo({ title, description, type = "website", path = "", jsonLd }: SeoProps) {
+export function Seo({ title, description, keywords, type = "website", path = "", jsonLd }: SeoProps) {
   const siteName = "RealProfits";
   const fullTitle = `${title} | ${siteName}`;
   const url = `https://realprofits.com${path}`;
@@ -22,6 +23,9 @@ export function Seo({ title, description, type = "website", path = "", jsonLd }:
     <Helmet>
       <title>{fullTitle}</title>
       <meta name="description" content={description} />
+      {keywords && <meta name="keywords" content={keywords} />}
+      <meta name="author" content="RealProfits" />
+      <meta name="robots" content="index, follow" />
       <link rel="canonical" href={url} />
 
       <meta property="og:title" content={fullTitle} />

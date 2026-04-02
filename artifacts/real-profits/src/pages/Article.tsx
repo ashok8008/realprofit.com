@@ -127,6 +127,7 @@ export default function ArticleDetail() {
       <Seo
         title={article.title}
         description={article.excerpt}
+        keywords={`${article.title.toLowerCase()}, ${article.categorySlug.replace(/-/g, ' ')}, personal finance article, money advice, financial tips, ${article.subcategorySlug.replace(/-/g, ' ')}`}
         path={`/articles/${article.slug}`}
         type="article"
         jsonLd={[articleSchema, breadcrumbSchema]}

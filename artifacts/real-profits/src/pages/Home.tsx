@@ -39,6 +39,7 @@ export default function Home() {
       <Seo 
         title="Practical Money Clarity"
         description="RealProfits provides free calculators, expert insights, and powerful simulations to plan your financial future."
+        keywords="personal finance, financial calculator, budget calculator, savings calculator, money management, financial planning, debt payoff, investment calculator, tax calculator, side hustle, net worth, retirement planning, compound interest, emergency fund, free financial tools"
         path="/"
       />
       

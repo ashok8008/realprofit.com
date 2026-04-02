@@ -4,7 +4,7 @@ import { Seo } from "@/components/Seo";
 export default function About() {
   return (
     <div className="container mx-auto px-4 py-20 max-w-3xl">
-      <Seo title="About Us" description="About RealProfits" />
+      <Seo title="About Us" description="About RealProfits -- free personal finance education, calculators, and tools for everyday Americans." keywords="about RealProfits, personal finance website, financial education, money management, free financial tools, USA finance" path="/about" />
       <h1 className="font-serif text-4xl font-bold mb-6">About RealProfits</h1>
       <div className="prose prose-lg">
         <p>RealProfits is dedicated to providing clear, actionable financial education for everyday Americans.</p>

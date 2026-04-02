@@ -31,6 +31,7 @@ export default function Category() {
       <Seo 
         title={title}
         description={category.description}
+        keywords={`${category.name.toLowerCase()}, ${subcategory ? subcategory.name.toLowerCase() + ', ' : ''}personal finance, money articles, financial education, ${category.slug.replace(/-/g, ' ')}`}
         path={`/category/${categorySlug}${subcategorySlug ? `/${subcategorySlug}` : ''}`}
       />
       

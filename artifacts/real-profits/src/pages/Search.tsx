@@ -44,6 +44,7 @@ export default function Search() {
       <Seo 
         title="Search"
         description="Search RealProfits articles, calculators, and guides."
+        keywords="search financial articles, find calculator, personal finance search, money guides, financial tools search"
         path="/search"
       />
       

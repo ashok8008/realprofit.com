@@ -27,6 +27,7 @@ export default function CalculatorHub() {
       <Seo 
         title="Financial Calculators"
         description="Interactive tools to clarify your numbers and plan your financial future."
+        keywords="financial calculators, budget calculator, savings goal calculator, compound interest calculator, debt payoff calculator, tax estimator, investment growth calculator, mortgage calculator, loan calculator, retirement calculator, free online calculators"
         path="/calculators"
       />
       

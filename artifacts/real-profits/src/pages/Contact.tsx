@@ -24,7 +24,7 @@ export default function Contact() {
 
   return (
     <div className="container mx-auto px-4 py-20 max-w-3xl">
-      <Seo title="Contact Us" description="Get in touch with RealProfits" />
+      <Seo title="Contact Us" description="Get in touch with the RealProfits team. Questions, feedback, or partnership inquiries welcome." keywords="contact RealProfits, financial website contact, personal finance help, feedback" path="/contact" />
       <h1 className="font-serif text-4xl font-bold mb-8">Contact Us</h1>
       
       <div className="bg-card border rounded-xl p-8 shadow-sm">

@@ -56,6 +56,7 @@ function SalaryGuidePage({ data }: { data: typeof salaryLevels[0] }) {
   const amountStr = `$${data.amount.toLocaleString()}`;
   const title = `Is ${amountStr} a Good Salary? A Reality Check`;
   const description = `Find out if ${amountStr} is a good salary in the U.S. See monthly take-home pay, tax breakdown, and how it compares to the national average.`;
+  const keywords = `${amountStr} salary, is ${amountStr} a good salary, ${amountStr} a year, ${amountStr} income, salary breakdown, how much is ${amountStr} after taxes, take home pay, personal finance`;
 
   const howTo = buildHowToSchema({
     title: `How to Evaluate a ${amountStr} Salary`,
@@ -81,7 +82,7 @@ function SalaryGuidePage({ data }: { data: typeof salaryLevels[0] }) {
 
   return (
     <div className="w-full bg-background">
-      <Seo title={title} description={description} path={`/guides/${data.slug}`} jsonLd={[howTo, faqs, breadcrumbs]} />
+      <Seo title={title} description={description} keywords={keywords} path={`/guides/${data.slug}`} jsonLd={[howTo, faqs, breadcrumbs]} />
 
       <div className="container mx-auto px-4 py-12 max-w-4xl">
         <nav className="flex items-center text-sm text-muted-foreground mb-8">
@@ -161,6 +162,7 @@ function TaxGuidePage({ data }: { data: typeof taxOnIncome[0] }) {
   const amountStr = `$${data.amount.toLocaleString()}`;
   const title = `How Much Tax Do You Pay on ${amountStr} Income?`;
   const description = `Detailed tax breakdown on ${amountStr} income. See federal, state, FICA taxes, effective rate, and take-home pay.`;
+  const keywords = `tax on ${amountStr}, ${amountStr} income tax, how much tax on ${amountStr}, federal tax ${amountStr}, effective tax rate, take home pay after taxes, tax calculator, tax breakdown`;
 
   const howTo = buildHowToSchema({
     title: `How to Calculate Tax on ${amountStr} Income`,
@@ -186,7 +188,7 @@ function TaxGuidePage({ data }: { data: typeof taxOnIncome[0] }) {
 
   return (
     <div className="w-full bg-background">
-      <Seo title={title} description={description} path={`/guides/${data.slug}`} jsonLd={[howTo, faqs, breadcrumbs]} />
+      <Seo title={title} description={description} keywords={keywords} path={`/guides/${data.slug}`} jsonLd={[howTo, faqs, breadcrumbs]} />
 
       <div className="container mx-auto px-4 py-12 max-w-4xl">
         <nav className="flex items-center text-sm text-muted-foreground mb-8">
@@ -259,6 +261,7 @@ function SavingsGuidePage({ data }: { data: typeof savingsTargets[0] }) {
   const amountStr = `$${data.amount.toLocaleString()}`;
   const title = `How to Save ${amountStr} (${data.context})`;
   const description = `A practical guide to saving ${amountStr} for a ${data.context.toLowerCase()}. See monthly savings plans for 6-month to 5-year timelines.`;
+  const keywords = `how to save ${amountStr}, save ${amountStr} fast, savings plan ${amountStr}, monthly savings goal, ${data.context.toLowerCase()}, savings tips, money saving guide, personal finance`;
 
   const howTo = buildHowToSchema({
     title: `How to Save ${amountStr} for a ${data.context}`,
@@ -284,7 +287,7 @@ function SavingsGuidePage({ data }: { data: typeof savingsTargets[0] }) {
 
   return (
     <div className="w-full bg-background">
-      <Seo title={title} description={description} path={`/guides/${data.slug}`} jsonLd={[howTo, faqs, breadcrumbs]} />
+      <Seo title={title} description={description} keywords={keywords} path={`/guides/${data.slug}`} jsonLd={[howTo, faqs, breadcrumbs]} />
 
       <div className="container mx-auto px-4 py-12 max-w-4xl">
         <nav className="flex items-center text-sm text-muted-foreground mb-8">

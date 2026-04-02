@@ -26,6 +26,7 @@ export default function ToolsHub() {
       <Seo 
         title="Productive Tools"
         description="Practical, app-like money tools to track, split, and calculate your finances."
+        keywords="financial tools, invoice generator, subscription tracker, bill splitter, net worth calculator, paycheck calculator, income tracker, expense tracker, money management tools, personal finance tools, free budget tools"
         path="/tools"
       />
       

@@ -4,7 +4,7 @@ import { Seo } from "@/components/Seo";
 export default function Terms() {
   return (
     <div className="container mx-auto px-4 py-20 max-w-3xl">
-      <Seo title="Terms of Service" description="Terms of Service for RealProfits" />
+      <Seo title="Terms of Service" description="Terms of Service for RealProfits. Read our terms and conditions." keywords="terms of service, terms and conditions, RealProfits terms, user agreement" path="/terms" />
       <h1 className="font-serif text-4xl font-bold mb-8">Terms of Service</h1>
       <div className="prose prose-lg prose-headings:font-serif">
         <h2>Educational Purposes Only</h2>

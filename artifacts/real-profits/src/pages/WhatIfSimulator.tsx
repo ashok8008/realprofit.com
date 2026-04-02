@@ -114,6 +114,7 @@ export default function WhatIfSimulator() {
       <Seo 
         title="What If Simulator"
         description="Explore how different financial choices impact your long-term wealth."
+        keywords="financial simulator, what if calculator, wealth projection, financial planning tool, retirement simulator, savings scenario, debt payoff simulator, investment simulator, money decisions, financial future planner"
         path="/what-if"
       />
       

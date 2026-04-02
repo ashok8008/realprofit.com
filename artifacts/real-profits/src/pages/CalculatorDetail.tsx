@@ -151,6 +151,7 @@ export default function CalculatorDetail() {
       <Seo
         title={calculator.name}
         description={calculator.description}
+        keywords={`${calculator.name.toLowerCase()}, ${calculator.slug.replace(/-/g, ' ')}, free ${calculator.category.replace(/-/g, ' ')} calculator, personal finance calculator, online calculator, money calculator, financial planning tool`}
         path={`/calculators/${calculator.slug}`}
         jsonLd={[softwareSchema, faqSchema, breadcrumbSchema]}
       />

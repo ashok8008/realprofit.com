@@ -4,7 +4,7 @@ import { Seo } from "@/components/Seo";
 export default function Disclaimer() {
   return (
     <div className="container mx-auto px-4 py-20 max-w-3xl">
-      <Seo title="Disclaimer" description="Financial Disclaimer for RealProfits" />
+      <Seo title="Disclaimer" description="Financial Disclaimer for RealProfits. Our content is for educational purposes only." keywords="financial disclaimer, not financial advice, educational content, RealProfits disclaimer" path="/disclaimer" />
       <h1 className="font-serif text-4xl font-bold mb-8">Financial Disclaimer</h1>
       <div className="prose prose-lg prose-headings:font-serif">
         <p className="font-bold text-lg border-l-4 border-primary pl-4 py-2 bg-muted/30">
