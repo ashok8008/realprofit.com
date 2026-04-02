@@ -34,15 +34,24 @@ export function ExpenseTracker() {
   }, [entries]);
 
   const addEntry = () => {
-    if (!newEntry.merchant || !newEntry.amount) return;
+    const trimmedMerchant = newEntry.merchant.trim();
+    if (!trimmedMerchant) {
+      toast({ title: "Invalid Merchant", description: "Merchant name cannot be empty.", variant: "destructive" });
+      return;
+    }
+    const amountVal = parseFloat(newEntry.amount);
+    if (!amountVal || amountVal <= 0) {
+      toast({ title: "Invalid Amount", description: "Amount must be greater than zero.", variant: "destructive" });
+      return;
+    }
     setEntries([
       ...entries,
       {
         id: Date.now().toString(),
         date: newEntry.date,
-        merchant: newEntry.merchant,
+        merchant: trimmedMerchant,
         category: newEntry.category,
-        amount: parseFloat(newEntry.amount),
+        amount: amountVal,
         notes: newEntry.notes
       }
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
@@ -59,10 +68,8 @@ export function ExpenseTracker() {
     toast({ title: "Reset", description: "All expense entries cleared." });
   };
 
-  // Stats
   const totalExpense = entries.reduce((sum, e) => sum + e.amount, 0);
   
-  // Group by category
   const categoryData = entries.reduce((acc, entry) => {
     const existing = acc.find((a: any) => a.name === entry.category);
     if (existing) {
@@ -74,6 +81,8 @@ export function ExpenseTracker() {
   }, []).sort((a: any, b: any) => b.value - a.value);
 
   const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))', 'hsl(var(--destructive))', 'hsl(var(--primary))'];
+
+  const isLogDisabled = !newEntry.merchant.trim() || !newEntry.amount || parseFloat(newEntry.amount) <= 0;
 
   return (
     <div className="space-y-8">
@@ -113,11 +122,11 @@ export function ExpenseTracker() {
                 <Input type="date" value={newEntry.date} onChange={e => setNewEntry({...newEntry, date: e.target.value})} />
               </div>
               <div className="space-y-2">
-                <Label>Amount ($)</Label>
-                <Input type="number" min="0" step="0.01" value={newEntry.amount} onChange={e => setNewEntry({...newEntry, amount: e.target.value})} placeholder="0.00" />
+                <Label>Amount ($) <span className="text-destructive">*</span></Label>
+                <Input type="number" min="0.01" step="0.01" value={newEntry.amount} onChange={e => setNewEntry({...newEntry, amount: e.target.value})} placeholder="0.00" />
               </div>
               <div className="space-y-2 md:col-span-2">
-                <Label>Merchant / Description</Label>
+                <Label>Merchant / Description <span className="text-destructive">*</span></Label>
                 <Input value={newEntry.merchant} onChange={e => setNewEntry({...newEntry, merchant: e.target.value})} placeholder="Store Name" />
               </div>
             </div>
@@ -142,7 +151,7 @@ export function ExpenseTracker() {
                 <Label>Notes (Optional)</Label>
                 <Input value={newEntry.notes} onChange={e => setNewEntry({...newEntry, notes: e.target.value})} placeholder="..." />
               </div>
-              <Button onClick={addEntry} className="w-full md:col-span-1" variant="destructive"><Plus className="w-4 h-4 mr-2"/> Log</Button>
+              <Button onClick={addEntry} className="w-full md:col-span-1" variant="destructive" disabled={isLogDisabled}><Plus className="w-4 h-4 mr-2"/> Log</Button>
             </div>
           </div>
 

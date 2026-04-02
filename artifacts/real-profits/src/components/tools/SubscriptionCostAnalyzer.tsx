@@ -3,7 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
+import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
 import { Plus, Trash2, RotateCcw } from "lucide-react";
 import { ExportToCSVButton } from "@/components/export/ExportButtons";
 import { useToast } from "@/hooks/use-toast";
@@ -31,12 +31,23 @@ export function SubscriptionCostAnalyzer() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(subs));
   }, [subs]);
 
+  const isAddDisabled = !newSub.name.trim() || !newSub.cost || parseFloat(newSub.cost) <= 0;
+
   const addSub = () => {
-    if (!newSub.name || !newSub.cost) return;
+    const trimmedName = newSub.name.trim();
+    if (!trimmedName) {
+      toast({ title: "Invalid Name", description: "Service name cannot be empty.", variant: "destructive" });
+      return;
+    }
+    const costVal = parseFloat(newSub.cost);
+    if (!costVal || costVal <= 0) {
+      toast({ title: "Invalid Cost", description: "Cost must be greater than zero.", variant: "destructive" });
+      return;
+    }
     setSubs([...subs, { 
       id: Date.now().toString(), 
-      name: newSub.name, 
-      cost: parseFloat(newSub.cost), 
+      name: trimmedName, 
+      cost: costVal, 
       cycle: newSub.cycle, 
       category: newSub.category 
     }]);
@@ -52,7 +63,6 @@ export function SubscriptionCostAnalyzer() {
     toast({ title: "Reset", description: "All subscriptions cleared." });
   };
 
-  // Calculations
   const processedSubs = subs.map(s => ({
     ...s,
     monthlyEquivalent: s.cycle === "annual" ? s.cost / 12 : s.cost,
@@ -66,7 +76,6 @@ export function SubscriptionCostAnalyzer() {
   const mostExpensive = processedSubs.length ? 
     processedSubs.reduce((prev, current) => (prev.monthlyEquivalent > current.monthlyEquivalent) ? prev : current) : null;
 
-  // Chart Data
   const categoryData = processedSubs.reduce((acc, sub) => {
     const existing = acc.find(a => a.name === sub.category);
     if (existing) {
@@ -78,6 +87,8 @@ export function SubscriptionCostAnalyzer() {
   }, [] as any[]);
 
   const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
+
+  const barChartHeight = Math.max(200, processedSubs.length * 40 + 60);
 
   return (
     <div className="space-y-8">
@@ -93,12 +104,12 @@ export function SubscriptionCostAnalyzer() {
         <div className="lg:col-span-2 space-y-6">
           <div className="bg-muted/20 p-4 rounded-lg border flex flex-col md:flex-row gap-4 items-end">
             <div className="flex-1 space-y-2 w-full">
-              <Label>Service Name</Label>
+              <Label>Service Name <span className="text-destructive">*</span></Label>
               <Input value={newSub.name} onChange={e => setNewSub({...newSub, name: e.target.value})} placeholder="e.g. Netflix" />
             </div>
             <div className="w-full md:w-24 space-y-2">
-              <Label>Cost ($)</Label>
-              <Input type="number" min="0" step="0.01" value={newSub.cost} onChange={e => setNewSub({...newSub, cost: e.target.value})} placeholder="10.00" />
+              <Label>Cost ($) <span className="text-destructive">*</span></Label>
+              <Input type="number" min="0.01" step="0.01" value={newSub.cost} onChange={e => setNewSub({...newSub, cost: e.target.value})} placeholder="10.00" />
             </div>
             <div className="w-full md:w-32 space-y-2">
               <Label>Cycle</Label>
@@ -124,7 +135,7 @@ export function SubscriptionCostAnalyzer() {
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={addSub} className="w-full md:w-auto"><Plus className="w-4 h-4 mr-1"/> Add</Button>
+            <Button onClick={addSub} className="w-full md:w-auto" disabled={isAddDisabled}><Plus className="w-4 h-4 mr-1"/> Add</Button>
           </div>
 
           <div className="border rounded-lg overflow-hidden">
@@ -160,12 +171,12 @@ export function SubscriptionCostAnalyzer() {
           </div>
 
           {processedSubs.length > 0 && (
-            <div className="h-64 border rounded-lg p-4 pt-6">
+            <div className="border rounded-lg p-4 pt-6" style={{ height: barChartHeight }}>
               <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                <BarChart data={processedSubs} layout="vertical" margin={{ top: 0, right: 30, left: 40, bottom: 0 }}>
+                <BarChart data={processedSubs} layout="vertical" margin={{ top: 0, right: 30, left: 60, bottom: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                  <XAxis type="number" tickFormatter={v => `$${v}`} />
-                  <YAxis dataKey="name" type="category" width={80} />
+                  <XAxis type="number" tickFormatter={v => `$${v}`} label={{ value: "Monthly Cost ($)", position: "insideBottom", offset: -10, style: { fontSize: 12 } }} />
+                  <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 11 }} />
                   <RechartsTooltip formatter={(value: number) => [`$${value.toFixed(2)}/mo`, 'Cost']} />
                   <Bar dataKey="monthlyEquivalent" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
                 </BarChart>

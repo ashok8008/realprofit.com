@@ -2,12 +2,32 @@ import React, { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
-import { RotateCcw } from "lucide-react";
-import { ExportToCSVButton, ExportToPDFButton } from "@/components/export/ExportButtons";
+import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
+import { RotateCcw, Download } from "lucide-react";
+import { ExportToCSVButton } from "@/components/export/ExportButtons";
+import { jsPDF } from "jspdf";
 import { useToast } from "@/hooks/use-toast";
 
 const STORAGE_KEY = "rp-tool-net-worth";
+
+const ASSET_LABELS: Record<string, string> = {
+  cash: "Cash & Checking",
+  savings: "Savings Accounts",
+  investments: "Brokerage & Crypto",
+  retirement: "Retirement (401k/IRA)",
+  property: "Primary Home Value",
+  vehicles: "Vehicles Value",
+  other: "Other Assets"
+};
+
+const LIABILITY_LABELS: Record<string, string> = {
+  mortgage: "Mortgage Balance",
+  studentLoans: "Student Loans",
+  personalLoans: "Personal Loans",
+  autoLoans: "Auto Loans",
+  creditCards: "Credit Card Debt",
+  other: "Other Debts"
+};
 
 export function NetWorthCalculator() {
   const { toast } = useToast();
@@ -64,10 +84,9 @@ export function NetWorthCalculator() {
     toast({ title: "Reset", description: "All fields have been cleared." });
   };
 
-  // Chart Data
   const pieData = [
-    { name: "Assets", value: totalAssets, fill: "hsl(var(--chart-2))" },
-    { name: "Liabilities", value: totalLiabilities, fill: "hsl(var(--destructive))" }
+    { name: "Assets", value: totalAssets, fill: "#22c55e" },
+    { name: "Liabilities", value: totalLiabilities, fill: "#ef4444" }
   ].filter(d => d.value > 0);
 
   const barData = [
@@ -80,9 +99,85 @@ export function NetWorthCalculator() {
   ].filter(d => d.amount > 0).sort((a, b) => b.amount - a.amount);
 
   const exportData = [
-    ...Object.entries(assets).map(([k, v]) => ({ Type: 'Asset', Category: k, Amount: v })),
-    ...Object.entries(liabilities).map(([k, v]) => ({ Type: 'Liability', Category: k, Amount: v }))
+    ...Object.entries(assets).map(([k, v]) => ({ Type: 'Asset', Category: ASSET_LABELS[k] || k, Amount: v })),
+    ...Object.entries(liabilities).map(([k, v]) => ({ Type: 'Liability', Category: LIABILITY_LABELS[k] || k, Amount: v }))
   ];
+
+  const handleExportPDF = () => {
+    try {
+      const doc = new jsPDF();
+      let y = 20;
+
+      doc.setFontSize(22);
+      doc.text("Net Worth Report", 20, y);
+      doc.setFontSize(10);
+      doc.text(`Generated: ${new Date().toLocaleDateString()}`, 150, y);
+      y += 15;
+
+      doc.setFontSize(16);
+      const nwColor = netWorth >= 0 ? [34, 197, 94] : [239, 68, 68];
+      doc.setTextColor(nwColor[0], nwColor[1], nwColor[2]);
+      doc.text(`Total Net Worth: $${netWorth.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 20, y);
+      doc.setTextColor(0, 0, 0);
+      y += 15;
+
+      doc.setFontSize(14);
+      doc.setTextColor(34, 197, 94);
+      doc.text(`Assets: $${totalAssets.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 20, y);
+      doc.setTextColor(0, 0, 0);
+      y += 8;
+
+      doc.setFontSize(11);
+      Object.entries(assets).forEach(([key, val]) => {
+        if (val > 0) {
+          doc.text(`  ${ASSET_LABELS[key] || key}`, 24, y);
+          doc.text(`$${val.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 150, y);
+          y += 7;
+        }
+      });
+
+      y += 5;
+      doc.setFontSize(14);
+      doc.setTextColor(239, 68, 68);
+      doc.text(`Liabilities: $${totalLiabilities.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 20, y);
+      doc.setTextColor(0, 0, 0);
+      y += 8;
+
+      doc.setFontSize(11);
+      Object.entries(liabilities).forEach(([key, val]) => {
+        if (val > 0) {
+          doc.text(`  ${LIABILITY_LABELS[key] || key}`, 24, y);
+          doc.text(`$${val.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 150, y);
+          y += 7;
+        }
+      });
+
+      y += 10;
+      doc.setDrawColor(200, 200, 200);
+      doc.line(20, y, 190, y);
+      y += 8;
+      doc.setFontSize(12);
+      doc.setFont(undefined as any, "bold");
+      doc.text("Summary", 20, y);
+      doc.setFont(undefined as any, "normal");
+      y += 8;
+      doc.setFontSize(11);
+      doc.text(`Total Assets:`, 24, y);
+      doc.text(`$${totalAssets.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 150, y);
+      y += 7;
+      doc.text(`Total Liabilities:`, 24, y);
+      doc.text(`$${totalLiabilities.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 150, y);
+      y += 7;
+      doc.setFont(undefined as any, "bold");
+      doc.text(`Net Worth:`, 24, y);
+      doc.text(`$${netWorth.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 150, y);
+
+      doc.save("net-worth-report.pdf");
+      toast({ title: "PDF Downloaded", description: "Your net worth report has been saved." });
+    } catch {
+      toast({ title: "Export Failed", description: "Could not generate PDF.", variant: "destructive" });
+    }
+  };
 
   return (
     <div className="space-y-8" id="net-worth-report">
@@ -91,7 +186,7 @@ export function NetWorthCalculator() {
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={handleReset}><RotateCcw className="w-4 h-4 mr-2"/> Reset</Button>
           <ExportToCSVButton data={exportData} title="Net Worth Data" />
-          <ExportToPDFButton elementId="net-worth-report" title="Net Worth Report" />
+          <Button variant="outline" size="sm" onClick={handleExportPDF}><Download className="w-4 h-4 mr-2"/> PDF</Button>
         </div>
       </div>
 
@@ -103,7 +198,6 @@ export function NetWorthCalculator() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Assets Form */}
         <div className="space-y-6 bg-muted/10 p-6 rounded-xl border border-green-200/50 dark:border-green-900/50">
           <div className="flex justify-between items-center border-b border-green-200/50 dark:border-green-900/50 pb-2">
             <h3 className="font-bold text-xl text-green-700 dark:text-green-400">Assets (+)</h3>
@@ -111,38 +205,15 @@ export function NetWorthCalculator() {
           </div>
           
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4 items-center">
-              <Label>Cash & Checking</Label>
-              <Input type="number" className="text-right" value={assets.cash} onChange={e => handleAssetChange('cash', e.target.value)} />
-            </div>
-            <div className="grid grid-cols-2 gap-4 items-center">
-              <Label>Savings Accounts</Label>
-              <Input type="number" className="text-right" value={assets.savings} onChange={e => handleAssetChange('savings', e.target.value)} />
-            </div>
-            <div className="grid grid-cols-2 gap-4 items-center">
-              <Label>Brokerage & Crypto</Label>
-              <Input type="number" className="text-right" value={assets.investments} onChange={e => handleAssetChange('investments', e.target.value)} />
-            </div>
-            <div className="grid grid-cols-2 gap-4 items-center">
-              <Label>Retirement (401k/IRA)</Label>
-              <Input type="number" className="text-right" value={assets.retirement} onChange={e => handleAssetChange('retirement', e.target.value)} />
-            </div>
-            <div className="grid grid-cols-2 gap-4 items-center">
-              <Label>Primary Home Value</Label>
-              <Input type="number" className="text-right" value={assets.property} onChange={e => handleAssetChange('property', e.target.value)} />
-            </div>
-            <div className="grid grid-cols-2 gap-4 items-center">
-              <Label>Vehicles Value</Label>
-              <Input type="number" className="text-right" value={assets.vehicles} onChange={e => handleAssetChange('vehicles', e.target.value)} />
-            </div>
-            <div className="grid grid-cols-2 gap-4 items-center">
-              <Label>Other Assets</Label>
-              <Input type="number" className="text-right" value={assets.other} onChange={e => handleAssetChange('other', e.target.value)} />
-            </div>
+            {(Object.keys(assets) as (keyof typeof assets)[]).map(key => (
+              <div key={key} className="grid grid-cols-2 gap-4 items-center">
+                <Label>{ASSET_LABELS[key]}</Label>
+                <Input type="number" className="text-right" value={assets[key]} onChange={e => handleAssetChange(key, e.target.value)} />
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Liabilities Form */}
         <div className="space-y-6 bg-muted/10 p-6 rounded-xl border border-red-200/50 dark:border-red-900/50">
           <div className="flex justify-between items-center border-b border-red-200/50 dark:border-red-900/50 pb-2">
             <h3 className="font-bold text-xl text-destructive">Liabilities (-)</h3>
@@ -150,36 +221,18 @@ export function NetWorthCalculator() {
           </div>
           
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4 items-center">
-              <Label>Mortgage Balance</Label>
-              <Input type="number" className="text-right" value={liabilities.mortgage} onChange={e => handleLiabilityChange('mortgage', e.target.value)} />
-            </div>
-            <div className="grid grid-cols-2 gap-4 items-center">
-              <Label>Student Loans</Label>
-              <Input type="number" className="text-right" value={liabilities.studentLoans} onChange={e => handleLiabilityChange('studentLoans', e.target.value)} />
-            </div>
-            <div className="grid grid-cols-2 gap-4 items-center">
-              <Label>Auto Loans</Label>
-              <Input type="number" className="text-right" value={liabilities.autoLoans} onChange={e => handleLiabilityChange('autoLoans', e.target.value)} />
-            </div>
-            <div className="grid grid-cols-2 gap-4 items-center">
-              <Label>Credit Card Debt</Label>
-              <Input type="number" className="text-right" value={liabilities.creditCards} onChange={e => handleLiabilityChange('creditCards', e.target.value)} />
-            </div>
-            <div className="grid grid-cols-2 gap-4 items-center">
-              <Label>Personal Loans</Label>
-              <Input type="number" className="text-right" value={liabilities.personalLoans} onChange={e => handleLiabilityChange('personalLoans', e.target.value)} />
-            </div>
-            <div className="grid grid-cols-2 gap-4 items-center">
-              <Label>Other Debts</Label>
-              <Input type="number" className="text-right" value={liabilities.other} onChange={e => handleLiabilityChange('other', e.target.value)} />
-            </div>
+            {(Object.keys(liabilities) as (keyof typeof liabilities)[]).map(key => (
+              <div key={key} className="grid grid-cols-2 gap-4 items-center">
+                <Label>{LIABILITY_LABELS[key]}</Label>
+                <Input type="number" className="text-right" value={liabilities[key]} onChange={e => handleLiabilityChange(key, e.target.value)} />
+              </div>
+            ))}
           </div>
         </div>
       </div>
 
       {(totalAssets > 0 || totalLiabilities > 0) && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t no-print">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t">
           <div className="bg-card border rounded-xl p-6 shadow-sm">
             <h3 className="text-center font-bold mb-4">Assets vs Liabilities</h3>
             <div className="h-64">
@@ -194,6 +247,16 @@ export function NetWorthCalculator() {
                 </PieChart>
               </ResponsiveContainer>
             </div>
+            <div className="flex justify-center gap-6 mt-4">
+              <div className="flex items-center gap-2 text-sm">
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#22c55e" }}></div>
+                <span>Assets (${totalAssets.toLocaleString()})</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#ef4444" }}></div>
+                <span>Liabilities (${totalLiabilities.toLocaleString()})</span>
+              </div>
+            </div>
           </div>
 
           <div className="bg-card border rounded-xl p-6 shadow-sm">
@@ -207,11 +270,21 @@ export function NetWorthCalculator() {
                   <RechartsTooltip formatter={(value: number) => [`$${value.toLocaleString()}`, 'Amount']} />
                   <Bar dataKey="amount" radius={[0, 4, 4, 0]}>
                     {barData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.type === 'asset' ? 'hsl(var(--chart-2))' : 'hsl(var(--destructive))'} />
+                      <Cell key={`cell-${index}`} fill={entry.type === 'asset' ? '#22c55e' : '#ef4444'} />
                     ))}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
+            </div>
+            <div className="flex justify-center gap-6 mt-4">
+              <div className="flex items-center gap-2 text-sm">
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#22c55e" }}></div>
+                <span>Assets</span>
+              </div>
+              <div className="flex items-center gap-2 text-sm">
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#ef4444" }}></div>
+                <span>Liabilities</span>
+              </div>
             </div>
           </div>
         </div>

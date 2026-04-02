@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
-import { Plus, Trash2, RotateCcw } from "lucide-react";
+import { Plus, Trash2, RotateCcw, Pencil, Check, X } from "lucide-react";
 import { ExportToCSVButton } from "@/components/export/ExportButtons";
 import { useToast } from "@/hooks/use-toast";
 
@@ -21,6 +21,8 @@ export function IncomeTracker() {
     amount: "",
     notes: ""
   });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editData, setEditData] = useState({ date: "", source: "", category: "", amount: "", notes: "" });
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -34,15 +36,20 @@ export function IncomeTracker() {
   }, [entries]);
 
   const addEntry = () => {
-    if (!newEntry.source || !newEntry.amount) return;
+    if (!newEntry.source.trim() || !newEntry.amount) return;
+    const amountVal = parseFloat(newEntry.amount);
+    if (!amountVal || amountVal <= 0) {
+      toast({ title: "Invalid Amount", description: "Amount must be greater than zero.", variant: "destructive" });
+      return;
+    }
     setEntries([
       ...entries,
       {
         id: Date.now().toString(),
         date: newEntry.date,
-        source: newEntry.source,
+        source: newEntry.source.trim(),
         category: newEntry.category,
-        amount: parseFloat(newEntry.amount),
+        amount: amountVal,
         notes: newEntry.notes
       }
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
@@ -54,17 +61,52 @@ export function IncomeTracker() {
     setEntries(entries.filter(e => e.id !== id));
   };
 
+  const startEdit = (entry: any) => {
+    setEditingId(entry.id);
+    setEditData({
+      date: entry.date,
+      source: entry.source,
+      category: entry.category,
+      amount: String(entry.amount),
+      notes: entry.notes || ""
+    });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+  };
+
+  const saveEdit = () => {
+    if (!editingId) return;
+    const amountVal = parseFloat(editData.amount);
+    if (!editData.source.trim() || !amountVal || amountVal <= 0) {
+      toast({ title: "Invalid Entry", description: "Source and a positive amount are required.", variant: "destructive" });
+      return;
+    }
+    setEntries(prev =>
+      prev.map(e => e.id === editingId ? {
+        ...e,
+        date: editData.date,
+        source: editData.source.trim(),
+        category: editData.category,
+        amount: amountVal,
+        notes: editData.notes
+      } : e).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    );
+    setEditingId(null);
+    toast({ title: "Updated", description: "Income entry has been updated." });
+  };
+
   const handleReset = () => {
     setEntries([]);
+    setEditingId(null);
     toast({ title: "Reset", description: "All income entries cleared." });
   };
 
-  // Stats
   const totalIncome = entries.reduce((sum, e) => sum + e.amount, 0);
   
-  // Group by month for chart (YYYY-MM)
   const monthlyData = entries.reduce((acc, entry) => {
-    const month = entry.date.substring(0, 7); // YYYY-MM
+    const month = entry.date.substring(0, 7);
     const existing = acc.find((a: any) => a.month === month);
     if (existing) {
       existing.amount += entry.amount;
@@ -76,7 +118,6 @@ export function IncomeTracker() {
 
   const averageMonthly = monthlyData.length ? totalIncome / monthlyData.length : 0;
   
-  // Group by category
   const categoryData = entries.reduce((acc, entry) => {
     const existing = acc.find((a: any) => a.name === entry.category);
     if (existing) {
@@ -86,6 +127,8 @@ export function IncomeTracker() {
     }
     return acc;
   }, []).sort((a: any, b: any) => b.amount - a.amount);
+
+  const isAddDisabled = !newEntry.source.trim() || !newEntry.amount || parseFloat(newEntry.amount) <= 0;
 
   return (
     <div className="space-y-8">
@@ -126,11 +169,11 @@ export function IncomeTracker() {
                 <Input type="date" value={newEntry.date} onChange={e => setNewEntry({...newEntry, date: e.target.value})} />
               </div>
               <div className="space-y-2">
-                <Label>Amount ($)</Label>
-                <Input type="number" min="0" step="0.01" value={newEntry.amount} onChange={e => setNewEntry({...newEntry, amount: e.target.value})} placeholder="0.00" />
+                <Label>Amount ($) <span className="text-destructive">*</span></Label>
+                <Input type="number" min="0.01" step="0.01" value={newEntry.amount} onChange={e => setNewEntry({...newEntry, amount: e.target.value})} placeholder="0.00" />
               </div>
               <div className="space-y-2 md:col-span-2">
-                <Label>Source / Client</Label>
+                <Label>Source / Client <span className="text-destructive">*</span></Label>
                 <Input value={newEntry.source} onChange={e => setNewEntry({...newEntry, source: e.target.value})} placeholder="Company Name" />
               </div>
             </div>
@@ -153,7 +196,7 @@ export function IncomeTracker() {
                 <Label>Notes (Optional)</Label>
                 <Input value={newEntry.notes} onChange={e => setNewEntry({...newEntry, notes: e.target.value})} placeholder="..." />
               </div>
-              <Button onClick={addEntry} className="w-full md:col-span-1"><Plus className="w-4 h-4 mr-2"/> Add</Button>
+              <Button onClick={addEntry} className="w-full md:col-span-1" disabled={isAddDisabled}><Plus className="w-4 h-4 mr-2"/> Add</Button>
             </div>
           </div>
 
@@ -166,7 +209,7 @@ export function IncomeTracker() {
                     <th className="p-3 text-left">Source</th>
                     <th className="p-3 text-left">Category</th>
                     <th className="p-3 text-right">Amount</th>
-                    <th className="p-3 w-10"></th>
+                    <th className="p-3 w-20"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -175,18 +218,62 @@ export function IncomeTracker() {
                   ) : (
                     entries.map(e => (
                       <tr key={e.id} className="border-t hover:bg-muted/30">
-                        <td className="p-3 whitespace-nowrap">{e.date}</td>
-                        <td className="p-3 font-medium">
-                          {e.source}
-                          {e.notes && <span className="block text-xs text-muted-foreground font-normal">{e.notes}</span>}
-                        </td>
-                        <td className="p-3 capitalize">{e.category}</td>
-                        <td className="p-3 text-right font-bold text-primary">${e.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                        <td className="p-3 text-center">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => removeEntry(e.id)}>
-                            <Trash2 className="w-4 h-4"/>
-                          </Button>
-                        </td>
+                        {editingId === e.id ? (
+                          <>
+                            <td className="p-2">
+                              <Input type="date" value={editData.date} onChange={ev => setEditData({...editData, date: ev.target.value})} className="h-8 text-xs" />
+                            </td>
+                            <td className="p-2">
+                              <Input value={editData.source} onChange={ev => setEditData({...editData, source: ev.target.value})} className="h-8 text-xs" />
+                            </td>
+                            <td className="p-2">
+                              <Select value={editData.category} onValueChange={v => setEditData({...editData, category: v})}>
+                                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="salary">Salary</SelectItem>
+                                  <SelectItem value="freelance">Freelance</SelectItem>
+                                  <SelectItem value="side hustle">Side Hustle</SelectItem>
+                                  <SelectItem value="investment">Investment</SelectItem>
+                                  <SelectItem value="gift">Gift</SelectItem>
+                                  <SelectItem value="other">Other</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </td>
+                            <td className="p-2">
+                              <Input type="number" min="0.01" step="0.01" value={editData.amount} onChange={ev => setEditData({...editData, amount: ev.target.value})} className="h-8 text-xs text-right" />
+                            </td>
+                            <td className="p-2 text-center">
+                              <div className="flex gap-1 justify-center">
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600" onClick={saveEdit} title="Save">
+                                  <Check className="w-4 h-4"/>
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={cancelEdit} title="Cancel">
+                                  <X className="w-4 h-4"/>
+                                </Button>
+                              </div>
+                            </td>
+                          </>
+                        ) : (
+                          <>
+                            <td className="p-3 whitespace-nowrap">{e.date}</td>
+                            <td className="p-3 font-medium">
+                              {e.source}
+                              {e.notes && <span className="block text-xs text-muted-foreground font-normal">{e.notes}</span>}
+                            </td>
+                            <td className="p-3 capitalize">{e.category}</td>
+                            <td className="p-3 text-right font-bold text-primary">${e.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                            <td className="p-3 text-center">
+                              <div className="flex gap-1 justify-center">
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary" onClick={() => startEdit(e)} title="Edit">
+                                  <Pencil className="w-4 h-4"/>
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => removeEntry(e.id)}>
+                                  <Trash2 className="w-4 h-4"/>
+                                </Button>
+                              </div>
+                            </td>
+                          </>
+                        )}
                       </tr>
                     ))
                   )}

@@ -22,33 +22,46 @@ export function FreelanceInvoiceGenerator() {
     clientName: "",
     clientAddress: "",
     clientEmail: "",
-    items: [{ id: "1", description: "Consulting Services", quantity: 1, rate: 100 }],
-    discount: 0,
-    taxPercentage: 0,
+    items: [{ id: "1", description: "Consulting Services", quantity: "1", rate: "100" }] as { id: string; description: string; quantity: string; rate: string }[],
+    discount: "0",
+    taxPercentage: "0",
     notes: "Thank you for your business!",
     paymentTerms: "Please pay within 30 days."
   });
 
-  // Load on mount
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
-        setData(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        if (parsed.items) {
+          parsed.items = parsed.items.map((item: any) => ({
+            ...item,
+            quantity: String(item.quantity ?? "1"),
+            rate: String(item.rate ?? "0")
+          }));
+        }
+        if (parsed.discount !== undefined) parsed.discount = String(parsed.discount);
+        if (parsed.taxPercentage !== undefined) parsed.taxPercentage = String(parsed.taxPercentage);
+        setData(parsed);
       } catch {}
     }
   }, []);
 
-  // Save on change
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }, [data]);
 
-  const subtotal = data.items.reduce((sum, item) => sum + (item.quantity * item.rate), 0);
-  const taxAmount = (subtotal - data.discount) * (data.taxPercentage / 100);
-  const grandTotal = subtotal - data.discount + taxAmount;
+  const getItemQty = (item: { quantity: string }) => parseFloat(item.quantity) || 0;
+  const getItemRate = (item: { rate: string }) => parseFloat(item.rate) || 0;
+  const discountVal = parseFloat(data.discount) || 0;
+  const taxPctVal = parseFloat(data.taxPercentage) || 0;
 
-  const handleItemChange = (id: string, field: string, value: string | number) => {
+  const subtotal = data.items.reduce((sum, item) => sum + (getItemQty(item) * getItemRate(item)), 0);
+  const taxAmount = (subtotal - discountVal) * (taxPctVal / 100);
+  const grandTotal = subtotal - discountVal + taxAmount;
+
+  const handleItemChange = (id: string, field: string, value: string) => {
     setData(prev => ({
       ...prev,
       items: prev.items.map(item => item.id === id ? { ...item, [field]: value } : item)
@@ -58,7 +71,7 @@ export function FreelanceInvoiceGenerator() {
   const addItem = () => {
     setData(prev => ({
       ...prev,
-      items: [...prev.items, { id: Date.now().toString(), description: "", quantity: 1, rate: 0 }]
+      items: [...prev.items, { id: Date.now().toString(), description: "", quantity: "1", rate: "0" }]
     }));
   };
 
@@ -81,12 +94,10 @@ export function FreelanceInvoiceGenerator() {
       const doc = new jsPDF();
       let y = 20;
 
-      // Header
       doc.setFontSize(24);
       doc.text("INVOICE", 150, y);
       doc.setFontSize(12);
       
-      // Sender Details
       doc.text(data.senderName || "Your Company", 20, y);
       y += 6;
       if (data.senderAddress) {
@@ -100,7 +111,6 @@ export function FreelanceInvoiceGenerator() {
 
       y = Math.max(y + 15, 50);
 
-      // Invoice Info
       doc.text(`Invoice Number: ${data.invoiceNumber}`, 150, y);
       y += 6;
       doc.text(`Date: ${data.date}`, 150, y);
@@ -109,7 +119,6 @@ export function FreelanceInvoiceGenerator() {
 
       y -= 12;
 
-      // Client Details
       doc.setFontSize(14);
       doc.text("Bill To:", 20, y);
       doc.setFontSize(12);
@@ -127,53 +136,51 @@ export function FreelanceInvoiceGenerator() {
 
       y = Math.max(y + 15, 80);
 
-      // Table Header
       doc.setFillColor(240, 240, 240);
       doc.rect(20, y, 170, 10, "F");
-      doc.setFont(undefined, "bold");
+      doc.setFont(undefined as any, "bold");
       doc.text("Description", 22, y + 7);
       doc.text("Qty", 120, y + 7);
       doc.text("Rate", 145, y + 7);
       doc.text("Amount", 170, y + 7);
-      doc.setFont(undefined, "normal");
+      doc.setFont(undefined as any, "normal");
 
       y += 15;
 
-      // Table Items
       data.items.forEach(item => {
+        const qty = getItemQty(item);
+        const rate = getItemRate(item);
         const descLines = doc.splitTextToSize(item.description || "Item", 90);
         doc.text(descLines, 22, y);
-        doc.text(item.quantity.toString(), 120, y);
-        doc.text(`$${item.rate.toFixed(2)}`, 145, y);
-        doc.text(`$${(item.quantity * item.rate).toFixed(2)}`, 170, y);
+        doc.text(qty.toString(), 120, y);
+        doc.text(`$${rate.toFixed(2)}`, 145, y);
+        doc.text(`$${(qty * rate).toFixed(2)}`, 170, y);
         
         y += Math.max(descLines.length * 6, 10);
       });
 
-      // Totals
       y += 10;
       doc.text(`Subtotal:`, 140, y);
       doc.text(`$${subtotal.toFixed(2)}`, 170, y);
       
-      if (data.discount > 0) {
+      if (discountVal > 0) {
         y += 6;
         doc.text(`Discount:`, 140, y);
-        doc.text(`-$${data.discount.toFixed(2)}`, 170, y);
+        doc.text(`-$${discountVal.toFixed(2)}`, 170, y);
       }
       
-      if (data.taxPercentage > 0) {
+      if (taxPctVal > 0) {
         y += 6;
-        doc.text(`Tax (${data.taxPercentage}%):`, 140, y);
+        doc.text(`Tax (${taxPctVal}%):`, 140, y);
         doc.text(`$${taxAmount.toFixed(2)}`, 170, y);
       }
 
       y += 8;
-      doc.setFont(undefined, "bold");
+      doc.setFont(undefined as any, "bold");
       doc.text(`Total:`, 140, y);
       doc.text(`$${grandTotal.toFixed(2)}`, 170, y);
-      doc.setFont(undefined, "normal");
+      doc.setFont(undefined as any, "normal");
 
-      // Notes & Terms
       y += 20;
       if (data.notes) {
         doc.text("Notes:", 20, y);
@@ -212,9 +219,9 @@ export function FreelanceInvoiceGenerator() {
       clientName: "",
       clientAddress: "",
       clientEmail: "",
-      items: [{ id: "1", description: "Consulting Services", quantity: 1, rate: 100 }],
-      discount: 0,
-      taxPercentage: 0,
+      items: [{ id: "1", description: "Consulting Services", quantity: "1", rate: "100" }],
+      discount: "0",
+      taxPercentage: "0",
       notes: "Thank you for your business!",
       paymentTerms: "Please pay within 30 days."
     });
@@ -223,7 +230,6 @@ export function FreelanceInvoiceGenerator() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      {/* Form Section */}
       <div className="space-y-8 no-print">
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-serif font-bold">Edit Invoice</h2>
@@ -232,7 +238,6 @@ export function FreelanceInvoiceGenerator() {
           </Button>
         </div>
 
-        {/* Basic Info */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>Invoice Number</Label>
@@ -249,7 +254,6 @@ export function FreelanceInvoiceGenerator() {
           </div>
         </div>
 
-        {/* Sender & Client */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <h3 className="font-bold border-b pb-2">Your Details</h3>
@@ -283,7 +287,6 @@ export function FreelanceInvoiceGenerator() {
           </div>
         </div>
 
-        {/* Items */}
         <div className="space-y-4">
           <div className="flex justify-between items-center border-b pb-2">
             <h3 className="font-bold">Line Items</h3>
@@ -297,10 +300,10 @@ export function FreelanceInvoiceGenerator() {
                   <Input placeholder="Description" value={item.description} onChange={e => handleItemChange(item.id, "description", e.target.value)} />
                 </div>
                 <div className="w-20 space-y-2">
-                  <Input type="number" min="0.01" step="any" value={item.quantity} onChange={e => handleItemChange(item.id, "quantity", parseFloat(e.target.value) || 0)} placeholder="Qty" />
+                  <Input type="number" min="0.01" step="any" value={item.quantity} onChange={e => handleItemChange(item.id, "quantity", e.target.value)} placeholder="Qty" />
                 </div>
                 <div className="w-24 space-y-2">
-                  <Input type="number" min="0" step="0.01" value={item.rate} onChange={e => handleItemChange(item.id, "rate", parseFloat(e.target.value) || 0)} placeholder="Rate" />
+                  <Input type="number" min="0" step="0.01" value={item.rate} onChange={e => handleItemChange(item.id, "rate", e.target.value)} placeholder="Rate" />
                 </div>
                 <div className="flex gap-1 pt-0.5">
                   <Button variant="ghost" size="icon" onClick={() => duplicateItem(item)} title="Duplicate"><Copy className="w-4 h-4"/></Button>
@@ -311,7 +314,6 @@ export function FreelanceInvoiceGenerator() {
           </div>
         </div>
 
-        {/* Totals & Notes */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
             <div className="space-y-2">
@@ -330,11 +332,11 @@ export function FreelanceInvoiceGenerator() {
             </div>
             <div className="flex items-center gap-2 justify-between">
               <Label className="whitespace-nowrap">Discount ($):</Label>
-              <Input type="number" className="w-24 text-right" value={data.discount} onChange={e => setData({...data, discount: parseFloat(e.target.value) || 0})} min="0" />
+              <Input type="number" className="w-24 text-right" value={data.discount} onChange={e => setData({...data, discount: e.target.value})} min="0" />
             </div>
             <div className="flex items-center gap-2 justify-between">
               <Label className="whitespace-nowrap">Tax (%):</Label>
-              <Input type="number" className="w-24 text-right" value={data.taxPercentage} onChange={e => setData({...data, taxPercentage: parseFloat(e.target.value) || 0})} min="0" />
+              <Input type="number" className="w-24 text-right" value={data.taxPercentage} onChange={e => setData({...data, taxPercentage: e.target.value})} min="0" />
             </div>
             <div className="flex justify-between font-bold text-lg border-t pt-2">
               <span>Total:</span>
@@ -344,7 +346,6 @@ export function FreelanceInvoiceGenerator() {
         </div>
       </div>
 
-      {/* Preview Section */}
       <div className="space-y-4">
         <div className="flex justify-between items-center no-print">
           <h2 className="text-2xl font-serif font-bold">Preview</h2>
@@ -388,14 +389,18 @@ export function FreelanceInvoiceGenerator() {
               </tr>
             </thead>
             <tbody>
-              {data.items.map((item) => (
-                <tr key={item.id} className="border-b border-gray-200">
-                  <td className="py-3 text-gray-600 whitespace-pre-wrap">{item.description}</td>
-                  <td className="text-right py-3 text-gray-600">{item.quantity}</td>
-                  <td className="text-right py-3 text-gray-600">${item.rate.toFixed(2)}</td>
-                  <td className="text-right py-3 text-gray-800">${(item.quantity * item.rate).toFixed(2)}</td>
-                </tr>
-              ))}
+              {data.items.map((item) => {
+                const qty = getItemQty(item);
+                const rate = getItemRate(item);
+                return (
+                  <tr key={item.id} className="border-b border-gray-200">
+                    <td className="py-3 text-gray-600 whitespace-pre-wrap">{item.description}</td>
+                    <td className="text-right py-3 text-gray-600">{qty}</td>
+                    <td className="text-right py-3 text-gray-600">${rate.toFixed(2)}</td>
+                    <td className="text-right py-3 text-gray-800">${(qty * rate).toFixed(2)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
 
@@ -405,15 +410,15 @@ export function FreelanceInvoiceGenerator() {
                 <span>Subtotal:</span>
                 <span>${subtotal.toFixed(2)}</span>
               </div>
-              {data.discount > 0 && (
+              {discountVal > 0 && (
                 <div className="flex justify-between text-gray-600">
                   <span>Discount:</span>
-                  <span>-${data.discount.toFixed(2)}</span>
+                  <span>-${discountVal.toFixed(2)}</span>
                 </div>
               )}
-              {data.taxPercentage > 0 && (
+              {taxPctVal > 0 && (
                 <div className="flex justify-between text-gray-600">
-                  <span>Tax ({data.taxPercentage}%):</span>
+                  <span>Tax ({taxPctVal}%):</span>
                   <span>${taxAmount.toFixed(2)}</span>
                 </div>
               )}

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer } from "recharts";
+import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from "recharts";
 import { useToast } from "@/hooks/use-toast";
 
 const STORAGE_KEY = "rp-tool-paycheck";
@@ -11,24 +11,40 @@ export function PaycheckCalculator() {
   const { toast } = useToast();
   
   const [data, setData] = useState({
-    grossPay: 3000,
+    grossPay: "3000",
     frequency: "biweekly",
-    taxRate: 22,
-    retirement: 150,
-    insurance: 100,
-    otherDeductions: 50
+    taxRate: "22",
+    retirement: "150",
+    insurance: "100",
+    otherDeductions: "50"
   });
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
-      try { setData(JSON.parse(saved)); } catch {}
+      try {
+        const parsed = JSON.parse(saved);
+        setData({
+          grossPay: String(parsed.grossPay ?? "3000"),
+          frequency: parsed.frequency || "biweekly",
+          taxRate: String(parsed.taxRate ?? "22"),
+          retirement: String(parsed.retirement ?? "150"),
+          insurance: String(parsed.insurance ?? "100"),
+          otherDeductions: String(parsed.otherDeductions ?? "50"),
+        });
+      } catch {}
     }
   }, []);
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }, [data]);
+
+  const grossPayVal = parseFloat(data.grossPay) || 0;
+  const taxRateVal = parseFloat(data.taxRate) || 0;
+  const retirementVal = parseFloat(data.retirement) || 0;
+  const insuranceVal = parseFloat(data.insurance) || 0;
+  const otherVal = parseFloat(data.otherDeductions) || 0;
 
   const getMultiplier = (freq: string) => {
     switch (freq) {
@@ -42,20 +58,20 @@ export function PaycheckCalculator() {
   };
 
   const multiplier = getMultiplier(data.frequency);
-  const annualGross = data.grossPay * multiplier;
+  const annualGross = grossPayVal * multiplier;
   
-  const taxAmount = data.grossPay * (data.taxRate / 100);
-  const totalDeductions = data.retirement + data.insurance + data.otherDeductions;
-  const takeHome = data.grossPay - taxAmount - totalDeductions;
+  const taxAmount = grossPayVal * (taxRateVal / 100);
+  const totalDeductions = retirementVal + insuranceVal + otherVal;
+  const takeHome = grossPayVal - taxAmount - totalDeductions;
   
   const annualTakeHome = takeHome * multiplier;
 
   const chartData = [
     { name: "Take Home", value: takeHome, fill: "hsl(var(--chart-2))" },
     { name: "Taxes", value: taxAmount, fill: "hsl(var(--destructive))" },
-    { name: "Retirement", value: data.retirement, fill: "hsl(var(--chart-1))" },
-    { name: "Insurance", value: data.insurance, fill: "hsl(var(--chart-4))" },
-    { name: "Other", value: data.otherDeductions, fill: "hsl(var(--chart-5))" }
+    { name: "Retirement (401k)", value: retirementVal, fill: "hsl(var(--chart-1))" },
+    { name: "Health Insurance", value: insuranceVal, fill: "hsl(var(--chart-4))" },
+    { name: "Other Deductions", value: otherVal, fill: "hsl(var(--chart-5))" }
   ].filter(d => d.value > 0);
 
   return (
@@ -72,7 +88,7 @@ export function PaycheckCalculator() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Gross Pay ($)</Label>
-                <Input type="number" min="0" value={data.grossPay} onChange={e => setData({...data, grossPay: parseFloat(e.target.value) || 0})} />
+                <Input type="number" min="0" value={data.grossPay} onChange={e => setData({...data, grossPay: e.target.value})} />
               </div>
               <div className="space-y-2">
                 <Label>Pay Frequency</Label>
@@ -91,7 +107,7 @@ export function PaycheckCalculator() {
 
             <div className="space-y-2 pt-2">
               <Label>Estimated Tax Rate (%)</Label>
-              <Input type="number" min="0" max="100" value={data.taxRate} onChange={e => setData({...data, taxRate: parseFloat(e.target.value) || 0})} />
+              <Input type="number" min="0" max="100" value={data.taxRate} onChange={e => setData({...data, taxRate: e.target.value})} />
               <p className="text-xs text-muted-foreground">Combined Federal, State, and FICA estimate.</p>
             </div>
           </div>
@@ -102,15 +118,15 @@ export function PaycheckCalculator() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 items-center gap-4">
                 <Label>Retirement (401k, etc)</Label>
-                <Input type="number" className="text-right" value={data.retirement} onChange={e => setData({...data, retirement: parseFloat(e.target.value) || 0})} />
+                <Input type="number" className="text-right" value={data.retirement} onChange={e => setData({...data, retirement: e.target.value})} />
               </div>
               <div className="grid grid-cols-2 items-center gap-4">
                 <Label>Health Insurance</Label>
-                <Input type="number" className="text-right" value={data.insurance} onChange={e => setData({...data, insurance: parseFloat(e.target.value) || 0})} />
+                <Input type="number" className="text-right" value={data.insurance} onChange={e => setData({...data, insurance: e.target.value})} />
               </div>
               <div className="grid grid-cols-2 items-center gap-4">
                 <Label>Other Deductions</Label>
-                <Input type="number" className="text-right" value={data.otherDeductions} onChange={e => setData({...data, otherDeductions: parseFloat(e.target.value) || 0})} />
+                <Input type="number" className="text-right" value={data.otherDeductions} onChange={e => setData({...data, otherDeductions: e.target.value})} />
               </div>
             </div>
           </div>
@@ -143,16 +159,30 @@ export function PaycheckCalculator() {
             <div className="space-y-2 mt-4 text-sm">
               <div className="flex justify-between p-2 bg-muted/50 rounded">
                 <span className="font-medium">Gross Pay</span>
-                <span>${data.grossPay.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                <span>${grossPayVal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
               </div>
               <div className="flex justify-between p-2 text-destructive">
-                <span>Estimated Taxes</span>
+                <span>Estimated Taxes ({taxRateVal}%)</span>
                 <span>-${taxAmount.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
               </div>
-              <div className="flex justify-between p-2 text-muted-foreground">
-                <span>Total Deductions</span>
-                <span>-${totalDeductions.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
-              </div>
+              {retirementVal > 0 && (
+                <div className="flex justify-between p-2 text-muted-foreground">
+                  <span>Retirement (401k, etc)</span>
+                  <span>-${retirementVal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                </div>
+              )}
+              {insuranceVal > 0 && (
+                <div className="flex justify-between p-2 text-muted-foreground">
+                  <span>Health Insurance</span>
+                  <span>-${insuranceVal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                </div>
+              )}
+              {otherVal > 0 && (
+                <div className="flex justify-between p-2 text-muted-foreground">
+                  <span>Other Deductions</span>
+                  <span>-${otherVal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                </div>
+              )}
               <div className="flex justify-between p-2 border-t font-bold text-base">
                 <span>Take-Home Pay</span>
                 <span>${takeHome.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>

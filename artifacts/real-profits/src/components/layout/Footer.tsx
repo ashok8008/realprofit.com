@@ -1,6 +1,23 @@
+import { useState } from "react";
 import { Link } from "wouter";
 
 export function Footer() {
+  const [email, setEmail] = useState("");
+  const [subscribed, setSubscribed] = useState(false);
+
+  const handleSubscribe = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+
+    const existing = JSON.parse(localStorage.getItem("rp-subscribers") || "[]");
+    if (!existing.includes(email.trim().toLowerCase())) {
+      existing.push(email.trim().toLowerCase());
+      localStorage.setItem("rp-subscribers", JSON.stringify(existing));
+    }
+    setSubscribed(true);
+    setEmail("");
+  };
+
   return (
     <>
       <section className="bg-[#1a2e2e] py-16">
@@ -9,17 +26,26 @@ export function Footer() {
           <p className="text-white/70 mb-8 text-center max-w-xl mx-auto">
             Join thousands getting weekly Profit Tips & Insights.
           </p>
-          <form className="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto" onSubmit={(e) => e.preventDefault()}>
-            <input 
-              type="email" 
-              placeholder="Enter Email Address" 
-              className="flex h-12 w-full rounded-md bg-white px-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f5c542]"
-              required
-            />
-            <button type="submit" className="inline-flex h-12 items-center justify-center rounded-md bg-[#f5c542] text-gray-900 px-8 text-sm font-bold shadow transition-colors hover:bg-[#e5b732] whitespace-nowrap">
-              Subscribe
-            </button>
-          </form>
+          {subscribed ? (
+            <div className="text-center">
+              <p className="text-[#f5c542] font-bold text-lg mb-2">Thank you for subscribing!</p>
+              <p className="text-white/70 text-sm">You'll receive our latest tips and insights.</p>
+            </div>
+          ) : (
+            <form className="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto" onSubmit={handleSubscribe}>
+              <input 
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="Enter Email Address" 
+                className="flex h-12 w-full rounded-md bg-white px-4 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f5c542]"
+                required
+              />
+              <button type="submit" className="inline-flex h-12 items-center justify-center rounded-md bg-[#f5c542] text-gray-900 px-8 text-sm font-bold shadow transition-colors hover:bg-[#e5b732] whitespace-nowrap">
+                Subscribe
+              </button>
+            </form>
+          )}
         </div>
       </section>
 
@@ -61,7 +87,7 @@ export function Footer() {
                 </li>
                 <li className="flex items-center gap-2">
                   <svg className="w-4 h-4 text-[#f5c542] flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
-                  realprofits@gmail.com
+                  <a href="mailto:realprofits@gmail.com" className="hover:text-white transition-colors">realprofits@gmail.com</a>
                 </li>
                 <li className="flex items-start gap-2">
                   <svg className="w-4 h-4 text-[#f5c542] flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
