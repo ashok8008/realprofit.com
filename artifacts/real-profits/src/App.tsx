@@ -35,6 +35,13 @@ function ScrollToTop() {
     window.scrollTo({ top: 0, left: 0, behavior: "instant" });
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
+
+    if (typeof window.gtag === "function") {
+      window.gtag("event", "page_view", {
+        page_path: location,
+        page_title: document.title,
+      });
+    }
   }, [location]);
   return null;
 }
