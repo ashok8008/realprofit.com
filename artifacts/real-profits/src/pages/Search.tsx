@@ -13,20 +13,24 @@ export default function Search() {
     const q = query.trim().toLowerCase();
     if (!q) return { articles: [], calculators: [], tools: [] };
 
+    const normalize = (s: string) => s.toLowerCase().replace(/-/g, ' ');
+    const nq = normalize(q);
+
     const matchedArticles = articles.filter(
-      a => a.title.toLowerCase().includes(q) ||
-           a.excerpt.toLowerCase().includes(q) ||
-           a.categorySlug.toLowerCase().includes(q)
+      a => normalize(a.title).includes(nq) ||
+           normalize(a.excerpt).includes(nq) ||
+           normalize(a.categorySlug).includes(nq) ||
+           normalize(a.subcategorySlug).includes(nq)
     ).slice(0, 10);
 
     const matchedCalcs = calculators.filter(
-      c => c.name.toLowerCase().includes(q) ||
-           c.description.toLowerCase().includes(q)
+      c => normalize(c.name).includes(nq) ||
+           normalize(c.description).includes(nq)
     ).slice(0, 10);
 
     const matchedTools = tools.filter(
-      t => t.name.toLowerCase().includes(q) ||
-           t.description.toLowerCase().includes(q)
+      t => normalize(t.name).includes(nq) ||
+           normalize(t.description).includes(nq)
     ).slice(0, 10);
 
     return { articles: matchedArticles, calculators: matchedCalcs, tools: matchedTools };

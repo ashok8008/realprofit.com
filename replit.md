@@ -131,7 +131,7 @@ Frontend-only React + Vite personal finance content site (RealProfits.com). No b
 - **Income Tracker edit**: Inline row editing with pencil icon, check/cancel buttons, and inline inputs for date, source, category, amount.
 - **Net Worth Calculator PDF**: Custom jsPDF-based PDF export (replaced html2canvas approach) with proper formatting — lists all asset/liability categories with labels, summary section, colored net worth display.
 - **Net Worth charts**: Pie chart uses hardcoded hex colors (#22c55e green for assets, #ef4444 red for liabilities) with a visible legend below showing "Assets ($X)" and "Liabilities ($X)". Bar chart also has color legend. Charts section no longer uses `no-print` class.
-- **Search**: Real-time client-side search across articles, calculators, and tools data files. Instant filtering as user types, clickable suggestion chips, categorized results with links.
+- **Search**: Real-time client-side search across articles, calculators, and tools data files. Instant filtering as user types, clickable suggestion chips, categorized results with links. Search normalizes hyphens (e.g., "high yield savings" matches "High-Yield Savings") and also checks `subcategorySlug`.
 - **Contact page**: Functional form with mailto-based submission (opens email client pre-filled), required field validation, success confirmation state.
 - **Subscribe (Footer)**: localStorage-based email capture with confirmation "Thank you for subscribing!" message replacing the form.
 - **Overflow protection**: Large currency output containers use `break-words` class to prevent horizontal overflow on big numbers.
