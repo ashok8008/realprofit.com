@@ -13,6 +13,10 @@ export function ExpenseBreakdownTool() {
     other: 450,
   });
 
+  const handleChange = (key: string, val: string) => {
+    setExpenses({ ...expenses, [key]: Math.max(0, Number(val) || 0) });
+  };
+
   const total = Object.values(expenses).reduce((a, b) => a + b, 0);
 
   const data = Object.entries(expenses)
@@ -34,8 +38,9 @@ export function ExpenseBreakdownTool() {
             <Label className="capitalize">{key} ($/mo)</Label>
             <Input
               type="number"
+              min="0"
               value={value}
-              onChange={(e) => setExpenses({ ...expenses, [key]: Number(e.target.value) || 0 })}
+              onChange={(e) => handleChange(key, e.target.value)}
             />
           </div>
         ))}
@@ -44,13 +49,13 @@ export function ExpenseBreakdownTool() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-muted/30 p-6 rounded-xl border">
         <div className="text-center">
           <h3 className="font-bold mb-1">Total Monthly</h3>
-          <div className="text-3xl font-serif font-bold text-primary">${total.toLocaleString()}</div>
+          <div className="text-3xl font-serif font-bold text-primary break-words">${total.toLocaleString()}</div>
         </div>
         <div className="text-center md:col-span-2">
           {topCategory ? (
             <>
               <h3 className="font-bold mb-1">Top Spending Category</h3>
-              <div className="text-2xl font-bold">{topCategory.name}: ${topCategory.value.toLocaleString()}</div>
+              <div className="text-2xl font-bold break-words">{topCategory.name}: ${topCategory.value.toLocaleString()}</div>
               <p className="text-sm text-muted-foreground mt-1">
                 {((topCategory.value / total) * 100).toFixed(1)}% of total budget
               </p>

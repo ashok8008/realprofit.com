@@ -9,11 +9,12 @@ export function CompoundInterestCalculator() {
   const [rate, setRate] = useState(7);
   const [years, setYears] = useState(20);
 
+  const safeYears = Math.max(1, Math.min(50, years));
   const data = [];
   let currentBalance = principal;
   let totalContributed = principal;
   
-  for (let year = 0; year <= years; year++) {
+  for (let year = 0; year <= safeYears; year++) {
     if (year > 0) {
       for (let m = 0; m < 12; m++) {
         currentBalance += monthly;
@@ -37,25 +38,25 @@ export function CompoundInterestCalculator() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Starting Principal ($)</Label>
-          <Input type="number" value={principal} onChange={e => setPrincipal(Number(e.target.value) || 0)} />
+          <Input type="number" min="0" value={principal} onChange={e => setPrincipal(Math.max(0, Number(e.target.value) || 0))} />
         </div>
         <div className="space-y-2">
           <Label>Monthly Contribution ($)</Label>
-          <Input type="number" value={monthly} onChange={e => setMonthly(Number(e.target.value) || 0)} />
+          <Input type="number" min="0" value={monthly} onChange={e => setMonthly(Math.max(0, Number(e.target.value) || 0))} />
         </div>
         <div className="space-y-2">
           <Label>Estimated Annual Return (%)</Label>
-          <Input type="number" value={rate} onChange={e => setRate(Number(e.target.value) || 0)} />
+          <Input type="number" min="0" max="100" step="0.1" value={rate} onChange={e => setRate(Math.max(0, Number(e.target.value) || 0))} />
         </div>
         <div className="space-y-2">
           <Label>Years to Grow</Label>
-          <Input type="number" value={years} onChange={e => setYears(Number(e.target.value) || 0)} />
+          <Input type="number" min="1" max="50" value={years} onChange={e => setYears(Math.max(1, Math.min(50, Number(e.target.value) || 1)))} />
         </div>
       </div>
 
       <div className="bg-muted/30 p-6 rounded-xl border text-center">
         <h3 className="text-lg font-bold mb-2">Future Balance</h3>
-        <div className="text-4xl md:text-5xl font-serif text-primary font-bold">
+        <div className="text-4xl md:text-5xl font-serif text-primary font-bold break-words">
           ${finalBalance.toLocaleString()}
         </div>
       </div>
@@ -65,8 +66,8 @@ export function CompoundInterestCalculator() {
           <AreaChart data={data}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis dataKey="year" tickFormatter={(v) => `Year ${v}`} />
-            <YAxis tickFormatter={(v) => `$${v/1000}k`} width={60} />
-            <Tooltip formatter={(value) => `$${value.toLocaleString()}`} />
+            <YAxis tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} width={70} />
+            <Tooltip formatter={(value) => `$${Number(value).toLocaleString()}`} />
             <Area type="monotone" dataKey="balance" stackId="1" stroke="hsl(var(--primary))" fill="hsl(var(--primary)/0.2)" />
             <Area type="monotone" dataKey="contributions" stackId="2" stroke="hsl(var(--muted-foreground))" fill="hsl(var(--muted-foreground)/0.1)" />
           </AreaChart>

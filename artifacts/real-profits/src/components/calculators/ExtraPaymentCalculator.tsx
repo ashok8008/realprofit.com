@@ -10,12 +10,15 @@ export function ExtraPaymentCalculator() {
   const [extraPayment, setExtraPayment] = useState(200);
 
   const monthlyRate = (rate / 100) / 12;
+  const safeMonths = Math.max(1, Math.min(600, months));
 
   let basePayment = 0;
-  if (monthlyRate === 0) {
-    basePayment = loanAmount / months;
-  } else if (months > 0) {
-    basePayment = loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, months)) / (Math.pow(1 + monthlyRate, months) - 1);
+  if (loanAmount > 0 && safeMonths > 0) {
+    if (monthlyRate === 0) {
+      basePayment = loanAmount / safeMonths;
+    } else {
+      basePayment = loanAmount * (monthlyRate * Math.pow(1 + monthlyRate, safeMonths)) / (Math.pow(1 + monthlyRate, safeMonths) - 1);
+    }
   }
 
   const data = [];
@@ -25,7 +28,7 @@ export function ExtraPaymentCalculator() {
   let extraInterest = 0;
   let newMonths = 0;
 
-  for (let m = 1; m <= months; m++) {
+  for (let m = 1; m <= safeMonths; m++) {
     if (baseBalance > 0) {
       const interest = baseBalance * monthlyRate;
       let principal = basePayment - interest;
@@ -54,7 +57,7 @@ export function ExtraPaymentCalculator() {
     if (baseBalance <= 0 && extraBalance <= 0) break;
   }
 
-  const monthsSaved = months - newMonths;
+  const monthsSaved = safeMonths - newMonths;
   const interestSaved = baseInterest - extraInterest;
 
   return (
@@ -62,26 +65,26 @@ export function ExtraPaymentCalculator() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="space-y-2">
           <Label>Loan Amount ($)</Label>
-          <Input type="number" value={loanAmount} onChange={e => setLoanAmount(Number(e.target.value) || 0)} data-testid="input-amount" />
+          <Input type="number" min="0" value={loanAmount} onChange={e => setLoanAmount(Math.max(0, Number(e.target.value) || 0))} data-testid="input-amount" />
         </div>
         <div className="space-y-2">
           <Label>Interest Rate (%)</Label>
-          <Input type="number" value={rate} step="0.1" onChange={e => setRate(Number(e.target.value) || 0)} data-testid="input-rate" />
+          <Input type="number" min="0" max="30" step="0.1" value={rate} onChange={e => setRate(Math.max(0, Number(e.target.value) || 0))} data-testid="input-rate" />
         </div>
         <div className="space-y-2">
           <Label>Term (Months)</Label>
-          <Input type="number" value={months} onChange={e => setMonths(Number(e.target.value) || 0)} data-testid="input-months" />
+          <Input type="number" min="1" max="600" value={months} onChange={e => setMonths(Math.max(1, Math.min(600, Number(e.target.value) || 1)))} data-testid="input-months" />
         </div>
         <div className="space-y-2">
           <Label>Extra Monthly Payment ($)</Label>
-          <Input type="number" value={extraPayment} onChange={e => setExtraPayment(Number(e.target.value) || 0)} data-testid="input-extra" />
+          <Input type="number" min="0" value={extraPayment} onChange={e => setExtraPayment(Math.max(0, Number(e.target.value) || 0))} data-testid="input-extra" />
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-muted/30 p-6 rounded-xl border text-center">
         <div>
           <h3 className="font-bold mb-1 text-emerald-600">Interest Saved</h3>
-          <div className="text-4xl font-serif font-bold text-emerald-600" data-testid="text-interest-saved">${Math.round(interestSaved).toLocaleString()}</div>
+          <div className="text-4xl font-serif font-bold text-emerald-600 break-words" data-testid="text-interest-saved">${Math.round(interestSaved).toLocaleString()}</div>
         </div>
         <div>
           <h3 className="font-bold mb-1 text-primary">Time Saved</h3>
@@ -97,7 +100,7 @@ export function ExtraPaymentCalculator() {
           <LineChart data={data}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis dataKey="year" tickFormatter={v => `Yr ${v}`} />
-            <YAxis tickFormatter={v => `$${v/1000}k`} />
+            <YAxis tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
             <Tooltip formatter={v => `$${Number(v).toLocaleString()}`} />
             <Legend />
             <Line name="Original Balance" type="monotone" dataKey="Base" stroke="hsl(var(--destructive))" strokeWidth={2} dot={false} />

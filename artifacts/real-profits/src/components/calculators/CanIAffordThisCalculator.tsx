@@ -12,22 +12,22 @@ export function CanIAffordThisCalculator() {
   const ratio = takeHome > 0 ? (newCost / takeHome) * 100 : 0;
 
   const isAffordable = afterLeftover >= 0;
-  const isTight = afterLeftover > 0 && afterLeftover < takeHome * 0.1; // Less than 10% buffer remaining
+  const isTight = afterLeftover > 0 && afterLeftover < takeHome * 0.1;
 
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="space-y-2">
           <Label>Monthly Take-Home ($)</Label>
-          <Input type="number" value={takeHome} onChange={e => setTakeHome(Number(e.target.value) || 0)} />
+          <Input type="number" min="0" value={takeHome} onChange={e => setTakeHome(Math.max(0, Number(e.target.value) || 0))} />
         </div>
         <div className="space-y-2">
           <Label>Current Monthly Expenses ($)</Label>
-          <Input type="number" value={expenses} onChange={e => setExpenses(Number(e.target.value) || 0)} />
+          <Input type="number" min="0" value={expenses} onChange={e => setExpenses(Math.max(0, Number(e.target.value) || 0))} />
         </div>
         <div className="space-y-2">
           <Label>New Monthly Cost ($)</Label>
-          <Input type="number" value={newCost} onChange={e => setNewCost(Number(e.target.value) || 0)} />
+          <Input type="number" min="0" value={newCost} onChange={e => setNewCost(Math.max(0, Number(e.target.value) || 0))} />
           <p className="text-xs text-muted-foreground">E.g., new car payment, subscription</p>
         </div>
       </div>
@@ -52,11 +52,11 @@ export function CanIAffordThisCalculator() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-muted/30 p-6 rounded-xl border text-center">
         <div>
           <h3 className="font-bold mb-1">Current Leftover</h3>
-          <div className="text-3xl font-serif font-bold">${Math.round(currentLeftover).toLocaleString()} / mo</div>
+          <div className="text-3xl font-serif font-bold break-words">${Math.round(currentLeftover).toLocaleString()} / mo</div>
         </div>
         <div>
           <h3 className="font-bold mb-1">Leftover After Purchase</h3>
-          <div className={`text-3xl font-serif font-bold ${afterLeftover < 0 ? 'text-destructive' : 'text-primary'}`}>
+          <div className={`text-3xl font-serif font-bold break-words ${afterLeftover < 0 ? 'text-destructive' : 'text-primary'}`}>
             ${Math.round(afterLeftover).toLocaleString()} / mo
           </div>
         </div>

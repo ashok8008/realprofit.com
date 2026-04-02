@@ -26,34 +26,34 @@ export function LoanAffordabilityCalculator() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="space-y-2">
           <Label>Gross Monthly Income ($)</Label>
-          <Input type="number" value={income} onChange={e => setIncome(Number(e.target.value) || 0)} data-testid="input-income" />
+          <Input type="number" min="0" value={income} onChange={e => setIncome(Math.max(0, Number(e.target.value) || 0))} data-testid="input-income" />
         </div>
         <div className="space-y-2">
           <Label>Max DTI Limit (%)</Label>
-          <Input type="number" value={dtiLimit} onChange={e => setDtiLimit(Number(e.target.value) || 0)} data-testid="input-dti" />
+          <Input type="number" min="0" max="100" value={dtiLimit} onChange={e => setDtiLimit(Math.max(0, Math.min(100, Number(e.target.value) || 0)))} data-testid="input-dti" />
         </div>
         <div className="space-y-2">
           <Label>Existing Monthly Debt ($)</Label>
-          <Input type="number" value={existingDebt} onChange={e => setExistingDebt(Number(e.target.value) || 0)} data-testid="input-debt" />
+          <Input type="number" min="0" value={existingDebt} onChange={e => setExistingDebt(Math.max(0, Number(e.target.value) || 0))} data-testid="input-debt" />
         </div>
         <div className="space-y-2">
           <Label>Expected Rate (%)</Label>
-          <Input type="number" value={rate} step="0.1" onChange={e => setRate(Number(e.target.value) || 0)} data-testid="input-rate" />
+          <Input type="number" min="0" max="50" step="0.1" value={rate} onChange={e => setRate(Math.max(0, Number(e.target.value) || 0))} data-testid="input-rate" />
         </div>
         <div className="space-y-2">
           <Label>Loan Term (Months)</Label>
-          <Input type="number" value={months} onChange={e => setMonths(Number(e.target.value) || 0)} data-testid="input-months" />
+          <Input type="number" min="1" max="600" value={months} onChange={e => setMonths(Math.max(1, Math.min(600, Number(e.target.value) || 1)))} data-testid="input-months" />
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-muted/30 p-6 rounded-xl border text-center">
         <div className="bg-primary/10 border border-primary/20 p-6 rounded-xl">
           <h3 className="font-bold mb-1 text-primary">Max Loan Amount You Can Afford</h3>
-          <div className="text-4xl font-serif font-bold text-primary" data-testid="text-max-loan">${Math.round(maxLoan).toLocaleString()}</div>
+          <div className="text-4xl font-serif font-bold text-primary break-words" data-testid="text-max-loan">${Math.round(maxLoan).toLocaleString()}</div>
         </div>
         <div className="p-6 rounded-xl flex flex-col justify-center">
           <h3 className="font-bold mb-1">Available for New Monthly Payment</h3>
-          <div className="text-3xl font-serif font-bold">${Math.round(availablePayment).toLocaleString()}</div>
+          <div className="text-3xl font-serif font-bold break-words">${Math.round(availablePayment).toLocaleString()}</div>
           <p className="text-sm text-muted-foreground mt-2">Based on max total debt of ${Math.round(maxTotalDebt)}/mo</p>
         </div>
       </div>

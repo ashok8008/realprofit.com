@@ -27,31 +27,31 @@ export function NetIncomeCalculator() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-b pb-6">
         <div className="space-y-2 md:col-span-2">
           <Label className="text-lg text-primary">Gross Income ($)</Label>
-          <Input type="number" className="text-lg h-12" value={grossIncome} onChange={e => setGrossIncome(Number(e.target.value) || 0)} />
+          <Input type="number" min="0" className="text-lg h-12" value={grossIncome} onChange={e => setGrossIncome(Math.max(0, Number(e.target.value) || 0))} />
         </div>
         <div className="space-y-2">
           <Label>Estimated Taxes ($)</Label>
-          <Input type="number" value={taxes} onChange={e => setTaxes(Number(e.target.value) || 0)} />
+          <Input type="number" min="0" value={taxes} onChange={e => setTaxes(Math.max(0, Number(e.target.value) || 0))} />
         </div>
         <div className="space-y-2">
           <Label>Business Costs ($)</Label>
-          <Input type="number" value={businessCosts} onChange={e => setBusinessCosts(Number(e.target.value) || 0)} />
+          <Input type="number" min="0" value={businessCosts} onChange={e => setBusinessCosts(Math.max(0, Number(e.target.value) || 0))} />
         </div>
         <div className="space-y-2 md:col-span-2">
           <Label>Other Deductions ($)</Label>
-          <Input type="number" value={otherDeductions} onChange={e => setOtherDeductions(Number(e.target.value) || 0)} />
+          <Input type="number" min="0" value={otherDeductions} onChange={e => setOtherDeductions(Math.max(0, Number(e.target.value) || 0))} />
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-muted/30 p-6 rounded-xl border text-center">
         <div className="md:col-span-3 bg-primary/10 border border-primary/20 p-6 rounded-xl">
           <h3 className="font-bold mb-1 text-primary">True Net Income</h3>
-          <div className="text-4xl font-serif font-bold text-primary">${Math.round(netIncome).toLocaleString()}</div>
+          <div className="text-4xl font-serif font-bold text-primary break-words">${Math.round(netIncome).toLocaleString()}</div>
           <div className="text-sm mt-2 opacity-80">{remainingRatio.toFixed(1)}% of gross income is yours to keep</div>
         </div>
         <div className="col-span-1 md:col-start-2">
           <h3 className="font-bold mb-1">Total Deductions</h3>
-          <div className="text-2xl font-bold text-destructive">${Math.round(totalExpenses).toLocaleString()}</div>
+          <div className="text-2xl font-bold text-destructive break-words">${Math.round(totalExpenses).toLocaleString()}</div>
         </div>
         <div>
           <h3 className="font-bold mb-1">Expense Ratio</h3>
@@ -63,7 +63,7 @@ export function NetIncomeCalculator() {
         <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
           <BarChart data={data} layout="vertical" margin={{ left: 50 }}>
             <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-            <XAxis type="number" tickFormatter={v => `$${v/1000}k`} />
+            <XAxis type="number" tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
             <YAxis dataKey="name" type="category" width={100} />
             <Tooltip formatter={v => `$${Number(v).toLocaleString()}`} />
             <Bar dataKey="value" radius={[0, 4, 4, 0]} />

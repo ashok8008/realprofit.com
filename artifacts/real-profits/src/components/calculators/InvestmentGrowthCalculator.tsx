@@ -9,11 +9,12 @@ export function InvestmentGrowthCalculator() {
   const [rate, setRate] = useState(7);
   const [years, setYears] = useState(20);
 
+  const safeYears = Math.max(1, Math.min(50, years));
   const data = [];
   let balance = starting;
   let totalContributions = starting;
 
-  for (let year = 0; year <= years; year++) {
+  for (let year = 0; year <= safeYears; year++) {
     if (year > 0) {
       for (let m = 0; m < 12; m++) {
         balance += monthly;
@@ -34,34 +35,34 @@ export function InvestmentGrowthCalculator() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Starting Amount ($)</Label>
-          <Input type="number" value={starting} onChange={e => setStarting(Number(e.target.value) || 0)} />
+          <Input type="number" min="0" value={starting} onChange={e => setStarting(Math.max(0, Number(e.target.value) || 0))} />
         </div>
         <div className="space-y-2">
           <Label>Monthly Addition ($)</Label>
-          <Input type="number" value={monthly} onChange={e => setMonthly(Number(e.target.value) || 0)} />
+          <Input type="number" min="0" value={monthly} onChange={e => setMonthly(Math.max(0, Number(e.target.value) || 0))} />
         </div>
         <div className="space-y-2">
           <Label>Annual Return (%)</Label>
-          <Input type="number" value={rate} onChange={e => setRate(Number(e.target.value) || 0)} />
+          <Input type="number" min="0" max="100" step="0.1" value={rate} onChange={e => setRate(Math.max(0, Number(e.target.value) || 0))} />
         </div>
         <div className="space-y-2">
           <Label>Years to Grow</Label>
-          <Input type="number" value={years} onChange={e => setYears(Number(e.target.value) || 0)} />
+          <Input type="number" min="1" max="50" value={years} onChange={e => setYears(Math.max(1, Math.min(50, Number(e.target.value) || 1)))} />
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-muted/30 p-6 rounded-xl border text-center">
         <div>
           <h3 className="font-bold mb-1">Ending Balance</h3>
-          <div className="text-3xl font-serif font-bold text-primary">${Math.round(balance).toLocaleString()}</div>
+          <div className="text-3xl font-serif font-bold text-primary break-words">${Math.round(balance).toLocaleString()}</div>
         </div>
         <div>
           <h3 className="font-bold mb-1">Total Contributions</h3>
-          <div className="text-2xl font-serif font-bold text-muted-foreground">${Math.round(totalContributions).toLocaleString()}</div>
+          <div className="text-2xl font-serif font-bold text-muted-foreground break-words">${Math.round(totalContributions).toLocaleString()}</div>
         </div>
         <div>
           <h3 className="font-bold mb-1">Total Growth</h3>
-          <div className="text-2xl font-serif font-bold text-emerald-600">${Math.round(balance - totalContributions).toLocaleString()}</div>
+          <div className="text-2xl font-serif font-bold text-emerald-600 break-words">${Math.round(balance - totalContributions).toLocaleString()}</div>
         </div>
       </div>
 
@@ -70,8 +71,8 @@ export function InvestmentGrowthCalculator() {
           <AreaChart data={data}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis dataKey="year" tickFormatter={v => `Yr ${v}`} />
-            <YAxis tickFormatter={v => `$${v/1000}k`} />
-            <Tooltip formatter={v => `$${v.toLocaleString()}`} />
+            <YAxis tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
+            <Tooltip formatter={v => `$${Number(v).toLocaleString()}`} />
             <Area type="monotone" dataKey="balance" stroke="hsl(var(--primary))" fill="hsl(var(--primary)/0.2)" />
             <Area type="monotone" dataKey="contributions" stroke="hsl(var(--muted-foreground))" fill="transparent" />
           </AreaChart>

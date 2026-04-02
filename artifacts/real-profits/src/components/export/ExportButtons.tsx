@@ -10,9 +10,10 @@ interface ExportProps {
   data?: any;
 }
 
-function convertSVGsToCanvas(container: HTMLElement): (() => void) {
+async function convertSVGsToCanvas(container: HTMLElement): Promise<() => void> {
   const svgs = container.querySelectorAll("svg");
   const restoreFns: (() => void)[] = [];
+  const loadPromises: Promise<void>[] = [];
 
   svgs.forEach((svg) => {
     try {
@@ -37,10 +38,18 @@ function convertSVGsToCanvas(container: HTMLElement): (() => void) {
       const parent = svg.parentNode;
       if (!parent) return;
 
-      img.onload = () => {
-        ctx.drawImage(img, 0, 0, rect.width, rect.height);
-        URL.revokeObjectURL(url);
-      };
+      const loadPromise = new Promise<void>((resolve) => {
+        img.onload = () => {
+          ctx.drawImage(img, 0, 0, rect.width, rect.height);
+          URL.revokeObjectURL(url);
+          resolve();
+        };
+        img.onerror = () => {
+          URL.revokeObjectURL(url);
+          resolve();
+        };
+      });
+      loadPromises.push(loadPromise);
       img.src = url;
 
       parent.insertBefore(canvas, svg);
@@ -53,12 +62,12 @@ function convertSVGsToCanvas(container: HTMLElement): (() => void) {
     } catch {}
   });
 
+  await Promise.all(loadPromises);
   return () => restoreFns.forEach((fn) => fn());
 }
 
 async function captureElement(element: HTMLElement): Promise<HTMLCanvasElement> {
-  const restore = convertSVGsToCanvas(element);
-  await new Promise((r) => setTimeout(r, 100));
+  const restore = await convertSVGsToCanvas(element);
 
   const html2canvas = (await import("html2canvas")).default;
   const canvas = await html2canvas(element, {

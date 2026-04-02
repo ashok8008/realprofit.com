@@ -46,16 +46,18 @@ export function CostOfLivingComparison() {
               <Label className="capitalize">{key}</Label>
               <Input 
                 type="number" 
+                min="0"
                 value={currentCosts[key as keyof typeof currentCosts]} 
-                onChange={e => setCurrentCosts({...currentCosts, [key]: Number(e.target.value) || 0})} 
+                onChange={e => setCurrentCosts({...currentCosts, [key]: Math.max(0, Number(e.target.value) || 0)})} 
               />
             </div>
             <div className="space-y-2">
               <Label className="capitalize">{key}</Label>
               <Input 
                 type="number" 
+                min="0"
                 value={targetCosts[key as keyof typeof targetCosts]} 
-                onChange={e => setTargetCosts({...targetCosts, [key]: Number(e.target.value) || 0})} 
+                onChange={e => setTargetCosts({...targetCosts, [key]: Math.max(0, Number(e.target.value) || 0)})} 
               />
             </div>
           </React.Fragment>

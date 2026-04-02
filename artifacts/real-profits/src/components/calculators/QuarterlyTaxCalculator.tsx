@@ -11,12 +11,12 @@ export function QuarterlyTaxCalculator() {
     <div className="space-y-8">
       <div className="max-w-md mx-auto space-y-2">
         <Label>Estimated Annual Tax Liability ($)</Label>
-        <Input type="number" value={annualTax} onChange={e => setAnnualTax(Number(e.target.value) || 0)} />
+        <Input type="number" min="0" value={annualTax} onChange={e => setAnnualTax(Math.max(0, Number(e.target.value) || 0))} />
       </div>
 
       <div className="bg-primary/10 border border-primary/20 p-6 rounded-xl text-center max-w-md mx-auto">
         <h3 className="font-bold mb-2 text-primary">Your Quarterly Payment</h3>
-        <div className="text-4xl font-serif font-bold text-primary">${Math.round(quarterly).toLocaleString()}</div>
+        <div className="text-4xl font-serif font-bold text-primary break-words">${Math.round(quarterly).toLocaleString()}</div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

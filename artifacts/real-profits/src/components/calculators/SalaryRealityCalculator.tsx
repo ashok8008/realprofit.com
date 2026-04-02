@@ -28,16 +28,20 @@ export function SalaryRealityCalculator() {
 
   const COLORS = ['#059669', '#ef4444', '#f59e0b', '#3b82f6', '#10b981'];
 
+  const handleExpenseChange = (key: string, val: string) => {
+    setExpenses({ ...expenses, [key]: Math.max(0, Number(val) || 0) });
+  };
+
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 border-b pb-6">
         <div className="space-y-2">
           <Label>New Gross Salary ($)</Label>
-          <Input type="number" value={grossSalary} onChange={e => setGrossSalary(Number(e.target.value) || 0)} />
+          <Input type="number" min="0" value={grossSalary} onChange={e => setGrossSalary(Math.max(0, Number(e.target.value) || 0))} />
         </div>
         <div className="space-y-2">
           <Label>Estimated Tax Rate (%)</Label>
-          <Input type="number" value={taxRate} onChange={e => setTaxRate(Number(e.target.value) || 0)} />
+          <Input type="number" min="0" max="60" value={taxRate} onChange={e => setTaxRate(Math.max(0, Math.min(60, Number(e.target.value) || 0)))} />
         </div>
       </div>
 
@@ -47,8 +51,9 @@ export function SalaryRealityCalculator() {
             <Label className="capitalize">{key} ($/mo)</Label>
             <Input 
               type="number" 
+              min="0"
               value={value} 
-              onChange={e => setExpenses({...expenses, [key]: Number(e.target.value) || 0})} 
+              onChange={e => handleExpenseChange(key, e.target.value)} 
             />
           </div>
         ))}
@@ -58,15 +63,15 @@ export function SalaryRealityCalculator() {
         <div className="space-y-4">
           <div className="bg-muted/30 p-4 rounded-xl border text-center">
             <h4 className="text-sm font-medium text-muted-foreground">Annual After-Tax</h4>
-            <div className="text-2xl font-bold mt-1">${Math.round(afterTax).toLocaleString()}</div>
+            <div className="text-2xl font-bold mt-1 break-words">${Math.round(afterTax).toLocaleString()}</div>
           </div>
           <div className="bg-primary/10 border border-primary/20 p-4 rounded-xl text-center">
             <h4 className="text-sm font-medium text-primary">Monthly Take-Home</h4>
-            <div className="text-3xl font-bold mt-1 text-primary">${Math.round(monthlyTakeHome).toLocaleString()}</div>
+            <div className="text-3xl font-bold mt-1 text-primary break-words">${Math.round(monthlyTakeHome).toLocaleString()}</div>
           </div>
           <div className={`p-4 rounded-xl border text-center ${leftover >= 0 ? 'bg-muted/30' : 'bg-destructive/10 border-destructive/20 text-destructive'}`}>
             <h4 className="text-sm font-medium">True Leftover / Fun Money</h4>
-            <div className="text-2xl font-bold mt-1">${Math.round(leftover).toLocaleString()} / mo</div>
+            <div className="text-2xl font-bold mt-1 break-words">${Math.round(leftover).toLocaleString()} / mo</div>
           </div>
         </div>
 

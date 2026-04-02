@@ -14,23 +14,19 @@ export function CreditCardPayoffCalculator() {
   let totalInterest = 0;
   const data = [];
 
-  // Prevent infinite loop if payment is less than interest
   const minPaymentReq = balance * monthlyRate;
-  const willPayOff = payment > minPaymentReq;
+  const willPayOff = payment > minPaymentReq && balance > 0;
 
   if (willPayOff) {
-    while (currentBalance > 0 && months < 600) { // cap at 50 years
+    while (currentBalance > 0 && months < 600) {
       const interestForMonth = currentBalance * monthlyRate;
       totalInterest += interestForMonth;
-      
       let actualPayment = payment;
       if (currentBalance + interestForMonth < payment) {
         actualPayment = currentBalance + interestForMonth;
       }
-      
       currentBalance = currentBalance + interestForMonth - actualPayment;
       months++;
-      
       if (months % 3 === 0 || currentBalance <= 0) {
         data.push({
           month: months,
@@ -45,19 +41,19 @@ export function CreditCardPayoffCalculator() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="space-y-2">
           <Label>Card Balance ($)</Label>
-          <Input type="number" value={balance} onChange={e => setBalance(Number(e.target.value) || 0)} />
+          <Input type="number" min="0" value={balance} onChange={e => setBalance(Math.max(0, Number(e.target.value) || 0))} />
         </div>
         <div className="space-y-2">
           <Label>Interest Rate (APR %)</Label>
-          <Input type="number" step="0.1" value={apr} onChange={e => setApr(Number(e.target.value) || 0)} />
+          <Input type="number" min="0" max="100" step="0.1" value={apr} onChange={e => setApr(Math.max(0, Number(e.target.value) || 0))} />
         </div>
         <div className="space-y-2">
           <Label>Monthly Payment ($)</Label>
-          <Input type="number" value={payment} onChange={e => setPayment(Number(e.target.value) || 0)} />
+          <Input type="number" min="0" value={payment} onChange={e => setPayment(Math.max(0, Number(e.target.value) || 0))} />
         </div>
       </div>
 
-      {!willPayOff && (
+      {!willPayOff && balance > 0 && (
         <div className="bg-destructive/10 text-destructive p-4 rounded-xl text-center border border-destructive/20">
           Your payment of ${payment} is less than the monthly interest of ${Math.round(minPaymentReq)}. You will never pay off this card.
         </div>
@@ -74,12 +70,11 @@ export function CreditCardPayoffCalculator() {
             </div>
             <div>
               <h3 className="font-bold mb-1">Total Interest Paid</h3>
-              <div className="text-3xl font-serif font-bold text-destructive">
+              <div className="text-3xl font-serif font-bold text-destructive break-words">
                 ${Math.round(totalInterest).toLocaleString()}
               </div>
             </div>
           </div>
-
           <div className="h-[250px]" id="credit-card-chart">
             <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
               <LineChart data={data}>

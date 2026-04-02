@@ -124,7 +124,9 @@ Frontend-only React + Vite personal finance content site (RealProfits.com). No b
 - **Data files**: `src/data/calculators.ts`, `src/data/categories.ts`, `src/data/articles.ts`, `src/data/tools.ts`
 - **Calculator pattern**: Named export in `src/components/calculators/[Name].tsx`, lazy-loaded in CalculatorDetail.tsx
 - **Tool pattern**: Named export in `src/components/tools/[Name].tsx`, lazy-loaded in ToolDetail.tsx, localStorage persistence for all tools
-- **Export utilities**: `src/components/export/ExportButtons.tsx` (PDF with html2canvas, PNG, CSV, Print, Share)
+- **Export utilities**: `src/components/export/ExportButtons.tsx` (PDF with html2canvas, PNG, CSV, Print, Share). SVG-to-canvas conversion uses Promise-based img.onload awaiting (no setTimeout race condition).
+- **Input validation**: All 39+ calculator inputs have `min="0"` HTML attribute + `Math.max(0, ...)` in onChange handlers. Year/time inputs are bounded (e.g., `min="1" max="50"`). Percentage inputs capped with `max`. Age inputs bounded to sensible ranges.
+- **Overflow protection**: Large currency output containers use `break-words` class to prevent horizontal overflow on big numbers.
 - **No emojis** in UI (explicit requirement)
 - **USA-only** audience
 
