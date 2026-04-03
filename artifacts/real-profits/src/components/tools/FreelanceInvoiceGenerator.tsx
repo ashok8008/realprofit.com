@@ -11,7 +11,7 @@ const STORAGE_KEY = "rp-tool-freelance-invoice";
 
 export function FreelanceInvoiceGenerator() {
   const { toast } = useToast();
-  
+
   const [data, setData] = useState({
     invoiceNumber: "INV-001",
     date: new Date().toISOString().split("T")[0],
@@ -97,7 +97,7 @@ export function FreelanceInvoiceGenerator() {
       doc.setFontSize(24);
       doc.text("INVOICE", 150, y);
       doc.setFontSize(12);
-      
+
       doc.text(data.senderName || "Your Company", 20, y);
       y += 6;
       if (data.senderAddress) {
@@ -155,20 +155,20 @@ export function FreelanceInvoiceGenerator() {
         doc.text(qty.toString(), 120, y);
         doc.text(`$${rate.toFixed(2)}`, 145, y);
         doc.text(`$${(qty * rate).toFixed(2)}`, 170, y);
-        
+
         y += Math.max(descLines.length * 6, 10);
       });
 
       y += 10;
       doc.text(`Subtotal:`, 140, y);
       doc.text(`$${subtotal.toFixed(2)}`, 170, y);
-      
+
       if (discountVal > 0) {
         y += 6;
         doc.text(`Discount:`, 140, y);
         doc.text(`-$${discountVal.toFixed(2)}`, 170, y);
       }
-      
+
       if (taxPctVal > 0) {
         y += 6;
         doc.text(`Tax (${taxPctVal}%):`, 140, y);
@@ -189,7 +189,7 @@ export function FreelanceInvoiceGenerator() {
         doc.text(noteLines, 20, y);
         y += noteLines.length * 6 + 4;
       }
-      
+
       if (data.paymentTerms) {
         doc.text("Payment Terms:", 20, y);
         y += 6;
@@ -241,16 +241,16 @@ export function FreelanceInvoiceGenerator() {
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>Invoice Number</Label>
-            <Input value={data.invoiceNumber} onChange={e => setData({...data, invoiceNumber: e.target.value})} data-testid="input-invoice-number" />
+            <Input value={data.invoiceNumber} onChange={e => setData({ ...data, invoiceNumber: e.target.value })} data-testid="input-invoice-number" />
           </div>
           <div className="space-y-2"></div>
           <div className="space-y-2">
             <Label>Date</Label>
-            <Input type="date" value={data.date} onChange={e => setData({...data, date: e.target.value})} />
+            <Input type="date" value={data.date} onChange={e => setData({ ...data, date: e.target.value })} />
           </div>
           <div className="space-y-2">
             <Label>Due Date</Label>
-            <Input type="date" value={data.dueDate} onChange={e => setData({...data, dueDate: e.target.value})} />
+            <Input type="date" value={data.dueDate} onChange={e => setData({ ...data, dueDate: e.target.value })} />
           </div>
         </div>
 
@@ -259,30 +259,30 @@ export function FreelanceInvoiceGenerator() {
             <h3 className="font-bold border-b pb-2">Your Details</h3>
             <div className="space-y-2">
               <Label>Business Name</Label>
-              <Input value={data.senderName} onChange={e => setData({...data, senderName: e.target.value})} placeholder="Your Company" />
+              <Input value={data.senderName} onChange={e => setData({ ...data, senderName: e.target.value })} placeholder="Your Company" />
             </div>
             <div className="space-y-2">
               <Label>Email</Label>
-              <Input type="email" value={data.senderEmail} onChange={e => setData({...data, senderEmail: e.target.value})} placeholder="you@company.com" />
+              <Input type="email" value={data.senderEmail} onChange={e => setData({ ...data, senderEmail: e.target.value })} placeholder="you@company.com" />
             </div>
             <div className="space-y-2">
               <Label>Address</Label>
-              <Textarea value={data.senderAddress} onChange={e => setData({...data, senderAddress: e.target.value})} placeholder="123 Business Rd&#10;City, State 12345" className="h-24" />
+              <Textarea value={data.senderAddress} onChange={e => setData({ ...data, senderAddress: e.target.value })} placeholder="123 Business Rd&#10;City, State 12345" className="h-24" />
             </div>
           </div>
           <div className="space-y-4">
             <h3 className="font-bold border-b pb-2">Client Details</h3>
             <div className="space-y-2">
               <Label>Client Name</Label>
-              <Input value={data.clientName} onChange={e => setData({...data, clientName: e.target.value})} placeholder="Client Company" />
+              <Input value={data.clientName} onChange={e => setData({ ...data, clientName: e.target.value })} placeholder="Client Company" />
             </div>
             <div className="space-y-2">
               <Label>Email</Label>
-              <Input type="email" value={data.clientEmail} onChange={e => setData({...data, clientEmail: e.target.value})} placeholder="client@company.com" />
+              <Input type="email" value={data.clientEmail} onChange={e => setData({ ...data, clientEmail: e.target.value })} placeholder="client@company.com" />
             </div>
             <div className="space-y-2">
               <Label>Address</Label>
-              <Textarea value={data.clientAddress} onChange={e => setData({...data, clientAddress: e.target.value})} placeholder="456 Client Pkwy&#10;City, State 67890" className="h-24" />
+              <Textarea value={data.clientAddress} onChange={e => setData({ ...data, clientAddress: e.target.value })} placeholder="456 Client Pkwy&#10;City, State 67890" className="h-24" />
             </div>
           </div>
         </div>
@@ -290,24 +290,36 @@ export function FreelanceInvoiceGenerator() {
         <div className="space-y-4">
           <div className="flex justify-between items-center border-b pb-2">
             <h3 className="font-bold">Line Items</h3>
-            <Button size="sm" onClick={addItem} data-testid="button-add-item"><Plus className="w-4 h-4 mr-1"/> Add Item</Button>
+            <Button size="sm" onClick={addItem} data-testid="button-add-item"><Plus className="w-4 h-4 mr-1" /> Add Item</Button>
           </div>
-          
+
           <div className="space-y-3">
             {data.items.map((item, index) => (
-              <div key={item.id} className="flex gap-2 items-start bg-muted/20 p-3 rounded-md">
-                <div className="flex-1 space-y-2">
-                  <Input placeholder="Description" value={item.description} onChange={e => handleItemChange(item.id, "description", e.target.value)} />
+              <div key={item.id} className="bg-muted/20 p-3 rounded-md space-y-2">
+                <div className="flex gap-2 items-start">
+                  <div className="flex-1 min-w-0">
+                    <Input placeholder="Description" value={item.description} onChange={e => handleItemChange(item.id, "description", e.target.value)} />
+                  </div>
+                  <div className="flex gap-1 flex-shrink-0">
+                    <Button variant="ghost" size="icon" className="h-9 w-9" onClick={() => duplicateItem(item)} title="Duplicate"><Copy className="w-4 h-4" /></Button>
+                    <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive" onClick={() => removeItem(item.id)} title="Remove" disabled={data.items.length === 1}><Trash2 className="w-4 h-4" /></Button>
+                  </div>
                 </div>
-                <div className="w-20 space-y-2">
-                  <Input type="number" min="0.01" step="any" value={item.quantity} onChange={e => handleItemChange(item.id, "quantity", e.target.value)} placeholder="Qty" />
-                </div>
-                <div className="w-24 space-y-2">
-                  <Input type="number" min="0" step="0.01" value={item.rate} onChange={e => handleItemChange(item.id, "rate", e.target.value)} placeholder="Rate" />
-                </div>
-                <div className="flex gap-1 pt-0.5">
-                  <Button variant="ghost" size="icon" onClick={() => duplicateItem(item)} title="Duplicate"><Copy className="w-4 h-4"/></Button>
-                  <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)} className="text-destructive" title="Remove" disabled={data.items.length === 1}><Trash2 className="w-4 h-4"/></Button>
+                <div className="flex gap-3">
+                  <div className="flex-1 space-y-1">
+                    <Label className="text-xs text-muted-foreground">Qty</Label>
+                    <Input type="number" min="0.01" step="any" value={item.quantity} onChange={e => handleItemChange(item.id, "quantity", e.target.value)} />
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <Label className="text-xs text-muted-foreground">Rate ($)</Label>
+                    <Input type="number" min="0" step="0.01" value={item.rate} onChange={e => handleItemChange(item.id, "rate", e.target.value)} />
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <Label className="text-xs text-muted-foreground">Amount</Label>
+                    <div className="h-9 flex items-center justify-end font-mono font-bold text-sm">
+                      ${(getItemQty(item) * getItemRate(item)).toFixed(2)}
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
@@ -318,11 +330,11 @@ export function FreelanceInvoiceGenerator() {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Notes</Label>
-              <Textarea value={data.notes} onChange={e => setData({...data, notes: e.target.value})} className="h-20" />
+              <Textarea value={data.notes} onChange={e => setData({ ...data, notes: e.target.value })} className="h-20" />
             </div>
             <div className="space-y-2">
               <Label>Payment Terms</Label>
-              <Textarea value={data.paymentTerms} onChange={e => setData({...data, paymentTerms: e.target.value})} className="h-20" />
+              <Textarea value={data.paymentTerms} onChange={e => setData({ ...data, paymentTerms: e.target.value })} className="h-20" />
             </div>
           </div>
           <div className="space-y-4 bg-muted/10 p-4 rounded-lg">
@@ -332,11 +344,11 @@ export function FreelanceInvoiceGenerator() {
             </div>
             <div className="flex items-center gap-2 justify-between">
               <Label className="whitespace-nowrap">Discount ($):</Label>
-              <Input type="number" className="w-24 text-right" value={data.discount} onChange={e => setData({...data, discount: e.target.value})} min="0" />
+              <Input type="number" className="w-24 text-right" value={data.discount} onChange={e => setData({ ...data, discount: e.target.value })} min="0" />
             </div>
             <div className="flex items-center gap-2 justify-between">
               <Label className="whitespace-nowrap">Tax (%):</Label>
-              <Input type="number" className="w-24 text-right" value={data.taxPercentage} onChange={e => setData({...data, taxPercentage: e.target.value})} min="0" />
+              <Input type="number" className="w-24 text-right" value={data.taxPercentage} onChange={e => setData({ ...data, taxPercentage: e.target.value })} min="0" />
             </div>
             <div className="flex justify-between font-bold text-lg border-t pt-2">
               <span>Total:</span>
@@ -350,13 +362,13 @@ export function FreelanceInvoiceGenerator() {
         <div className="flex justify-between items-center no-print">
           <h2 className="text-2xl font-serif font-bold">Preview</h2>
           <div className="flex gap-2">
-            <Button onClick={handlePrint} variant="outline" size="sm" data-testid="button-print"><Printer className="w-4 h-4 mr-2"/> Print</Button>
-            <Button onClick={handleExportPDF} size="sm" data-testid="button-export-pdf"><Download className="w-4 h-4 mr-2"/> Download PDF</Button>
+            <Button onClick={handlePrint} variant="outline" size="sm" data-testid="button-print"><Printer className="w-4 h-4 mr-2" /> Print</Button>
+            <Button onClick={handleExportPDF} size="sm" data-testid="button-export-pdf"><Download className="w-4 h-4 mr-2" /> Download PDF</Button>
           </div>
         </div>
-        
+
         <div className="border rounded-lg p-8 bg-white text-black shadow-sm aspect-[1/1.4] overflow-auto text-sm print-container">
-          <div className="flex justify-between mb-10">
+          <div className="flex flex-col sm:flex-row justify-between mb-10 gap-4">
             <div>
               <h1 className="text-3xl font-bold mb-4 text-gray-800">INVOICE</h1>
               <div className="text-gray-600 space-y-1">
@@ -365,7 +377,7 @@ export function FreelanceInvoiceGenerator() {
                 {data.senderEmail && <p>{data.senderEmail}</p>}
               </div>
             </div>
-            <div className="text-right text-gray-600 space-y-1">
+            <div className="sm:text-right text-gray-600 space-y-1">
               <p><span className="font-bold text-gray-800">Invoice Number:</span> {data.invoiceNumber}</p>
               <p><span className="font-bold text-gray-800">Date:</span> {data.date}</p>
               <p><span className="font-bold text-gray-800">Due Date:</span> {data.dueDate}</p>
@@ -379,30 +391,32 @@ export function FreelanceInvoiceGenerator() {
             {data.clientEmail && <p>{data.clientEmail}</p>}
           </div>
 
-          <table className="w-full mb-8">
-            <thead>
-              <tr className="border-b-2 border-gray-300">
-                <th className="text-left py-2 text-gray-800">Description</th>
-                <th className="text-right py-2 text-gray-800">Qty</th>
-                <th className="text-right py-2 text-gray-800">Rate</th>
-                <th className="text-right py-2 text-gray-800">Amount</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.items.map((item) => {
-                const qty = getItemQty(item);
-                const rate = getItemRate(item);
-                return (
-                  <tr key={item.id} className="border-b border-gray-200">
-                    <td className="py-3 text-gray-600 whitespace-pre-wrap">{item.description}</td>
-                    <td className="text-right py-3 text-gray-600">{qty}</td>
-                    <td className="text-right py-3 text-gray-600">${rate.toFixed(2)}</td>
-                    <td className="text-right py-3 text-gray-800">${(qty * rate).toFixed(2)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="overflow-x-auto mb-8">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b-2 border-gray-300">
+                  <th className="text-left py-2 text-gray-800">Description</th>
+                  <th className="text-right py-2 text-gray-800 pl-4">Qty</th>
+                  <th className="text-right py-2 text-gray-800 pl-4">Rate</th>
+                  <th className="text-right py-2 text-gray-800 pl-4">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.items.map((item) => {
+                  const qty = getItemQty(item);
+                  const rate = getItemRate(item);
+                  return (
+                    <tr key={item.id} className="border-b border-gray-200">
+                      <td className="py-3 text-gray-600 break-words max-w-[200px]">{item.description}</td>
+                      <td className="text-right py-3 text-gray-600 pl-4 whitespace-nowrap">{qty}</td>
+                      <td className="text-right py-3 text-gray-600 pl-4 whitespace-nowrap">${rate.toFixed(2)}</td>
+                      <td className="text-right py-3 text-gray-800 pl-4 whitespace-nowrap">${(qty * rate).toFixed(2)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
 
           <div className="flex justify-end mb-10">
             <div className="w-64 space-y-2">

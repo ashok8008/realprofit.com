@@ -2,14 +2,16 @@ import React, { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from "recharts";
+import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer } from "recharts";
 import { useToast } from "@/hooks/use-toast";
 
 const STORAGE_KEY = "rp-tool-paycheck";
 
+const CHART_COLORS = ["#22c55e", "#ef4444", "#2563eb", "#f59e0b", "#8b5cf6"];
+
 export function PaycheckCalculator() {
   const { toast } = useToast();
-  
+
   const [data, setData] = useState({
     grossPay: "3000",
     frequency: "biweekly",
@@ -59,19 +61,19 @@ export function PaycheckCalculator() {
 
   const multiplier = getMultiplier(data.frequency);
   const annualGross = grossPayVal * multiplier;
-  
+
   const taxAmount = grossPayVal * (taxRateVal / 100);
   const totalDeductions = retirementVal + insuranceVal + otherVal;
   const takeHome = grossPayVal - taxAmount - totalDeductions;
-  
+
   const annualTakeHome = takeHome * multiplier;
 
   const chartData = [
-    { name: "Take Home", value: takeHome, fill: "hsl(var(--chart-2))" },
-    { name: "Taxes", value: taxAmount, fill: "hsl(var(--destructive))" },
-    { name: "Retirement (401k)", value: retirementVal, fill: "hsl(var(--chart-1))" },
-    { name: "Health Insurance", value: insuranceVal, fill: "hsl(var(--chart-4))" },
-    { name: "Other Deductions", value: otherVal, fill: "hsl(var(--chart-5))" }
+    { name: "Take Home", value: takeHome, color: CHART_COLORS[0] },
+    { name: "Taxes", value: taxAmount, color: CHART_COLORS[1] },
+    { name: "Retirement (401k)", value: retirementVal, color: CHART_COLORS[2] },
+    { name: "Health Insurance", value: insuranceVal, color: CHART_COLORS[3] },
+    { name: "Other Deductions", value: otherVal, color: CHART_COLORS[4] }
   ].filter(d => d.value > 0);
 
   return (
@@ -84,15 +86,15 @@ export function PaycheckCalculator() {
         <div className="space-y-6">
           <div className="bg-card border rounded-xl p-6 shadow-sm space-y-4">
             <h3 className="font-bold border-b pb-2">Income Details</h3>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Gross Pay ($)</Label>
-                <Input type="number" min="0" value={data.grossPay} onChange={e => setData({...data, grossPay: e.target.value})} />
+                <Input type="number" min="0" value={data.grossPay} onChange={e => setData({ ...data, grossPay: e.target.value })} />
               </div>
               <div className="space-y-2">
                 <Label>Pay Frequency</Label>
-                <Select value={data.frequency} onValueChange={v => setData({...data, frequency: v})}>
+                <Select value={data.frequency} onValueChange={v => setData({ ...data, frequency: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="weekly">Weekly (52/yr)</SelectItem>
@@ -107,26 +109,26 @@ export function PaycheckCalculator() {
 
             <div className="space-y-2 pt-2">
               <Label>Estimated Tax Rate (%)</Label>
-              <Input type="number" min="0" max="100" value={data.taxRate} onChange={e => setData({...data, taxRate: e.target.value})} />
+              <Input type="number" min="0" max="100" value={data.taxRate} onChange={e => setData({ ...data, taxRate: e.target.value })} />
               <p className="text-xs text-muted-foreground">Combined Federal, State, and FICA estimate.</p>
             </div>
           </div>
 
           <div className="bg-card border rounded-xl p-6 shadow-sm space-y-4">
             <h3 className="font-bold border-b pb-2">Deductions (per paycheck)</h3>
-            
+
             <div className="space-y-4">
               <div className="grid grid-cols-2 items-center gap-4">
                 <Label>Retirement (401k, etc)</Label>
-                <Input type="number" className="text-right" value={data.retirement} onChange={e => setData({...data, retirement: e.target.value})} />
+                <Input type="number" className="text-right" value={data.retirement} onChange={e => setData({ ...data, retirement: e.target.value })} />
               </div>
               <div className="grid grid-cols-2 items-center gap-4">
                 <Label>Health Insurance</Label>
-                <Input type="number" className="text-right" value={data.insurance} onChange={e => setData({...data, insurance: e.target.value})} />
+                <Input type="number" className="text-right" value={data.insurance} onChange={e => setData({ ...data, insurance: e.target.value })} />
               </div>
               <div className="grid grid-cols-2 items-center gap-4">
                 <Label>Other Deductions</Label>
-                <Input type="number" className="text-right" value={data.otherDeductions} onChange={e => setData({...data, otherDeductions: e.target.value})} />
+                <Input type="number" className="text-right" value={data.otherDeductions} onChange={e => setData({ ...data, otherDeductions: e.target.value })} />
               </div>
             </div>
           </div>
@@ -136,7 +138,7 @@ export function PaycheckCalculator() {
           <div className="bg-primary text-primary-foreground rounded-xl p-8 text-center shadow-md">
             <p className="text-primary-foreground/80 uppercase tracking-widest text-sm font-bold mb-2">Estimated Take-Home</p>
             <h3 className="text-5xl md:text-6xl font-serif font-bold mb-2">
-              ${takeHome.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+              ${takeHome.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </h3>
             <p className="text-primary-foreground/80">per paycheck</p>
           </div>
@@ -148,44 +150,61 @@ export function PaycheckCalculator() {
                 <PieChart>
                   <Pie data={chartData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={2} dataKey="value">
                     {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                      <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <RechartsTooltip formatter={(value: number) => [`$${value.toLocaleString(undefined, {minimumFractionDigits: 2})}`, 'Amount']} />
+                  <RechartsTooltip formatter={(value: number, name: string) => [`$${value.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, name]} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
-            
+
             <div className="space-y-2 mt-4 text-sm">
-              <div className="flex justify-between p-2 bg-muted/50 rounded">
-                <span className="font-medium">Gross Pay</span>
-                <span>${grossPayVal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+              <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Gross Pay</span>
+                </div>
+                <span>${grossPayVal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
               </div>
-              <div className="flex justify-between p-2 text-destructive">
-                <span>Estimated Taxes ({taxRateVal}%)</span>
-                <span>-${taxAmount.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+              <div className="flex justify-between items-center p-2 rounded">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: CHART_COLORS[1] }}></div>
+                  <span>Estimated Taxes ({taxRateVal}%)</span>
+                </div>
+                <span style={{ color: CHART_COLORS[1] }}>-${taxAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
               </div>
               {retirementVal > 0 && (
-                <div className="flex justify-between p-2 text-muted-foreground">
-                  <span>Retirement (401k, etc)</span>
-                  <span>-${retirementVal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                <div className="flex justify-between items-center p-2 rounded">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: CHART_COLORS[2] }}></div>
+                    <span>Retirement (401k, etc)</span>
+                  </div>
+                  <span style={{ color: CHART_COLORS[2] }}>-${retirementVal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                 </div>
               )}
               {insuranceVal > 0 && (
-                <div className="flex justify-between p-2 text-muted-foreground">
-                  <span>Health Insurance</span>
-                  <span>-${insuranceVal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                <div className="flex justify-between items-center p-2 rounded">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: CHART_COLORS[3] }}></div>
+                    <span>Health Insurance</span>
+                  </div>
+                  <span style={{ color: CHART_COLORS[3] }}>-${insuranceVal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                 </div>
               )}
               {otherVal > 0 && (
-                <div className="flex justify-between p-2 text-muted-foreground">
-                  <span>Other Deductions</span>
-                  <span>-${otherVal.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                <div className="flex justify-between items-center p-2 rounded">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: CHART_COLORS[4] }}></div>
+                    <span>Other Deductions</span>
+                  </div>
+                  <span style={{ color: CHART_COLORS[4] }}>-${otherVal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                 </div>
               )}
-              <div className="flex justify-between p-2 border-t font-bold text-base">
-                <span>Take-Home Pay</span>
-                <span>${takeHome.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+              <div className="flex justify-between items-center p-2 border-t font-bold text-base">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: CHART_COLORS[0] }}></div>
+                  <span>Take-Home Pay</span>
+                </div>
+                <span style={{ color: CHART_COLORS[0] }}>${takeHome.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
               </div>
             </div>
           </div>

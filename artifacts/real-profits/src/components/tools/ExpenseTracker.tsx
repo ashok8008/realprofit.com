@@ -3,17 +3,21 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
-import { Plus, Trash2, RotateCcw } from "lucide-react";
+import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer } from "recharts";
+import { Plus, Trash2, RotateCcw, Pencil, Check, X } from "lucide-react";
 import { ExportToCSVButton } from "@/components/export/ExportButtons";
 import { useToast } from "@/hooks/use-toast";
 
 const STORAGE_KEY = "rp-tool-expense-tracker";
 
+const COLORS = ["#2563eb", "#dc2626", "#16a34a", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4"];
+
+type Entry = { id: string; date: string; merchant: string; category: string; amount: number; notes: string };
+
 export function ExpenseTracker() {
   const { toast } = useToast();
-  
-  const [entries, setEntries] = useState<any[]>([]);
+
+  const [entries, setEntries] = useState<Entry[]>([]);
   const [newEntry, setNewEntry] = useState({
     date: new Date().toISOString().split("T")[0],
     merchant: "",
@@ -21,6 +25,8 @@ export function ExpenseTracker() {
     amount: "",
     notes: ""
   });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editData, setEditData] = useState({ date: "", merchant: "", category: "food", amount: "", notes: "" });
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
@@ -44,6 +50,10 @@ export function ExpenseTracker() {
       toast({ title: "Invalid Amount", description: "Amount must be greater than zero.", variant: "destructive" });
       return;
     }
+    if (!newEntry.date) {
+      toast({ title: "Invalid Date", description: "Please select a date.", variant: "destructive" });
+      return;
+    }
     setEntries([
       ...entries,
       {
@@ -55,7 +65,7 @@ export function ExpenseTracker() {
         notes: newEntry.notes
       }
     ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-    
+
     setNewEntry(prev => ({ ...prev, merchant: "", amount: "", notes: "" }));
   };
 
@@ -63,13 +73,39 @@ export function ExpenseTracker() {
     setEntries(entries.filter(e => e.id !== id));
   };
 
+  const startEdit = (e: Entry) => {
+    setEditingId(e.id);
+    setEditData({ date: e.date, merchant: e.merchant, category: e.category, amount: String(e.amount), notes: e.notes || "" });
+  };
+
+  const saveEdit = () => {
+    if (!editingId) return;
+    const trimmedMerchant = editData.merchant.trim();
+    const amountVal = parseFloat(editData.amount);
+    if (!trimmedMerchant || !amountVal || amountVal <= 0) {
+      toast({ title: "Invalid", description: "Merchant and valid amount are required.", variant: "destructive" });
+      return;
+    }
+    setEntries(entries.map(e => e.id === editingId ? {
+      ...e,
+      date: editData.date || e.date,
+      merchant: trimmedMerchant,
+      category: editData.category,
+      amount: amountVal,
+      notes: editData.notes
+    } : e).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    setEditingId(null);
+  };
+
+  const cancelEdit = () => { setEditingId(null); };
+
   const handleReset = () => {
     setEntries([]);
     toast({ title: "Reset", description: "All expense entries cleared." });
   };
 
   const totalExpense = entries.reduce((sum, e) => sum + e.amount, 0);
-  
+
   const categoryData = entries.reduce((acc, entry) => {
     const existing = acc.find((a: any) => a.name === entry.category);
     if (existing) {
@@ -78,26 +114,24 @@ export function ExpenseTracker() {
       acc.push({ name: entry.category, value: entry.amount });
     }
     return acc;
-  }, []).sort((a: any, b: any) => b.value - a.value);
+  }, [] as { name: string; value: number }[]).sort((a, b) => b.value - a.value);
 
-  const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))', 'hsl(var(--destructive))', 'hsl(var(--primary))'];
-
-  const isLogDisabled = !newEntry.merchant.trim() || !newEntry.amount || parseFloat(newEntry.amount) <= 0;
+  const isLogDisabled = !newEntry.merchant.trim() || !newEntry.amount || parseFloat(newEntry.amount) <= 0 || !newEntry.date;
 
   return (
     <div className="space-y-8">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-serif font-bold">Expense Tracker</h2>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={handleReset}><RotateCcw className="w-4 h-4 mr-2"/> Reset</Button>
+          <Button variant="outline" size="sm" onClick={handleReset}><RotateCcw className="w-4 h-4 mr-2" /> Reset</Button>
           <ExportToCSVButton data={entries} title="Expense Log" />
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="bg-card border rounded-xl p-6 text-center shadow-sm">
-          <p className="text-sm text-muted-foreground uppercase tracking-wider mb-1">Total Tracked Expenses</p>
-          <p className="text-3xl font-bold text-destructive">${totalExpense.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
+          <p className="text-sm text-muted-foreground uppercase tracking-wider mb-1">Total Expenses</p>
+          <p className="text-3xl font-bold text-destructive">${totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
         </div>
         <div className="bg-card border rounded-xl p-6 text-center shadow-sm">
           <p className="text-sm text-muted-foreground uppercase tracking-wider mb-1">Entries</p>
@@ -119,21 +153,21 @@ export function ExpenseTracker() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="space-y-2">
                 <Label>Date</Label>
-                <Input type="date" value={newEntry.date} onChange={e => setNewEntry({...newEntry, date: e.target.value})} />
+                <Input type="date" value={newEntry.date} onChange={e => setNewEntry({ ...newEntry, date: e.target.value })} />
               </div>
               <div className="space-y-2">
                 <Label>Amount ($) <span className="text-destructive">*</span></Label>
-                <Input type="number" min="0.01" step="0.01" value={newEntry.amount} onChange={e => setNewEntry({...newEntry, amount: e.target.value})} placeholder="0.00" />
+                <Input type="number" min="0.01" step="0.01" value={newEntry.amount} onChange={e => setNewEntry({ ...newEntry, amount: e.target.value })} placeholder="0.00" />
               </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label>Merchant / Description <span className="text-destructive">*</span></Label>
-                <Input value={newEntry.merchant} onChange={e => setNewEntry({...newEntry, merchant: e.target.value})} placeholder="Store Name" />
+              <div className="space-y-2 col-span-2">
+                <Label>Merchant <span className="text-destructive">*</span></Label>
+                <Input value={newEntry.merchant} onChange={e => setNewEntry({ ...newEntry, merchant: e.target.value })} placeholder="Store name or description" />
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
               <div className="space-y-2 md:col-span-1">
                 <Label>Category</Label>
-                <Select value={newEntry.category} onValueChange={v => setNewEntry({...newEntry, category: v})}>
+                <Select value={newEntry.category} onValueChange={v => setNewEntry({ ...newEntry, category: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="housing">Housing</SelectItem>
@@ -149,9 +183,9 @@ export function ExpenseTracker() {
               </div>
               <div className="space-y-2 md:col-span-2">
                 <Label>Notes (Optional)</Label>
-                <Input value={newEntry.notes} onChange={e => setNewEntry({...newEntry, notes: e.target.value})} placeholder="..." />
+                <Input value={newEntry.notes} onChange={e => setNewEntry({ ...newEntry, notes: e.target.value })} placeholder="..." />
               </div>
-              <Button onClick={addEntry} className="w-full md:col-span-1" variant="destructive" disabled={isLogDisabled}><Plus className="w-4 h-4 mr-2"/> Log</Button>
+              <Button onClick={addEntry} className="w-full md:col-span-1" variant="destructive" disabled={isLogDisabled}><Plus className="w-4 h-4 mr-2" /> Log</Button>
             </div>
           </div>
 
@@ -160,11 +194,11 @@ export function ExpenseTracker() {
               <table className="w-full text-sm">
                 <thead className="bg-muted sticky top-0 z-10">
                   <tr>
-                    <th className="p-3 text-left">Date</th>
-                    <th className="p-3 text-left">Merchant</th>
-                    <th className="p-3 text-left">Category</th>
-                    <th className="p-3 text-right">Amount</th>
-                    <th className="p-3 w-10"></th>
+                    <th className="p-3 text-left whitespace-nowrap">Date</th>
+                    <th className="p-3 text-left whitespace-nowrap">Merchant</th>
+                    <th className="p-3 text-left whitespace-nowrap hidden sm:table-cell">Category</th>
+                    <th className="p-3 text-right whitespace-nowrap">Amount</th>
+                    <th className="p-3 w-20"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -173,18 +207,57 @@ export function ExpenseTracker() {
                   ) : (
                     entries.map(e => (
                       <tr key={e.id} className="border-t hover:bg-muted/30">
-                        <td className="p-3 whitespace-nowrap">{e.date}</td>
-                        <td className="p-3 font-medium">
-                          {e.merchant}
-                          {e.notes && <span className="block text-xs text-muted-foreground font-normal">{e.notes}</span>}
-                        </td>
-                        <td className="p-3 capitalize text-muted-foreground">{e.category}</td>
-                        <td className="p-3 text-right font-bold">${e.amount.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                        <td className="p-3 text-center">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10" onClick={() => removeEntry(e.id)}>
-                            <Trash2 className="w-4 h-4"/>
-                          </Button>
-                        </td>
+                        {editingId === e.id ? (
+                          <>
+                            <td className="p-2">
+                              <Input type="date" className="h-8 text-sm" value={editData.date} onChange={ev => setEditData({ ...editData, date: ev.target.value })} />
+                            </td>
+                            <td className="p-2">
+                              <Input className="h-8 text-sm" value={editData.merchant} onChange={ev => setEditData({ ...editData, merchant: ev.target.value })} />
+                            </td>
+                            <td className="p-2 hidden sm:table-cell">
+                              <Select value={editData.category} onValueChange={v => setEditData({ ...editData, category: v })}>
+                                <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="housing">Housing</SelectItem>
+                                  <SelectItem value="food">Food & Dining</SelectItem>
+                                  <SelectItem value="transport">Transport</SelectItem>
+                                  <SelectItem value="utilities">Utilities</SelectItem>
+                                  <SelectItem value="entertainment">Entertainment</SelectItem>
+                                  <SelectItem value="shopping">Shopping</SelectItem>
+                                  <SelectItem value="health">Health</SelectItem>
+                                  <SelectItem value="other">Other</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </td>
+                            <td className="p-2">
+                              <Input type="number" className="h-8 text-sm text-right w-20 ml-auto" value={editData.amount} onChange={ev => setEditData({ ...editData, amount: ev.target.value })} />
+                            </td>
+                            <td className="p-2">
+                              <div className="flex gap-1 justify-center">
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-green-600" onClick={saveEdit}><Check className="w-4 h-4" /></Button>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={cancelEdit}><X className="w-4 h-4" /></Button>
+                              </div>
+                            </td>
+                          </>
+                        ) : (
+                          <>
+                            <td className="p-3 whitespace-nowrap">{e.date}</td>
+                            <td className="p-3 font-medium">
+                              {e.merchant}
+                              {e.notes && <span className="block text-xs text-muted-foreground font-normal">{e.notes}</span>}
+                              <span className="block sm:hidden text-xs text-muted-foreground capitalize">{e.category}</span>
+                            </td>
+                            <td className="p-3 capitalize text-muted-foreground hidden sm:table-cell">{e.category}</td>
+                            <td className="p-3 text-right font-bold whitespace-nowrap">${e.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                            <td className="p-3">
+                              <div className="flex gap-1 justify-center">
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => startEdit(e)}><Pencil className="w-3.5 h-3.5" /></Button>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={() => removeEntry(e.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+                              </div>
+                            </td>
+                          </>
+                        )}
                       </tr>
                     ))
                   )}
@@ -214,10 +287,10 @@ export function ExpenseTracker() {
                 {categoryData.map((entry, index) => (
                   <div key={entry.name} className="flex justify-between items-center text-sm border-b pb-1 last:border-0">
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
+                      <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
                       <span className="capitalize">{entry.name}</span>
                     </div>
-                    <span className="font-medium">${entry.value.toLocaleString(undefined, {minimumFractionDigits: 2})}</span>
+                    <span className="font-medium" style={{ color: COLORS[index % COLORS.length] }}>${entry.value.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                   </div>
                 ))}
               </div>
