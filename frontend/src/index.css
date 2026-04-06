@@ -122,7 +122,7 @@
   --chart-5: 0 50% 60%;
 
   --app-font-sans: 'Inter', sans-serif;
-  --app-font-serif: 'Georgia', serif;
+  --app-font-serif: 'Playfair Display', 'Georgia', serif;
   --app-font-mono: 'Menlo', monospace;
   --radius: 0.5rem;
   

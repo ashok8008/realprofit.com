@@ -3,10 +3,15 @@ import { Link } from "wouter";
 import { Seo } from "@/components/Seo";
 import { articles } from "@/data/articles";
 import { categories } from "@/data/categories";
-import { ArrowRight, Shield, Lock, BarChart3, Users, Info } from "lucide-react";
-import { ResponsiveContainer, LineChart, Line, YAxis, XAxis, CartesianGrid } from "recharts";
+import { 
+  ArrowRight, Shield, Lock, BarChart3, Heart,
+  Calculator, Briefcase, TrendingUp, BookOpen,
+  FileText, DollarSign, HelpCircle, PiggyBank, 
+  Wallet, Receipt, ClipboardCheck, LineChart
+} from "lucide-react";
+import { ResponsiveContainer, LineChart as RLineChart, Line, YAxis, XAxis, CartesianGrid, Area, AreaChart } from "recharts";
 
-const dummyChartData = [
+const whatIfData = [
   { age: 30, value: 10000 },
   { age: 35, value: 35000 },
   { age: 40, value: 80000 },
@@ -25,7 +30,7 @@ function SliderPreview({ label, value, color, pct }: { label: string; value: str
         <span className="text-xs font-bold text-gray-900">{value}</span>
       </div>
       <div className="h-1.5 w-full bg-gray-200 rounded-full overflow-hidden">
-        <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }}></div>
+        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }}></div>
       </div>
     </div>
   );
@@ -37,76 +42,96 @@ export default function Home() {
   return (
     <div className="w-full">
       <Seo 
-        title="Practical Money Clarity"
-        description="RealProfits provides free calculators, expert insights, and powerful simulations to plan your financial future."
-        keywords="personal finance, financial calculator, budget calculator, savings calculator, money management, financial planning, debt payoff, investment calculator, tax calculator, side hustle, net worth, retirement planning, compound interest, emergency fund, free financial tools"
+        title="Understand Your Money, Income & Career"
+        description="Free tools to calculate your salary, track spending, build resumes, and make smarter financial and career decisions — no signup required."
+        keywords="personal finance, financial calculator, salary comparison, resume builder, career tools, budget calculator, savings calculator, money management, financial planning, debt payoff, investment calculator, tax calculator"
         path="/"
       />
       
-      {/* Hero */}
-      <section className="hero-gradient py-20 md:py-28 px-4">
+      {/* ============================================ */}
+      {/* 1. HERO SECTION */}
+      {/* ============================================ */}
+      <section className="hero-gradient py-20 md:py-28 lg:py-32 px-4" data-testid="hero-section">
         <div className="container mx-auto max-w-6xl relative z-10">
-          <div className="flex flex-col lg:flex-row items-center gap-12">
+          <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
             <div className="lg:w-1/2 text-white">
-              <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6">
-                Smarter Financial Decisions, Made Simple
+              <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm rounded-full px-4 py-1.5 mb-6 text-xs font-semibold tracking-wide">
+                <span className="w-2 h-2 rounded-full bg-[#f5c542] animate-pulse"></span>
+                50+ free tools — no signup required
+              </div>
+              <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl font-bold leading-[1.1] tracking-tight mb-6" data-testid="hero-headline">
+                Understand Your Money, Income &amp; Career — Instantly
               </h1>
-              <p className="text-lg text-white/80 mb-8 max-w-md">
-                Free calculators, expert insights, and powerful simulations to plan your financial future.
+              <p className="text-base md:text-lg text-white/80 mb-8 max-w-lg leading-relaxed">
+                Free tools to calculate your salary, track spending, build resumes, and make smarter decisions — no signup required.
               </p>
-              <div className="flex flex-wrap gap-4">
-                <Link href="/calculators" className="bg-[#f5c542] text-gray-900 hover:bg-[#e5b732] rounded-full px-7 py-3 font-bold text-sm transition-colors inline-block shadow-lg">
-                  Try Smart Calculator
+              <div className="flex flex-wrap gap-3 mb-6">
+                <Link href="/calculators" className="bg-[#f5c542] text-gray-900 hover:bg-[#e5b732] rounded-lg px-7 py-3.5 font-bold text-sm transition-all hover:-translate-y-0.5 inline-block shadow-lg" data-testid="hero-cta-explore">
+                  Explore Tools
                 </Link>
-                <Link href="/search" className="border-2 border-white text-white hover:bg-white/10 rounded-full px-7 py-3 font-bold text-sm transition-colors inline-block">
-                  Explore Insights
+                <Link href="/career-tools/salary-comparison" className="border-2 border-white/60 text-white hover:bg-white/10 hover:border-white rounded-lg px-7 py-3.5 font-bold text-sm transition-all inline-block" data-testid="hero-cta-salary">
+                  Check My Salary
                 </Link>
+              </div>
+              <div className="flex items-center gap-5 text-xs text-white/60">
+                <span className="flex items-center gap-1.5"><Shield className="w-3.5 h-3.5" /> Private by default</span>
+                <span className="flex items-center gap-1.5"><Lock className="w-3.5 h-3.5" /> No signup needed</span>
               </div>
             </div>
             
-            <div className="lg:w-1/2 relative h-[420px] hidden lg:block">
-              <div className="absolute top-0 right-12 bg-white rounded-xl p-5 shadow-2xl rotate-3 w-56 z-20">
-                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Mortgage Calculator</div>
-                <div className="border-b border-gray-100 pb-3 mb-3">
-                  <SliderPreview label="Home Price" value="$450,000" color="#0d9488" pct={60} />
+            <div className="lg:w-1/2 relative h-[420px] hidden lg:block" data-testid="hero-visual">
+              {/* Salary Comparison Card */}
+              <div className="absolute top-0 right-8 bg-white rounded-xl p-5 shadow-2xl rotate-2 w-56 z-20 border border-gray-100">
+                <div className="text-[10px] font-bold text-teal-600 uppercase tracking-wider mb-2">Salary Comparison</div>
+                <div className="flex items-end gap-1.5 mb-2">
+                  <div className="w-5 bg-teal-400 rounded-sm" style={{height: '32px'}}></div>
+                  <div className="w-5 bg-gray-300 rounded-sm" style={{height: '24px'}}></div>
+                  <div className="w-5 bg-teal-400 rounded-sm" style={{height: '44px'}}></div>
+                  <div className="w-5 bg-gray-300 rounded-sm" style={{height: '36px'}}></div>
+                  <div className="w-5 bg-teal-500 rounded-sm" style={{height: '52px'}}></div>
                 </div>
-                <SliderPreview label="Down Payment" value="$90,000" color="#0d9488" pct={20} />
-                <div className="mt-3 pt-3 border-t border-gray-100">
-                  <div className="text-[10px] text-gray-400">Monthly Payment</div>
-                  <div className="text-lg font-bold text-teal-600">$2,850</div>
+                <div className="text-[10px] text-gray-500">Your salary: <span className="font-bold text-emerald-600">Above avg</span></div>
+              </div>
+              
+              {/* Resume Preview Card */}
+              <div className="absolute top-12 right-64 bg-white rounded-xl p-4 shadow-2xl -rotate-6 w-48 z-10 border border-gray-100">
+                <div className="text-[10px] font-bold text-blue-600 uppercase tracking-wider mb-2">Resume Builder</div>
+                <div className="space-y-1.5">
+                  <div className="h-2 w-full bg-gray-200 rounded-full"></div>
+                  <div className="h-2 w-3/4 bg-gray-200 rounded-full"></div>
+                  <div className="h-2 w-5/6 bg-gray-200 rounded-full"></div>
+                  <div className="h-1.5 w-1/2 bg-blue-200 rounded-full mt-2"></div>
+                  <div className="h-1.5 w-full bg-gray-100 rounded-full"></div>
+                  <div className="h-1.5 w-4/5 bg-gray-100 rounded-full"></div>
+                </div>
+                <div className="mt-2 flex items-center gap-1">
+                  <div className="w-2 h-2 rounded-full bg-emerald-400"></div>
+                  <span className="text-[9px] text-gray-500 font-semibold">ATS-ready</span>
                 </div>
               </div>
               
-              <div className="absolute top-16 right-64 bg-white rounded-xl p-5 shadow-2xl -rotate-6 w-52 z-10">
-                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Debt Payoff Calculator</div>
-                <div className="h-16 w-full mb-2">
+              {/* Expense/Subscription Chart Card */}
+              <div className="absolute top-52 right-4 bg-white rounded-xl p-5 shadow-2xl rotate-1 w-60 z-30 border border-gray-100">
+                <div className="text-[10px] font-bold text-orange-600 uppercase tracking-wider mb-2">Expense Tracker</div>
+                <div className="h-14 w-full mb-2">
                   <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                    <LineChart data={[{v:100},{v:85},{v:60},{v:30},{v:0}]}>
-                      <Line type="monotone" dataKey="v" stroke="#f97316" strokeWidth={2} dot={false} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="text-[10px] text-gray-500">Debt-free: <span className="font-bold text-orange-600">24 months</span></div>
-              </div>
-              
-              <div className="absolute top-52 right-8 bg-white rounded-xl p-5 shadow-2xl rotate-2 w-60 z-30">
-                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Compound Interest</div>
-                <div className="h-16 w-full mb-2">
-                  <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                    <LineChart data={dummyChartData.slice(0, 5)}>
-                      <Line type="monotone" dataKey="value" stroke="#0d9488" strokeWidth={2} dot={false} />
-                    </LineChart>
+                    <AreaChart data={[{v:800},{v:650},{v:900},{v:550},{v:700},{v:450}]}>
+                      <Area type="monotone" dataKey="v" stroke="#f97316" fill="#fed7aa" strokeWidth={2} />
+                    </AreaChart>
                   </ResponsiveContainer>
                 </div>
                 <div className="flex justify-between items-center text-[10px]">
-                  <span className="text-gray-400">After 30 years</span>
-                  <span className="font-bold text-green-600 bg-green-50 px-2 py-0.5 rounded">+$1.2M</span>
+                  <span className="text-gray-400">Monthly spending</span>
+                  <span className="font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded">-$350 saved</span>
                 </div>
               </div>
 
-              <div className="absolute top-2 right-0 z-40">
-                <div className="w-14 h-14 bg-[#f5c542]/20 rounded-full flex items-center justify-center">
-                  <span className="text-2xl font-bold text-[#f5c542]">$</span>
+              {/* Mortgage Card */}
+              <div className="absolute bottom-2 right-56 bg-white rounded-xl p-4 shadow-2xl -rotate-3 w-48 z-20 border border-gray-100">
+                <div className="text-[10px] font-bold text-violet-600 uppercase tracking-wider mb-2">Mortgage</div>
+                <div className="text-lg font-bold text-gray-900" style={{fontFamily: 'JetBrains Mono, monospace'}}>$2,850<span className="text-xs font-normal text-gray-400">/mo</span></div>
+                <div className="h-1 w-full bg-gray-200 rounded-full mt-2">
+                  <div className="h-full w-1/3 bg-violet-500 rounded-full"></div>
                 </div>
               </div>
             </div>
@@ -114,126 +139,349 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Calculators */}
-      <section className="py-20 container mx-auto px-4 max-w-6xl">
-        <div className="text-center mb-14">
-          <h2 className="font-serif text-3xl md:text-4xl font-bold mb-3">Powerful Free Calculators</h2>
-          <p className="text-gray-500 max-w-lg mx-auto">
-            Plan your mortgage, debt, investments, and more.
-          </p>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-          {[
-            {
-              title: "Mortgage Calculator",
-              desc: "Calculate your mortgage payments easily.",
-              icon: "bg-teal-100 text-teal-600",
-              iconChar: "M",
-              slug: "mortgage-calculator",
-              preview: { label1: "Mortgage Calculator", fields: [{ l: "Home Price", v: "$350,000" }, { l: "Down Payment", v: "20%" }, { l: "Loan Term", v: "30 Years" }] }
-            },
-            {
-              title: "Debt Payoff Calculator",
-              desc: "See how fast you can become debt-free.",
-              icon: "bg-orange-100 text-orange-600",
-              iconChar: "D",
-              slug: "credit-card-payoff-calculator",
-              preview: { label1: "Debt Payoff Calculator", fields: [{ l: "Total Debt", v: "$15,000" }, { l: "Monthly Payment", v: "$500" }, { l: "Interest Rate", v: "18%" }] }
-            },
-            {
-              title: "Compound Interest Calculator",
-              desc: "Watch your money grow over time.",
-              icon: "bg-blue-100 text-blue-600",
-              iconChar: "C",
-              slug: "compound-interest-calculator",
-              preview: { label1: "Compound Interest", fields: [{ l: "Initial Amount", v: "$10,000" }, { l: "Monthly Contrib.", v: "$200" }, { l: "Return Rate", v: "7%" }] }
-            },
-            {
-              title: "Mortgage Affordability Calculator",
-              desc: "Discover how much home you can afford with your income, debt, and down payment.",
-              icon: "bg-green-100 text-green-600",
-              iconChar: "A",
-              slug: "mortgage-affordability-calculator",
-              preview: { label1: "Affordability", fields: [{ l: "Annual Income", v: "$85,000" }, { l: "Monthly Debts", v: "$600" }, { l: "Down Payment", v: "$40,000" }] }
-            },
-            {
-              title: "Rental Property ROI Calculator",
-              desc: "Evaluate cash flow and profitability of rental investments.",
-              icon: "bg-purple-100 text-purple-600",
-              iconChar: "R",
-              slug: "rental-property-roi-calculator",
-              preview: { label1: "Rental ROI", fields: [{ l: "Purchase Price", v: "$250,000" }, { l: "Monthly Rent", v: "$2,000" }, { l: "Expenses", v: "$800" }] }
-            },
-            {
-              title: "Rent vs. Buy Calculator",
-              desc: "Quickly determine whether renting or buying makes more sense for your future.",
-              icon: "bg-indigo-100 text-indigo-600",
-              iconChar: "R",
-              slug: "rent-vs-buy-calculator",
-              preview: { label1: "Rent vs Buy", fields: [{ l: "Monthly Rent", v: "$1,800" }, { l: "Home Price", v: "$350,000" }, { l: "Years", v: "10" }] }
-            }
-          ].map((calc, i) => (
-            <Link key={i} href={`/calculators/${calc.slug}`} className="group block h-full">
-              <div className="h-full rounded-2xl border bg-white p-6 shadow-sm transition-all hover:shadow-lg hover:border-teal-400 flex flex-col">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-4 ${calc.icon}`}>
-                  <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="12" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="12" y2="18"/>
-                  </svg>
-                </div>
-                <h3 className="font-bold text-base mb-1.5 group-hover:text-teal-600 transition-colors">{calc.title}</h3>
-                <p className="text-gray-500 text-xs mb-4 flex-grow">{calc.desc}</p>
-                
-                <div className="bg-gray-50 rounded-lg p-3 mb-4 border border-gray-100">
-                  <div className="text-[9px] font-bold text-gray-400 uppercase tracking-wider mb-2">{calc.preview.label1}</div>
-                  {calc.preview.fields.map((f, fi) => (
-                    <div key={fi} className="flex justify-between text-[10px] mb-1 last:mb-0">
-                      <span className="text-gray-400">{f.l}</span>
-                      <span className="font-semibold text-gray-700">{f.v}</span>
-                    </div>
-                  ))}
-                </div>
-                
-                <div className="font-bold text-teal-600 text-sm flex items-center">
-                  Try Now <ArrowRight className="ml-1 h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-        
-        <div className="text-center">
-          <Link href="/calculators" className="inline-block border-2 border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50 rounded-full px-8 py-3 font-bold text-sm transition-colors">
-            View All Calculators
-          </Link>
+      {/* ============================================ */}
+      {/* 2. START HERE SECTION */}
+      {/* ============================================ */}
+      <section className="py-16 md:py-20 bg-stone-50/50" data-testid="start-here-section">
+        <div className="container mx-auto px-4 max-w-5xl">
+          <div className="text-center mb-10">
+            <h2 className="font-serif text-2xl md:text-3xl font-bold tracking-tight mb-2">Start with one simple question</h2>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+            {[
+              { q: "Am I underpaid?", href: "/career-tools/am-i-underpaid", icon: <HelpCircle className="w-5 h-5" />, color: "text-amber-600 bg-amber-50 border-amber-200" },
+              { q: "How much tax do I pay?", href: "/calculators/simple-tax-estimator", icon: <Receipt className="w-5 h-5" />, color: "text-rose-600 bg-rose-50 border-rose-200" },
+              { q: "Can I afford this house?", href: "/calculators/rent-vs-buy-calculator", icon: <PiggyBank className="w-5 h-5" />, color: "text-teal-600 bg-teal-50 border-teal-200" },
+              { q: "How long to save $10K?", href: "/calculators/savings-goal-calculator", icon: <Wallet className="w-5 h-5" />, color: "text-blue-600 bg-blue-50 border-blue-200" },
+              { q: "Build my resume", href: "/career-tools/resume-builder", icon: <FileText className="w-5 h-5" />, color: "text-violet-600 bg-violet-50 border-violet-200" },
+              { q: "Track my spending", href: "/tools/expense-tracker", icon: <LineChart className="w-5 h-5" />, color: "text-emerald-600 bg-emerald-50 border-emerald-200" },
+            ].map((item, i) => (
+              <Link key={i} href={item.href} className={`group flex flex-col items-center text-center gap-2.5 p-4 rounded-xl border transition-all hover:shadow-md hover:-translate-y-0.5 ${item.color}`} data-testid={`start-here-card-${i}`}>
+                {item.icon}
+                <span className="text-xs font-bold leading-tight">{item.q}</span>
+              </Link>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* Productive Tools */}
-      <section className="py-20 bg-gray-50">
+      {/* ============================================ */}
+      {/* 3. WHAT YOU CAN DO HERE - 4 PILLARS */}
+      {/* ============================================ */}
+      <section className="py-20 md:py-24" data-testid="what-you-can-do-section">
         <div className="container mx-auto px-4 max-w-6xl">
           <div className="text-center mb-14">
-            <h2 className="font-serif text-3xl md:text-4xl font-bold mb-3">Productive Tools</h2>
-            <p className="text-gray-500 max-w-lg mx-auto">
+            <h2 className="font-serif text-3xl md:text-4xl font-bold tracking-tight mb-3">What You Can Do Here</h2>
+            <p className="text-gray-500 max-w-xl mx-auto text-sm md:text-base">
+              One platform for financial clarity, career growth, and smarter life decisions.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+            {[
+              {
+                title: "Financial Calculators",
+                desc: "Taxes, salary, savings, debt, mortgage, investing — 39+ free calculators for every money question.",
+                icon: <Calculator className="w-6 h-6" />,
+                color: "text-teal-600 bg-teal-50",
+                borderHover: "hover:border-teal-400",
+                href: "/calculators",
+                cta: "Browse Calculators",
+                count: "39+",
+              },
+              {
+                title: "Everyday Tools",
+                desc: "Invoice generator, expense tracker, subscription analyzer, bill split — hands-on utilities that save time.",
+                icon: <Briefcase className="w-6 h-6" />,
+                color: "text-amber-600 bg-amber-50",
+                borderHover: "hover:border-amber-400",
+                href: "/tools",
+                cta: "View Tools",
+                count: "7",
+              },
+              {
+                title: "Career Tools",
+                desc: "Resume builder, salary comparison, underpaid tool, job readiness — grow your income, not just track it.",
+                icon: <TrendingUp className="w-6 h-6" />,
+                color: "text-blue-600 bg-blue-50",
+                borderHover: "hover:border-blue-400",
+                href: "/career-tools",
+                cta: "Explore Career Tools",
+                count: "10",
+              },
+              {
+                title: "Future Planning",
+                desc: "What-if scenarios, salary guides, decision support — see where your choices could lead before committing.",
+                icon: <BookOpen className="w-6 h-6" />,
+                color: "text-violet-600 bg-violet-50",
+                borderHover: "hover:border-violet-400",
+                href: "/what-if",
+                cta: "Plan Your Future",
+                count: "130+",
+              },
+            ].map((pillar, i) => (
+              <Link key={i} href={pillar.href} className={`group block rounded-2xl border border-gray-200 bg-white p-6 transition-all hover:shadow-lg hover:-translate-y-1 ${pillar.borderHover}`} data-testid={`pillar-card-${i}`}>
+                <div className="flex items-center justify-between mb-4">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${pillar.color}`}>
+                    {pillar.icon}
+                  </div>
+                  <span className="text-xs font-bold text-gray-400 bg-gray-100 px-2.5 py-1 rounded-md">{pillar.count}</span>
+                </div>
+                <h3 className="font-bold text-base mb-2">{pillar.title}</h3>
+                <p className="text-gray-500 text-xs leading-relaxed mb-4">{pillar.desc}</p>
+                <div className="font-bold text-sm flex items-center text-gray-600 group-hover:text-gray-900 transition-colors">
+                  {pillar.cta} <ArrowRight className="ml-1.5 h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================ */}
+      {/* 4. POPULAR TOOLS RIGHT NOW */}
+      {/* ============================================ */}
+      <section className="py-20 md:py-24 bg-stone-50/50" data-testid="popular-tools-section">
+        <div className="container mx-auto px-4 max-w-6xl">
+          <div className="text-center mb-14">
+            <h2 className="font-serif text-3xl md:text-4xl font-bold tracking-tight mb-3">Popular Tools Right Now</h2>
+            <p className="text-gray-500 max-w-lg mx-auto text-sm">
+              The tools people use most — start with any of these.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {[
+              { title: "Resume Builder", desc: "Create a polished, ATS-friendly resume with AI-powered suggestions. Download as premium PDF.", href: "/career-tools/resume-builder", icon: <FileText className="w-5 h-5" />, color: "text-blue-600 bg-blue-50", tag: "AI-Powered" },
+              { title: "Salary Comparison", desc: "Compare your pay against market benchmarks for your role, experience, and location.", href: "/career-tools/salary-comparison", icon: <DollarSign className="w-5 h-5" />, color: "text-emerald-600 bg-emerald-50", tag: "Career" },
+              { title: "Am I Underpaid?", desc: "Find out in 30 seconds if your compensation is below, at, or above market rate.", href: "/career-tools/am-i-underpaid", icon: <HelpCircle className="w-5 h-5" />, color: "text-amber-600 bg-amber-50", tag: "Career" },
+              { title: "Freelance Invoice Generator", desc: "Create professional invoices and download as PDF. No account needed.", href: "/tools/freelance-invoice-generator", icon: <Receipt className="w-5 h-5" />, color: "text-orange-600 bg-orange-50", tag: "Tool" },
+              { title: "Expense Tracker", desc: "Record expenses and understand your spending habits with clean visualizations.", href: "/tools/expense-tracker", icon: <LineChart className="w-5 h-5" />, color: "text-cyan-600 bg-cyan-50", tag: "Tool" },
+              { title: "Mortgage Calculator", desc: "Calculate your monthly payments, total interest, and amortization schedule.", href: "/calculators/mortgage-calculator", icon: <Calculator className="w-5 h-5" />, color: "text-violet-600 bg-violet-50", tag: "Calculator" },
+            ].map((tool, i) => (
+              <Link key={i} href={tool.href} className="group block h-full" data-testid={`popular-tool-${i}`}>
+                <div className="h-full rounded-2xl border border-gray-200 bg-white p-6 transition-all hover:shadow-lg hover:-translate-y-1 hover:border-teal-400 flex flex-col">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${tool.color}`}>
+                      {tool.icon}
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 bg-gray-100 px-2 py-0.5 rounded">{tool.tag}</span>
+                  </div>
+                  <h3 className="font-bold text-base mb-1.5 group-hover:text-teal-600 transition-colors">{tool.title}</h3>
+                  <p className="text-gray-500 text-xs leading-relaxed mb-4 flex-grow">{tool.desc}</p>
+                  <div className="font-bold text-teal-600 text-sm flex items-center">
+                    Try Now <ArrowRight className="ml-1 h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================ */}
+      {/* 5. CAREER TOOLS HIGHLIGHT */}
+      {/* ============================================ */}
+      <section className="py-20 md:py-28 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 relative overflow-hidden" data-testid="career-tools-section">
+        {/* Subtle grid pattern */}
+        <div className="absolute inset-0 opacity-[0.04]" style={{backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '40px 40px'}}></div>
+        <div className="container mx-auto px-4 max-w-6xl relative z-10">
+          <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
+            <div className="lg:w-1/2">
+              <span className="inline-block bg-teal-500/20 text-teal-300 text-xs font-bold uppercase tracking-wider px-4 py-1.5 rounded-full mb-5">Career Tools</span>
+              <h2 className="font-serif text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-white mb-5 leading-tight" data-testid="career-tools-headline">
+                Grow Your Income, Not Just Track It
+              </h2>
+              <p className="text-gray-400 text-base mb-8 max-w-lg leading-relaxed">
+                Build your resume with AI, compare your pay, and understand where you stand — all free, all private. The career clarity you need, without the career coach price tag.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <Link href="/career-tools" className="bg-[#f5c542] text-gray-900 hover:bg-[#e5b732] rounded-lg px-7 py-3.5 font-bold text-sm transition-all hover:-translate-y-0.5 inline-block" data-testid="career-cta-explore">
+                  Explore Career Tools
+                </Link>
+                <Link href="/career-tools/resume-builder" className="border-2 border-teal-500/50 text-teal-400 hover:bg-teal-500/10 rounded-lg px-7 py-3.5 font-bold text-sm transition-all inline-block" data-testid="career-cta-resume">
+                  Build My Resume
+                </Link>
+              </div>
+            </div>
+            <div className="lg:w-1/2 grid grid-cols-2 gap-4">
+              {[
+                { title: "Resume Builder", desc: "AI-powered resume creation with 5 premium PDF templates", slug: "resume-builder", icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" },
+                { title: "Salary Comparison", desc: "Compare pay against 90+ role benchmarks with location data", slug: "salary-comparison", icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" },
+                { title: "Am I Underpaid?", desc: "Instant market assessment of your compensation", slug: "am-i-underpaid", icon: "M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" },
+                { title: "Job Readiness", desc: "Comprehensive checklist to gauge your search preparedness", slug: "job-readiness-score", icon: "M13 10V3L4 14h7v7l9-11h-7z" },
+              ].map((tool, i) => (
+                <Link key={i} href={`/career-tools/${tool.slug}`} className="group block" data-testid={`career-card-${i}`}>
+                  <div className="rounded-xl border border-slate-700/80 bg-slate-800/60 p-5 transition-all hover:bg-slate-800 hover:border-teal-500/40 hover:shadow-xl h-full">
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center mb-3 bg-teal-500/15 text-teal-400">
+                      <svg viewBox="0 0 24 24" className="w-4.5 h-4.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d={tool.icon} />
+                      </svg>
+                    </div>
+                    <h3 className="font-bold text-sm text-white mb-1 group-hover:text-teal-400 transition-colors">{tool.title}</h3>
+                    <p className="text-gray-500 text-[11px] leading-relaxed">{tool.desc}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================ */}
+      {/* 6. WHAT-IF / FUTURE PLANNING */}
+      {/* ============================================ */}
+      <section className="py-20 md:py-24" data-testid="what-if-section">
+        <div className="container mx-auto px-4 max-w-6xl">
+          <div className="text-center mb-12">
+            <h2 className="font-serif text-3xl md:text-4xl font-bold tracking-tight mb-3">See How Your Future Could Change</h2>
+            <p className="text-gray-500 max-w-xl mx-auto text-sm md:text-base">
+              Tweak income, savings, debt, and investment assumptions to explore where your decisions could lead.
+            </p>
+          </div>
+          
+          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+            <div className="flex flex-col lg:flex-row">
+              <div className="lg:w-2/5 p-6 md:p-8 border-r border-gray-100">
+                <div className="mb-6">
+                  <span className="text-xs font-bold text-gray-700 block mb-3">Personal Information</span>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <div className="text-[10px] text-gray-400 mb-1">Current Age</div>
+                      <div className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-bold text-gray-900">30</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] text-gray-400 mb-1">Retirement Age</div>
+                      <div className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm font-bold text-gray-900">65</div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="mb-6">
+                  <span className="text-xs font-bold text-gray-700 block mb-4">Financial Status</span>
+                  <div className="space-y-4">
+                    <SliderPreview label="Income (Monthly)" value="$5,000" color="#0f766e" pct={40} />
+                    <SliderPreview label="Savings Rate" value="25%" color="#06b6d4" pct={33} />
+                    <SliderPreview label="Expenses (Monthly)" value="$3,000" color="#3b82f6" pct={20} />
+                  </div>
+                </div>
+                
+                <div className="mb-6">
+                  <span className="text-xs font-bold text-gray-700 block mb-4">Investment Return</span>
+                  <SliderPreview label="Expected Return Rate" value="6%" color="#8b5cf6" pct={40} />
+                </div>
+                
+                <Link href="/what-if" className="block w-full bg-[#f5c542] text-gray-900 hover:bg-[#e5b732] rounded-lg px-6 py-3 font-bold text-sm text-center transition-colors" data-testid="what-if-cta">
+                  Explore What-If Scenarios
+                </Link>
+              </div>
+              
+              <div className="lg:w-3/5 p-6 md:p-8">
+                <div className="flex justify-between items-center mb-6">
+                  <div className="font-bold text-sm text-gray-700">Your Net Worth Over Time</div>
+                  <div className="text-xs text-gray-400">Projected</div>
+                </div>
+                <div className="h-64 w-full" data-testid="what-if-chart">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                    <AreaChart data={whatIfData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#0f766e" stopOpacity={0.2}/>
+                          <stop offset="100%" stopColor="#0f766e" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                      <XAxis dataKey="age" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
+                      <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v: number) => v >= 1000000 ? `$${v/1000000}M` : `$${v/1000}K`} />
+                      <Area type="monotone" dataKey="value" stroke="#0f766e" fill="url(#colorValue)" strokeWidth={2.5} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="flex justify-center gap-6 mt-4 text-xs text-gray-400">
+                  <span>At age 50: <span className="font-bold text-gray-700">$250K</span></span>
+                  <span>At age 65: <span className="font-bold text-emerald-600">$1.05M</span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================ */}
+      {/* 7. FINANCIAL CALCULATORS */}
+      {/* ============================================ */}
+      <section className="py-20 md:py-24 bg-stone-50/50" data-testid="calculators-section">
+        <div className="container mx-auto px-4 max-w-6xl">
+          <div className="text-center mb-14">
+            <h2 className="font-serif text-3xl md:text-4xl font-bold tracking-tight mb-3">Free Calculators for Real Money Decisions</h2>
+            <p className="text-gray-500 max-w-lg mx-auto text-sm">
+              Plan your mortgage, payoff debt, estimate taxes, and model investments — with transparent math.
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-10">
+            {[
+              { title: "Mortgage Calculator", desc: "Calculate monthly payments, total interest, and amortization.", slug: "mortgage-calculator", color: "text-teal-600 bg-teal-50", fields: [{ l: "Home Price", v: "$350,000" }, { l: "Down Payment", v: "20%" }, { l: "Term", v: "30 Years" }] },
+              { title: "Debt Payoff Calculator", desc: "See how fast you can become debt-free.", slug: "credit-card-payoff-calculator", color: "text-orange-600 bg-orange-50", fields: [{ l: "Total Debt", v: "$15,000" }, { l: "Monthly Pmt", v: "$500" }, { l: "Interest", v: "18%" }] },
+              { title: "Compound Interest", desc: "Watch your money grow over decades.", slug: "compound-interest-calculator", color: "text-blue-600 bg-blue-50", fields: [{ l: "Initial", v: "$10,000" }, { l: "Monthly", v: "$200" }, { l: "Rate", v: "7%" }] },
+              { title: "Salary Reality Calculator", desc: "See your real take-home after taxes and deductions.", slug: "salary-reality-calculator", color: "text-emerald-600 bg-emerald-50", fields: [{ l: "Gross Salary", v: "$85,000" }, { l: "State", v: "California" }, { l: "Filing", v: "Single" }] },
+              { title: "Tax Estimator", desc: "Estimate your federal and state tax liability.", slug: "simple-tax-estimator", color: "text-rose-600 bg-rose-50", fields: [{ l: "Income", v: "$75,000" }, { l: "Deductions", v: "Standard" }, { l: "Filing", v: "Single" }] },
+              { title: "Rent vs. Buy Calculator", desc: "Should you rent or buy? Run the numbers.", slug: "rent-vs-buy-calculator", color: "text-indigo-600 bg-indigo-50", fields: [{ l: "Rent", v: "$1,800/mo" }, { l: "Home Price", v: "$350K" }, { l: "Timeline", v: "10 Years" }] },
+            ].map((calc, i) => (
+              <Link key={i} href={`/calculators/${calc.slug}`} className="group block h-full" data-testid={`calc-card-${i}`}>
+                <div className="h-full rounded-2xl border border-gray-200 bg-white p-6 transition-all hover:shadow-lg hover:-translate-y-1 hover:border-teal-400 flex flex-col">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${calc.color}`}>
+                    <Calculator className="w-5 h-5" />
+                  </div>
+                  <h3 className="font-bold text-base mb-1.5 group-hover:text-teal-600 transition-colors">{calc.title}</h3>
+                  <p className="text-gray-500 text-xs mb-4 flex-grow">{calc.desc}</p>
+                  <div className="bg-gray-50 rounded-lg p-3 mb-4 border border-gray-100">
+                    {calc.fields.map((f, fi) => (
+                      <div key={fi} className="flex justify-between text-[10px] mb-1 last:mb-0">
+                        <span className="text-gray-400">{f.l}</span>
+                        <span className="font-semibold text-gray-700">{f.v}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="font-bold text-teal-600 text-sm flex items-center">
+                    Calculate <ArrowRight className="ml-1 h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+          
+          <div className="text-center">
+            <Link href="/calculators" className="inline-block border-2 border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50 rounded-lg px-8 py-3 font-bold text-sm transition-colors" data-testid="view-all-calculators">
+              View All 39+ Calculators
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================ */}
+      {/* 8. PRODUCTIVE TOOLS */}
+      {/* ============================================ */}
+      <section className="py-20 md:py-24" data-testid="productive-tools-section">
+        <div className="container mx-auto px-4 max-w-6xl">
+          <div className="text-center mb-14">
+            <h2 className="font-serif text-3xl md:text-4xl font-bold tracking-tight mb-3">Everyday Tools That Save You Time and Money</h2>
+            <p className="text-gray-500 max-w-lg mx-auto text-sm">
               Hands-on utilities to manage invoices, track spending, split bills, and stay on top of your finances.
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-10">
             {[
-              { title: "Freelance Invoice Generator", desc: "Create professional invoices and download them as PDF.", slug: "freelance-invoice-generator", color: "bg-amber-100 text-amber-600" },
-              { title: "Subscription Cost Analyzer", desc: "Track and analyze your monthly subscription spending.", slug: "subscription-cost-analyzer", color: "bg-rose-100 text-rose-600" },
-              { title: "Bill Split Tool", desc: "Split bills fairly among friends or roommates.", slug: "bill-split-tool", color: "bg-blue-100 text-blue-600" },
-              { title: "Net Worth Calculator", desc: "Calculate your total assets minus liabilities.", slug: "net-worth-calculator", color: "bg-emerald-100 text-emerald-600" },
-              { title: "Income Tracker", desc: "Log income entries and see earning patterns over time.", slug: "income-tracker", color: "bg-violet-100 text-violet-600" },
-              { title: "Expense Tracker", desc: "Record expenses and understand spending habits.", slug: "expense-tracker", color: "bg-cyan-100 text-cyan-600" },
+              { title: "Freelance Invoice Generator", desc: "Create professional invoices and download as PDF.", slug: "freelance-invoice-generator", color: "text-amber-600 bg-amber-50" },
+              { title: "Subscription Cost Analyzer", desc: "Track monthly subscriptions and find what to cut.", slug: "subscription-cost-analyzer", color: "text-rose-600 bg-rose-50" },
+              { title: "Bill Split Tool", desc: "Split bills fairly among friends or roommates.", slug: "bill-split-tool", color: "text-blue-600 bg-blue-50" },
+              { title: "Net Worth Calculator", desc: "Calculate your total assets minus liabilities.", slug: "net-worth-calculator", color: "text-emerald-600 bg-emerald-50" },
+              { title: "Income Tracker", desc: "Log income entries and visualize earning patterns.", slug: "income-tracker", color: "text-violet-600 bg-violet-50" },
+              { title: "Expense Tracker", desc: "Record expenses and understand spending habits.", slug: "expense-tracker", color: "text-cyan-600 bg-cyan-50" },
             ].map((tool, i) => (
-              <Link key={i} href={`/tools/${tool.slug}`} className="group block h-full">
-                <div className="h-full rounded-2xl border bg-white p-6 shadow-sm transition-all hover:shadow-lg hover:border-teal-400 flex flex-col">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-4 ${tool.color}`}>
-                    <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/>
-                    </svg>
+              <Link key={i} href={`/tools/${tool.slug}`} className="group block h-full" data-testid={`tool-card-${i}`}>
+                <div className="h-full rounded-2xl border border-gray-200 bg-white p-6 transition-all hover:shadow-lg hover:-translate-y-1 hover:border-teal-400 flex flex-col">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${tool.color}`}>
+                    <Briefcase className="w-5 h-5" />
                   </div>
                   <h3 className="font-bold text-base mb-1.5 group-hover:text-teal-600 transition-colors">{tool.title}</h3>
                   <p className="text-gray-500 text-xs mb-4 flex-grow">{tool.desc}</p>
@@ -246,91 +494,45 @@ export default function Home() {
           </div>
           
           <div className="text-center">
-            <Link href="/tools" className="inline-block border-2 border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50 rounded-full px-8 py-3 font-bold text-sm transition-colors">
+            <Link href="/tools" className="inline-block border-2 border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50 rounded-lg px-8 py-3 font-bold text-sm transition-colors" data-testid="view-all-tools">
               View All Tools
             </Link>
           </div>
         </div>
       </section>
 
-      {/* Career Tools */}
-      <section className="py-20 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-        <div className="container mx-auto px-4 max-w-6xl">
-          <div className="text-center mb-14">
-            <span className="inline-block bg-teal-500/20 text-teal-300 text-xs font-bold uppercase tracking-wider px-4 py-1.5 rounded-full mb-4">New</span>
-            <h2 className="font-serif text-3xl md:text-4xl font-bold mb-3 text-white">Career Tools</h2>
-            <p className="text-gray-400 max-w-lg mx-auto">
-              Build resumes, compare salaries, and assess your job readiness — all free, all private.
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-            {[
-              { title: "Resume Builder", desc: "Create a clean, ATS-friendly resume and download as PDF.", slug: "resume-builder", icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" },
-              { title: "Cover Letter Generator", desc: "Generate professional cover letters in minutes.", slug: "cover-letter-generator", icon: "M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" },
-              { title: "Salary Comparison", desc: "Compare your salary against market benchmarks.", slug: "salary-comparison", icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" },
-              { title: "Am I Underpaid?", desc: "Find out if your compensation is below market.", slug: "am-i-underpaid", icon: "M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" },
-              { title: "Resume Score", desc: "Evaluate your resume's completeness and readability.", slug: "resume-score", icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" },
-              { title: "Job Readiness Score", desc: "Get a snapshot of your overall job search readiness.", slug: "job-readiness-score", icon: "M13 10V3L4 14h7v7l9-11h-7z" },
-            ].map((tool, i) => (
-              <Link key={i} href={`/career-tools/${tool.slug}`} className="group block h-full">
-                <div className="h-full rounded-2xl border border-slate-700 bg-slate-800/50 p-6 transition-all hover:bg-slate-800 hover:border-teal-500/50 flex flex-col">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center mb-4 bg-teal-500/20 text-teal-400">
-                    <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d={tool.icon} />
-                    </svg>
-                  </div>
-                  <h3 className="font-bold text-base mb-1.5 text-white group-hover:text-teal-400 transition-colors">{tool.title}</h3>
-                  <p className="text-gray-400 text-xs mb-4 flex-grow">{tool.desc}</p>
-                  <div className="font-bold text-teal-400 text-sm flex items-center">
-                    Try Tool <ArrowRight className="ml-1 h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-          
-          <div className="text-center">
-            <Link href="/career-tools" className="inline-block border-2 border-teal-500/50 text-teal-400 hover:bg-teal-500/10 rounded-full px-8 py-3 font-bold text-sm transition-colors">
-              View All Career Tools
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Articles */}
-      <section className="py-20">
+      {/* ============================================ */}
+      {/* 9. ARTICLES & GUIDES */}
+      {/* ============================================ */}
+      <section className="py-20 md:py-24 bg-stone-50/50" data-testid="articles-section">
         <div className="container mx-auto px-4 max-w-6xl">
           <div className="text-center mb-8">
-            <h2 className="font-serif text-3xl md:text-4xl font-bold mb-3">Learn With RealProfits</h2>
-            <p className="text-gray-500 max-w-2xl mx-auto mb-8">
-              Get expert tips, deep dives, and guides that pair with our calculators to help you understand money decisions better.
+            <h2 className="font-serif text-3xl md:text-4xl font-bold tracking-tight mb-3">Learn With RealProfits</h2>
+            <p className="text-gray-500 max-w-2xl mx-auto text-sm mb-8">
+              Practical guides and insights that pair with our tools to help you understand money decisions better.
             </p>
             
             <div className="flex flex-wrap justify-center gap-2 mb-12">
               {[
-                { label: "Explore Further", href: "/articles" },
+                { label: "All Articles", href: "/search" },
                 { label: "Taxes", href: "/category/taxes" },
                 { label: "Debt", href: "/category/debt-credit" },
                 { label: "Investing", href: "/category/saving-vs-investing" },
                 { label: "Budgeting", href: "/category/money-basics" },
+                { label: "Guides", href: "/guides" },
               ].map((tab, i) => (
-                <Link key={i} href={tab.href} className={`px-5 py-2 rounded-full text-xs font-bold transition-colors ${i === 0 ? 'bg-gray-900 text-white hover:bg-gray-800' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100'}`}>
+                <Link key={i} href={tab.href} className={`px-5 py-2 rounded-lg text-xs font-bold transition-colors ${i === 0 ? 'bg-gray-900 text-white hover:bg-gray-800' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100'}`}>
                   {tab.label}
                 </Link>
               ))}
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-10">
             {latestArticles.length > 0 && (
-              <Link href={`/articles/${latestArticles[0].slug}`} className="group flex flex-col h-full bg-white rounded-2xl overflow-hidden border shadow-sm hover:shadow-md transition-all">
-                <div className="h-56 w-full bg-gradient-to-br from-amber-100 to-orange-200 relative overflow-hidden">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-32 h-24 bg-white/40 rounded-lg backdrop-blur-sm flex items-center justify-center">
-                      <svg className="w-12 h-12 text-amber-600/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
-                    </div>
-                  </div>
+              <Link href={`/articles/${latestArticles[0].slug}`} className="group flex flex-col h-full bg-white rounded-2xl overflow-hidden border border-gray-200 hover:shadow-lg hover:-translate-y-1 transition-all">
+                <div className="h-48 w-full bg-gradient-to-br from-amber-100 to-orange-200 relative overflow-hidden flex items-center justify-center">
+                  <BookOpen className="w-12 h-12 text-amber-600/30" />
                 </div>
                 <div className="p-6 flex flex-col flex-grow">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-teal-600 mb-2">
@@ -340,20 +542,16 @@ export default function Home() {
                     {latestArticles[0].title}
                   </h3>
                   <p className="text-gray-500 text-sm mb-4 line-clamp-3 flex-grow">{latestArticles[0].excerpt}</p>
-                  <div className="flex items-center text-xs text-gray-400">
-                    <span>{latestArticles[0].author}</span>
-                    <span className="mx-2">-</span>
-                    <span>{latestArticles[0].readTime} min read</span>
-                  </div>
+                  <span className="text-xs text-gray-400">{latestArticles[0].readTime} min read</span>
                 </div>
               </Link>
             )}
             
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-4">
               {latestArticles.slice(1, 4).map((article, i) => (
-                <Link key={article.slug} href={`/articles/${article.slug}`} className="group flex bg-white rounded-2xl overflow-hidden border shadow-sm hover:shadow-md transition-all h-full">
-                  <div className={`w-32 md:w-40 flex-shrink-0 ${i === 0 ? 'bg-gradient-to-br from-sky-100 to-blue-200' : i === 1 ? 'bg-gradient-to-br from-emerald-100 to-teal-200' : 'bg-gradient-to-br from-violet-100 to-purple-200'} flex items-center justify-center`}>
-                    <svg className="w-8 h-8 text-gray-400/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+                <Link key={article.slug} href={`/articles/${article.slug}`} className="group flex bg-white rounded-2xl overflow-hidden border border-gray-200 hover:shadow-md transition-all h-full">
+                  <div className={`w-28 md:w-36 flex-shrink-0 ${i === 0 ? 'bg-gradient-to-br from-sky-100 to-blue-200' : i === 1 ? 'bg-gradient-to-br from-emerald-100 to-teal-200' : 'bg-gradient-to-br from-violet-100 to-purple-200'} flex items-center justify-center`}>
+                    <BookOpen className="w-7 h-7 text-gray-400/40" />
                   </div>
                   <div className="p-4 flex flex-col justify-center flex-grow">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-teal-600 mb-1">
@@ -368,116 +566,38 @@ export default function Home() {
           </div>
           
           <div className="text-center">
-            <Link href="/search" className="inline-block border-2 border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50 rounded-full px-8 py-3 font-bold text-sm transition-colors">
+            <Link href="/search" className="inline-block border-2 border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50 rounded-lg px-8 py-3 font-bold text-sm transition-colors">
               Read More Articles
             </Link>
           </div>
         </div>
       </section>
 
-      {/* What If Teaser */}
-      <section className="py-20 container mx-auto px-4 max-w-6xl">
-        <div className="text-center mb-12">
-          <h2 className="font-serif text-3xl md:text-4xl font-bold mb-3">Play Out Your Future</h2>
-          <p className="text-gray-500 max-w-lg mx-auto">
-            Tweak your income, debt, and savings to see your net worth grow over time.
-          </p>
-        </div>
-        
-        <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
-          <div className="flex flex-col lg:flex-row">
-            <div className="lg:w-2/5 p-6 md:p-8 border-r border-gray-100">
-              <div className="mb-6">
-                <div className="flex items-center gap-2 mb-1">
-                  <Info className="w-3.5 h-3.5 text-gray-400" />
-                  <span className="text-xs font-bold text-gray-700">Personal Information</span>
-                </div>
-                <div className="grid grid-cols-2 gap-3 mt-3">
-                  <div>
-                    <div className="text-[10px] text-gray-400 mb-1">Current Age</div>
-                    <div className="border border-gray-200 rounded-md px-3 py-1.5 text-sm font-bold text-gray-900">30</div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] text-gray-400 mb-1">Retirement Age</div>
-                    <div className="border border-gray-200 rounded-md px-3 py-1.5 text-sm font-bold text-gray-900">65</div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="mb-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <Info className="w-3.5 h-3.5 text-gray-400" />
-                  <span className="text-xs font-bold text-gray-700">Current Financial Status</span>
-                </div>
-                <div className="space-y-4">
-                  <SliderPreview label="Income (Monthly)" value="$5,000" color="#0d9488" pct={40} />
-                  <SliderPreview label="Savings Rate" value="25%" color="#06b6d4" pct={33} />
-                  <SliderPreview label="Expenses (Monthly)" value="$3,000" color="#3b82f6" pct={20} />
-                </div>
-              </div>
-              
-              <div className="mb-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <Info className="w-3.5 h-3.5 text-gray-400" />
-                  <span className="text-xs font-bold text-gray-700">Investment Preferences</span>
-                </div>
-                <SliderPreview label="Investment Return Rate" value="6%" color="#8b5cf6" pct={40} />
-              </div>
-              
-              <Link href="/what-if" className="block w-full bg-[#f5c542] text-gray-900 hover:bg-[#e5b732] rounded-lg px-6 py-3 font-bold text-sm text-center transition-colors">
-                Calculate
-              </Link>
-            </div>
-            
-            <div className="lg:w-3/5 p-6 md:p-8">
-              <div className="flex justify-between items-center mb-6">
-                <div className="font-bold text-sm text-gray-700">Your Net Worth Over Time</div>
-                <div className="text-xs text-gray-400">Projected</div>
-              </div>
-              <div className="h-64 w-full">
-                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                  <LineChart data={dummyChartData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="age" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
-                    <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v: number) => v >= 1000000 ? `$${v/1000000}M` : `$${v/1000}K`} />
-                    <Line type="monotone" dataKey="value" stroke="#e11d48" strokeWidth={2.5} dot={false} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <div className="text-center mt-8">
-          <Link href="/what-if" className="inline-block border-2 border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50 rounded-full px-8 py-3 font-bold text-sm transition-colors">
-            Explore What-If Scenarios
-          </Link>
-        </div>
-      </section>
-
-      {/* Trust */}
-      <section className="py-20 bg-gray-50">
+      {/* ============================================ */}
+      {/* 10. TRUST SECTION */}
+      {/* ============================================ */}
+      <section className="py-20 md:py-24" data-testid="trust-section">
         <div className="container mx-auto px-4 max-w-6xl">
           <div className="text-center mb-14">
-            <h2 className="font-serif text-3xl md:text-4xl font-bold mb-3">Your Trust, Our Priority</h2>
-            <p className="text-gray-500 max-w-lg mx-auto">
-              "We never sell your financial data without asking. Ever."
+            <h2 className="font-serif text-3xl md:text-4xl font-bold tracking-tight mb-3">Built to Be Useful. Designed to Be Trusted.</h2>
+            <p className="text-gray-500 max-w-lg mx-auto text-sm">
+              No signup walls, no data selling, no confusion. Just practical tools for real decisions.
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
-              { title: "Privacy First", desc: "Your data stays private and protected.", icon: <Shield className="w-7 h-7 text-teal-600"/> },
-              { title: "Secure & Encrypted", desc: "Bank-quality security and peace of mind.", icon: <Lock className="w-7 h-7 text-teal-600"/> },
-              { title: "Accurate Calculations", desc: "Transparent, data-driven insights, no guesswork.", icon: <BarChart3 className="w-7 h-7 text-teal-600"/> },
-              { title: "Trusted by Users", desc: "Join thousands already planning smarter.", icon: <Users className="w-7 h-7 text-teal-600"/> }
+              { title: "Privacy First", desc: "Your data stays on your device. We don't sell it, share it, or track what you enter.", icon: <Shield className="w-6 h-6 text-teal-600" /> },
+              { title: "Clear Calculations", desc: "Transparent, data-driven math you can verify. No black boxes, no guesswork.", icon: <BarChart3 className="w-6 h-6 text-teal-600" /> },
+              { title: "Free and Practical", desc: "No premium tiers for core tools. Use everything, no signup required for most features.", icon: <Heart className="w-6 h-6 text-teal-600" /> },
+              { title: "Built for Real People", desc: "Made for everyday decisions — not finance pros. Clear language, useful defaults.", icon: <Lock className="w-6 h-6 text-teal-600" /> },
             ].map((card, i) => (
-              <div key={i} className="text-center">
-                <div className="w-16 h-16 rounded-full bg-teal-50 flex items-center justify-center mx-auto mb-5">
+              <div key={i} className="text-center" data-testid={`trust-card-${i}`}>
+                <div className="w-14 h-14 rounded-2xl bg-teal-50 flex items-center justify-center mx-auto mb-5 border border-teal-100">
                   {card.icon}
                 </div>
-                <h3 className="font-bold text-lg mb-2">{card.title}</h3>
-                <p className="text-gray-500 text-sm">{card.desc}</p>
+                <h3 className="font-bold text-base mb-2">{card.title}</h3>
+                <p className="text-gray-500 text-xs leading-relaxed">{card.desc}</p>
               </div>
             ))}
           </div>

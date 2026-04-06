@@ -20,11 +20,11 @@ export function Footer() {
 
   return (
     <>
-      <section className="bg-[#1a2e2e] py-16">
+      <section className="bg-[#042f2e] py-16">
         <div className="container mx-auto px-4 max-w-4xl">
           <h2 className="font-serif text-3xl md:text-4xl font-bold mb-4 text-white text-center">Stay Ahead With RealProfits</h2>
-          <p className="text-white/70 mb-8 text-center max-w-xl mx-auto">
-            Join thousands getting weekly Profit Tips & Insights.
+          <p className="text-white/60 mb-8 text-center max-w-xl mx-auto text-sm">
+            Get practical insights, new tools, and smarter ways to think about money, work, and your future.
           </p>
           {subscribed ? (
             <div className="text-center">
@@ -61,12 +61,12 @@ export function Footer() {
             <div>
               <h3 className="font-bold mb-5 text-sm text-white">Quick Links</h3>
               <ul className="space-y-3 text-white/60 text-sm">
-                <li><Link href="/calculators" className="hover:text-white transition-colors">Financial Calculator</Link></li>
+                <li><Link href="/calculators" className="hover:text-white transition-colors">Financial Calculators</Link></li>
                 <li><Link href="/tools" className="hover:text-white transition-colors">Productive Tools</Link></li>
+                <li><Link href="/career-tools" className="hover:text-white transition-colors">Career Tools</Link></li>
                 <li><Link href="/guides" className="hover:text-white transition-colors">Financial Guides</Link></li>
-                <li><Link href="/what-if" className="hover:text-white transition-colors">What If</Link></li>
+                <li><Link href="/what-if" className="hover:text-white transition-colors">What-If Simulator</Link></li>
                 <li><Link href="/search" className="hover:text-white transition-colors">Articles</Link></li>
-                <li><Link href="/about" className="hover:text-white transition-colors">About</Link></li>
               </ul>
             </div>
             
