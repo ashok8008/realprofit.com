@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { lazy, Suspense, useEffect } from "react";
 import { Switch, Route, Router as WouterRouter, useLocation } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { HelmetProvider } from "react-helmet-async";
@@ -7,27 +7,29 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 
 import { Layout } from "@/components/layout/Layout";
 import Home from "@/pages/Home";
-import Category from "@/pages/Category";
-import ArticleDetail from "@/pages/Article";
-import CalculatorHub from "@/pages/CalculatorHub";
-import CalculatorDetail from "@/pages/CalculatorDetail";
-import ToolsHub from "@/pages/ToolsHub";
-import ToolDetail from "@/pages/ToolDetail";
-import CareerToolsHub from "@/pages/career-tools/CareerToolsHub";
-import CareerToolDetail from "@/pages/career-tools/CareerToolDetail";
-import Search from "@/pages/Search";
-import PseoPage from "@/pages/PseoPage";
-import GuidesHub from "@/pages/GuidesHub";
-import WhatIfSimulator from "@/pages/WhatIfSimulator";
+
+// Lazy-loaded route pages for code splitting
+const Category = lazy(() => import("@/pages/Category"));
+const ArticleDetail = lazy(() => import("@/pages/Article"));
+const CalculatorHub = lazy(() => import("@/pages/CalculatorHub"));
+const CalculatorDetail = lazy(() => import("@/pages/CalculatorDetail"));
+const ToolsHub = lazy(() => import("@/pages/ToolsHub"));
+const ToolDetail = lazy(() => import("@/pages/ToolDetail"));
+const CareerToolsHub = lazy(() => import("@/pages/career-tools/CareerToolsHub"));
+const CareerToolDetail = lazy(() => import("@/pages/career-tools/CareerToolDetail"));
+const Search = lazy(() => import("@/pages/Search"));
+const PseoPage = lazy(() => import("@/pages/PseoPage"));
+const GuidesHub = lazy(() => import("@/pages/GuidesHub"));
+const WhatIfSimulator = lazy(() => import("@/pages/WhatIfSimulator"));
 
 // Static pages
-import About from "@/pages/About";
-import Contact from "@/pages/Contact";
-import Privacy from "@/pages/Privacy";
-import Terms from "@/pages/Terms";
-import EditorialPolicy from "@/pages/EditorialPolicy";
-import Disclaimer from "@/pages/Disclaimer";
-import NotFound from "@/pages/not-found";
+const About = lazy(() => import("@/pages/About"));
+const Contact = lazy(() => import("@/pages/Contact"));
+const Privacy = lazy(() => import("@/pages/Privacy"));
+const Terms = lazy(() => import("@/pages/Terms"));
+const EditorialPolicy = lazy(() => import("@/pages/EditorialPolicy"));
+const Disclaimer = lazy(() => import("@/pages/Disclaimer"));
+const NotFound = lazy(() => import("@/pages/not-found"));
 
 const queryClient = new QueryClient();
 
@@ -49,11 +51,20 @@ function ScrollToTop() {
   return null;
 }
 
+function PageLoader() {
+  return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="w-8 h-8 border-3 border-teal-200 border-t-teal-600 rounded-full animate-spin"></div>
+    </div>
+  );
+}
+
 function Router() {
   return (
     <Layout>
       <ScrollToTop />
-      <Switch>
+      <Suspense fallback={<PageLoader />}>
+        <Switch>
         <Route path="/" component={Home} />
         
         <Route path="/category/:categorySlug" component={Category} />
@@ -84,6 +95,7 @@ function Router() {
         
         <Route component={NotFound} />
       </Switch>
+      </Suspense>
     </Layout>
   );
 }

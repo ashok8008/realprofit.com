@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useMemo, lazy, Suspense } from "react";
 import { Link } from "wouter";
 import { Seo } from "@/components/Seo";
 import { articles } from "@/data/articles";
@@ -7,20 +7,97 @@ import {
   ArrowRight, Shield, Lock, BarChart3, Heart,
   Calculator, Briefcase, TrendingUp, BookOpen,
   FileText, DollarSign, HelpCircle, PiggyBank, 
-  Wallet, Receipt, ClipboardCheck, LineChart
+  Wallet, Receipt, ClipboardCheck, LineChart,
+  Search, ChevronRight, TrendingDown, Minus
 } from "lucide-react";
-import { ResponsiveContainer, LineChart as RLineChart, Line, YAxis, XAxis, CartesianGrid, Area, AreaChart } from "recharts";
+import { analyzeSalary, getAllJobTitles } from "@/lib/career-tools/salaryBenchmarks";
 
-const whatIfData = [
-  { age: 30, value: 10000 },
-  { age: 35, value: 35000 },
-  { age: 40, value: 80000 },
-  { age: 45, value: 140000 },
-  { age: 50, value: 250000 },
-  { age: 55, value: 400000 },
-  { age: 60, value: 650000 },
-  { age: 65, value: 1050000 },
-];
+// Lazy load Recharts since it's heavy and only used below the fold
+const LazyWhatIfChart = lazy(() => import("@/components/home/WhatIfChart"));
+const LazyHeroCharts = lazy(() => import("@/components/home/HeroCharts"));
+
+function QuickSalaryCheck() {
+  const [jobTitle, setJobTitle] = useState("");
+  const [salary, setSalary] = useState("");
+  const allTitles = useMemo(() => getAllJobTitles(), []);
+  
+  const salaryNum = parseInt(salary.replace(/[^0-9]/g, '')) || 0;
+  const analysis = jobTitle.trim() && salaryNum > 0
+    ? analyzeSalary(jobTitle, 3, salaryNum, "National Average")
+    : null;
+  
+  const hasResult = analysis?.benchmark && analysis?.gap;
+  const position = analysis?.gap?.position;
+  
+  const formatSalary = (val: string) => {
+    const num = val.replace(/[^0-9]/g, '');
+    if (!num) return '';
+    return '$' + parseInt(num).toLocaleString();
+  };
+  
+  return (
+    <div className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/20 max-w-md" data-testid="quick-salary-check">
+      <div className="text-xs font-bold text-white/80 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+        <Search className="w-3.5 h-3.5" /> Quick Salary Check
+      </div>
+      <div className="flex gap-2 mb-3">
+        <div className="flex-1">
+          <input
+            type="text"
+            placeholder="Job title..."
+            value={jobTitle}
+            onChange={e => setJobTitle(e.target.value)}
+            list="hero-job-titles"
+            className="w-full rounded-lg bg-white/90 text-gray-900 text-sm px-3 py-2.5 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f5c542]"
+            data-testid="quick-salary-job-input"
+          />
+          <datalist id="hero-job-titles">
+            {allTitles.map(t => <option key={t} value={t} />)}
+          </datalist>
+        </div>
+        <div className="w-36">
+          <input
+            type="text"
+            placeholder="Salary..."
+            value={salary}
+            onChange={e => setSalary(formatSalary(e.target.value))}
+            className="w-full rounded-lg bg-white/90 text-gray-900 text-sm px-3 py-2.5 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#f5c542]"
+            data-testid="quick-salary-amount-input"
+          />
+        </div>
+      </div>
+      
+      {hasResult ? (
+        <div className={`rounded-lg px-4 py-3 flex items-center justify-between ${
+          position === 'below' ? 'bg-red-500/20 border border-red-400/30' :
+          position === 'above' ? 'bg-emerald-500/20 border border-emerald-400/30' :
+          'bg-blue-500/20 border border-blue-400/30'
+        }`} data-testid="quick-salary-result">
+          <div className="flex items-center gap-2">
+            {position === 'below' ? <TrendingDown className="w-4 h-4 text-red-300" /> :
+             position === 'above' ? <TrendingUp className="w-4 h-4 text-emerald-300" /> :
+             <Minus className="w-4 h-4 text-blue-300" />}
+            <span className={`text-sm font-bold ${
+              position === 'below' ? 'text-red-200' :
+              position === 'above' ? 'text-emerald-200' : 'text-blue-200'
+            }`}>
+              {position === 'below' ? 'Below Market' : position === 'above' ? 'Above Market' : 'At Market'}
+            </span>
+          </div>
+          <Link href="/career-tools/salary-comparison" className="text-xs text-white/70 hover:text-white flex items-center gap-0.5 transition-colors">
+            Full analysis <ChevronRight className="w-3 h-3" />
+          </Link>
+        </div>
+      ) : (
+        <div className="text-[11px] text-white/50">
+          {jobTitle && salaryNum === 0 ? 'Enter your salary' : 
+           !jobTitle ? 'Try: Software Engineer, Data Analyst, Product Manager...' :
+           'No data for this role. Try a different title.'}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function SliderPreview({ label, value, color, pct }: { label: string; value: string; color: string; pct: number }) {
   return (
@@ -77,63 +154,17 @@ export default function Home() {
                 <span className="flex items-center gap-1.5"><Shield className="w-3.5 h-3.5" /> Private by default</span>
                 <span className="flex items-center gap-1.5"><Lock className="w-3.5 h-3.5" /> No signup needed</span>
               </div>
+              
+              {/* Quick Salary Check Widget */}
+              <div className="mt-8">
+                <QuickSalaryCheck />
+              </div>
             </div>
             
             <div className="lg:w-1/2 relative h-[420px] hidden lg:block" data-testid="hero-visual">
-              {/* Salary Comparison Card */}
-              <div className="absolute top-0 right-8 bg-white rounded-xl p-5 shadow-2xl rotate-2 w-56 z-20 border border-gray-100">
-                <div className="text-[10px] font-bold text-teal-600 uppercase tracking-wider mb-2">Salary Comparison</div>
-                <div className="flex items-end gap-1.5 mb-2">
-                  <div className="w-5 bg-teal-400 rounded-sm" style={{height: '32px'}}></div>
-                  <div className="w-5 bg-gray-300 rounded-sm" style={{height: '24px'}}></div>
-                  <div className="w-5 bg-teal-400 rounded-sm" style={{height: '44px'}}></div>
-                  <div className="w-5 bg-gray-300 rounded-sm" style={{height: '36px'}}></div>
-                  <div className="w-5 bg-teal-500 rounded-sm" style={{height: '52px'}}></div>
-                </div>
-                <div className="text-[10px] text-gray-500">Your salary: <span className="font-bold text-emerald-600">Above avg</span></div>
-              </div>
-              
-              {/* Resume Preview Card */}
-              <div className="absolute top-12 right-64 bg-white rounded-xl p-4 shadow-2xl -rotate-6 w-48 z-10 border border-gray-100">
-                <div className="text-[10px] font-bold text-blue-600 uppercase tracking-wider mb-2">Resume Builder</div>
-                <div className="space-y-1.5">
-                  <div className="h-2 w-full bg-gray-200 rounded-full"></div>
-                  <div className="h-2 w-3/4 bg-gray-200 rounded-full"></div>
-                  <div className="h-2 w-5/6 bg-gray-200 rounded-full"></div>
-                  <div className="h-1.5 w-1/2 bg-blue-200 rounded-full mt-2"></div>
-                  <div className="h-1.5 w-full bg-gray-100 rounded-full"></div>
-                  <div className="h-1.5 w-4/5 bg-gray-100 rounded-full"></div>
-                </div>
-                <div className="mt-2 flex items-center gap-1">
-                  <div className="w-2 h-2 rounded-full bg-emerald-400"></div>
-                  <span className="text-[9px] text-gray-500 font-semibold">ATS-ready</span>
-                </div>
-              </div>
-              
-              {/* Expense/Subscription Chart Card */}
-              <div className="absolute top-52 right-4 bg-white rounded-xl p-5 shadow-2xl rotate-1 w-60 z-30 border border-gray-100">
-                <div className="text-[10px] font-bold text-orange-600 uppercase tracking-wider mb-2">Expense Tracker</div>
-                <div className="h-14 w-full mb-2">
-                  <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                    <AreaChart data={[{v:800},{v:650},{v:900},{v:550},{v:700},{v:450}]}>
-                      <Area type="monotone" dataKey="v" stroke="#f97316" fill="#fed7aa" strokeWidth={2} />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="flex justify-between items-center text-[10px]">
-                  <span className="text-gray-400">Monthly spending</span>
-                  <span className="font-bold text-orange-600 bg-orange-50 px-2 py-0.5 rounded">-$350 saved</span>
-                </div>
-              </div>
-
-              {/* Mortgage Card */}
-              <div className="absolute bottom-2 right-56 bg-white rounded-xl p-4 shadow-2xl -rotate-3 w-48 z-20 border border-gray-100">
-                <div className="text-[10px] font-bold text-violet-600 uppercase tracking-wider mb-2">Mortgage</div>
-                <div className="text-lg font-bold text-gray-900" style={{fontFamily: 'JetBrains Mono, monospace'}}>$2,850<span className="text-xs font-normal text-gray-400">/mo</span></div>
-                <div className="h-1 w-full bg-gray-200 rounded-full mt-2">
-                  <div className="h-full w-1/3 bg-violet-500 rounded-full"></div>
-                </div>
-              </div>
+              <Suspense fallback={null}>
+                <LazyHeroCharts />
+              </Suspense>
             </div>
           </div>
         </div>
@@ -380,20 +411,9 @@ export default function Home() {
                   <div className="text-xs text-gray-400">Projected</div>
                 </div>
                 <div className="h-64 w-full" data-testid="what-if-chart">
-                  <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                    <AreaChart data={whatIfData} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
-                      <defs>
-                        <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#0f766e" stopOpacity={0.2}/>
-                          <stop offset="100%" stopColor="#0f766e" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                      <XAxis dataKey="age" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
-                      <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v: number) => v >= 1000000 ? `$${v/1000000}M` : `$${v/1000}K`} />
-                      <Area type="monotone" dataKey="value" stroke="#0f766e" fill="url(#colorValue)" strokeWidth={2.5} />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                  <Suspense fallback={<div className="h-full flex items-center justify-center text-gray-300 text-sm">Loading chart...</div>}>
+                    <LazyWhatIfChart />
+                  </Suspense>
                 </div>
                 <div className="flex justify-center gap-6 mt-4 text-xs text-gray-400">
                   <span>At age 50: <span className="font-bold text-gray-700">$250K</span></span>
