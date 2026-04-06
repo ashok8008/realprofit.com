@@ -13,6 +13,8 @@ import CalculatorHub from "@/pages/CalculatorHub";
 import CalculatorDetail from "@/pages/CalculatorDetail";
 import ToolsHub from "@/pages/ToolsHub";
 import ToolDetail from "@/pages/ToolDetail";
+import CareerToolsHub from "@/pages/career-tools/CareerToolsHub";
+import CareerToolDetail from "@/pages/career-tools/CareerToolDetail";
 import Search from "@/pages/Search";
 import PseoPage from "@/pages/PseoPage";
 import GuidesHub from "@/pages/GuidesHub";
@@ -65,6 +67,9 @@ function Router() {
         
         <Route path="/tools" component={ToolsHub} />
         <Route path="/tools/:slug" component={ToolDetail} />
+        
+        <Route path="/career-tools" component={CareerToolsHub} />
+        <Route path="/career-tools/:slug" component={CareerToolDetail} />
         
         <Route path="/guides" component={GuidesHub} />
         <Route path="/guides/:slug" component={PseoPage} />

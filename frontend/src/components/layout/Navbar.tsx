@@ -9,10 +9,10 @@ export function Navbar() {
   const links = [
     { name: "FINANCIAL CALCULATORS", href: "/calculators" },
     { name: "PRODUCTIVE TOOLS", href: "/tools" },
+    { name: "CAREER TOOLS", href: "/career-tools" },
     { name: "GUIDES", href: "/guides" },
     { name: "WHAT IF", href: "/what-if" },
     { name: "ARTICLES", href: "/search" },
-    { name: "ABOUT", href: "/about" },
   ];
 
   return (

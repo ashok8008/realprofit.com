@@ -1,0 +1,647 @@
+import React, { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Download, Plus, Trash2, GripVertical, RotateCcw, Printer, Eye } from "lucide-react";
+import { saveToStorage, loadFromStorage, clearStorage } from "@/lib/career-tools/storage";
+import { generateResumePDF, ResumeData } from "@/lib/career-tools/pdf-export";
+import { useToast } from "@/hooks/use-toast";
+
+interface Experience {
+  id: string;
+  title: string;
+  company: string;
+  location: string;
+  startDate: string;
+  endDate: string;
+  current: boolean;
+  description: string;
+}
+
+interface Education {
+  id: string;
+  school: string;
+  degree: string;
+  field: string;
+  startDate: string;
+  endDate: string;
+}
+
+const STORAGE_KEY = 'resume_builder';
+
+const defaultResumeData: ResumeData = {
+  personalDetails: {
+    fullName: '',
+    email: '',
+    phone: '',
+    location: '',
+    linkedin: '',
+    portfolio: '',
+  },
+  summary: '',
+  experience: [],
+  education: [],
+  skills: [],
+  certifications: [],
+};
+
+const templates = [
+  { id: 'clean', name: 'Clean & Modern', desc: 'Simple, ATS-friendly format' },
+  { id: 'professional', name: 'Professional', desc: 'Traditional business style' },
+  { id: 'minimal', name: 'Minimal', desc: 'Maximum whitespace' },
+];
+
+export function ResumeBuilder() {
+  const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState('personal');
+  const [template, setTemplate] = useState('clean');
+  const [data, setData] = useState<ResumeData>(() => 
+    loadFromStorage(STORAGE_KEY, defaultResumeData)
+  );
+  const [skillInput, setSkillInput] = useState('');
+  const [certInput, setCertInput] = useState('');
+
+  // Auto-save
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      saveToStorage(STORAGE_KEY, data);
+    }, 500);
+    return () => clearTimeout(timeout);
+  }, [data]);
+
+  const updatePersonal = (field: keyof ResumeData['personalDetails'], value: string) => {
+    setData(prev => ({
+      ...prev,
+      personalDetails: { ...prev.personalDetails, [field]: value }
+    }));
+  };
+
+  const addExperience = () => {
+    const newExp: Experience = {
+      id: Date.now().toString(),
+      title: '',
+      company: '',
+      location: '',
+      startDate: '',
+      endDate: '',
+      current: false,
+      description: '',
+    };
+    setData(prev => ({
+      ...prev,
+      experience: [...prev.experience, newExp]
+    }));
+  };
+
+  const updateExperience = (id: string, field: keyof Experience, value: string | boolean) => {
+    setData(prev => ({
+      ...prev,
+      experience: prev.experience.map(exp => 
+        exp.id === id ? { ...exp, [field]: value } : exp
+      )
+    }));
+  };
+
+  const removeExperience = (id: string) => {
+    setData(prev => ({
+      ...prev,
+      experience: prev.experience.filter(exp => exp.id !== id)
+    }));
+  };
+
+  const addEducation = () => {
+    const newEdu: Education = {
+      id: Date.now().toString(),
+      school: '',
+      degree: '',
+      field: '',
+      startDate: '',
+      endDate: '',
+    };
+    setData(prev => ({
+      ...prev,
+      education: [...prev.education, newEdu]
+    }));
+  };
+
+  const updateEducation = (id: string, field: keyof Education, value: string) => {
+    setData(prev => ({
+      ...prev,
+      education: prev.education.map(edu => 
+        edu.id === id ? { ...edu, [field]: value } : edu
+      )
+    }));
+  };
+
+  const removeEducation = (id: string) => {
+    setData(prev => ({
+      ...prev,
+      education: prev.education.filter(edu => edu.id !== id)
+    }));
+  };
+
+  const addSkill = () => {
+    if (skillInput.trim() && !data.skills.includes(skillInput.trim())) {
+      setData(prev => ({
+        ...prev,
+        skills: [...prev.skills, skillInput.trim()]
+      }));
+      setSkillInput('');
+    }
+  };
+
+  const removeSkill = (skill: string) => {
+    setData(prev => ({
+      ...prev,
+      skills: prev.skills.filter(s => s !== skill)
+    }));
+  };
+
+  const addCertification = () => {
+    if (certInput.trim() && !data.certifications.includes(certInput.trim())) {
+      setData(prev => ({
+        ...prev,
+        certifications: [...prev.certifications, certInput.trim()]
+      }));
+      setCertInput('');
+    }
+  };
+
+  const removeCertification = (cert: string) => {
+    setData(prev => ({
+      ...prev,
+      certifications: prev.certifications.filter(c => c !== cert)
+    }));
+  };
+
+  const handleReset = () => {
+    if (confirm('Are you sure you want to clear all resume data?')) {
+      setData(defaultResumeData);
+      clearStorage(STORAGE_KEY);
+      toast({ title: "Resume cleared", description: "All data has been reset." });
+    }
+  };
+
+  const handleDownloadPDF = () => {
+    const pdf = generateResumePDF(data, template);
+    const filename = `${data.personalDetails.fullName || 'resume'}_resume.pdf`.replace(/\s+/g, '_');
+    pdf.save(filename);
+    toast({ title: "PDF Downloaded", description: "Your resume has been saved." });
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const summaryWordCount = data.summary.trim().split(/\s+/).filter(Boolean).length;
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* Form Section */}
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold">Build Your Resume</h2>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handleReset}>
+              <RotateCcw className="w-4 h-4 mr-1" /> Reset
+            </Button>
+          </div>
+        </div>
+
+        {/* Template Selection */}
+        <div className="bg-muted/30 rounded-lg p-4">
+          <Label className="text-sm font-semibold mb-3 block">Choose Template</Label>
+          <div className="grid grid-cols-3 gap-2">
+            {templates.map(t => (
+              <button
+                key={t.id}
+                onClick={() => setTemplate(t.id)}
+                className={`p-3 rounded-lg border text-left transition-all ${
+                  template === t.id 
+                    ? 'border-teal-500 bg-teal-50' 
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <div className="text-sm font-semibold">{t.name}</div>
+                <div className="text-xs text-muted-foreground">{t.desc}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="w-full grid grid-cols-5">
+            <TabsTrigger value="personal" className="text-xs">Personal</TabsTrigger>
+            <TabsTrigger value="experience" className="text-xs">Experience</TabsTrigger>
+            <TabsTrigger value="education" className="text-xs">Education</TabsTrigger>
+            <TabsTrigger value="skills" className="text-xs">Skills</TabsTrigger>
+            <TabsTrigger value="extras" className="text-xs">Extras</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="personal" className="space-y-4 mt-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <Label>Full Name *</Label>
+                <Input 
+                  placeholder="John Smith"
+                  value={data.personalDetails.fullName}
+                  onChange={e => updatePersonal('fullName', e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>Email *</Label>
+                <Input 
+                  type="email"
+                  placeholder="john@email.com"
+                  value={data.personalDetails.email}
+                  onChange={e => updatePersonal('email', e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>Phone *</Label>
+                <Input 
+                  placeholder="(555) 123-4567"
+                  value={data.personalDetails.phone}
+                  onChange={e => updatePersonal('phone', e.target.value)}
+                />
+              </div>
+              <div className="col-span-2">
+                <Label>Location</Label>
+                <Input 
+                  placeholder="San Francisco, CA"
+                  value={data.personalDetails.location}
+                  onChange={e => updatePersonal('location', e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>LinkedIn URL</Label>
+                <Input 
+                  placeholder="linkedin.com/in/johnsmith"
+                  value={data.personalDetails.linkedin}
+                  onChange={e => updatePersonal('linkedin', e.target.value)}
+                />
+              </div>
+              <div>
+                <Label>Portfolio URL</Label>
+                <Input 
+                  placeholder="johnsmith.com"
+                  value={data.personalDetails.portfolio}
+                  onChange={e => updatePersonal('portfolio', e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div>
+              <div className="flex justify-between items-center mb-1">
+                <Label>Professional Summary</Label>
+                <span className={`text-xs ${summaryWordCount > 50 && summaryWordCount <= 100 ? 'text-emerald-600' : summaryWordCount > 100 ? 'text-amber-600' : 'text-muted-foreground'}`}>
+                  {summaryWordCount} words (aim for 50-100)
+                </span>
+              </div>
+              <Textarea 
+                placeholder="Experienced professional with..."
+                rows={4}
+                value={data.summary}
+                onChange={e => setData(prev => ({ ...prev, summary: e.target.value }))}
+              />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="experience" className="space-y-4 mt-4">
+            {data.experience.map((exp, idx) => (
+              <div key={exp.id} className="border rounded-lg p-4 space-y-3 bg-muted/20">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-muted-foreground">Experience {idx + 1}</span>
+                  <Button variant="ghost" size="sm" onClick={() => removeExperience(exp.id)}>
+                    <Trash2 className="w-4 h-4 text-destructive" />
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs">Job Title *</Label>
+                    <Input 
+                      placeholder="Software Engineer"
+                      value={exp.title}
+                      onChange={e => updateExperience(exp.id, 'title', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Company *</Label>
+                    <Input 
+                      placeholder="Acme Corp"
+                      value={exp.company}
+                      onChange={e => updateExperience(exp.id, 'company', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Location</Label>
+                    <Input 
+                      placeholder="New York, NY"
+                      value={exp.location}
+                      onChange={e => updateExperience(exp.id, 'location', e.target.value)}
+                    />
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <Switch 
+                        checked={exp.current}
+                        onCheckedChange={v => updateExperience(exp.id, 'current', v)}
+                      />
+                      <Label className="text-xs">Current Role</Label>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Start Date</Label>
+                    <Input 
+                      placeholder="Jan 2020"
+                      value={exp.startDate}
+                      onChange={e => updateExperience(exp.id, 'startDate', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">End Date</Label>
+                    <Input 
+                      placeholder={exp.current ? "Present" : "Dec 2023"}
+                      value={exp.current ? "Present" : exp.endDate}
+                      onChange={e => updateExperience(exp.id, 'endDate', e.target.value)}
+                      disabled={exp.current}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs">Description / Achievements</Label>
+                  <Textarea 
+                    placeholder="• Led a team of 5 engineers...&#10;• Increased conversion by 25%..."
+                    rows={4}
+                    value={exp.description}
+                    onChange={e => updateExperience(exp.id, 'description', e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Use bullet points starting with action verbs</p>
+                </div>
+              </div>
+            ))}
+            <Button variant="outline" onClick={addExperience} className="w-full">
+              <Plus className="w-4 h-4 mr-2" /> Add Experience
+            </Button>
+          </TabsContent>
+
+          <TabsContent value="education" className="space-y-4 mt-4">
+            {data.education.map((edu, idx) => (
+              <div key={edu.id} className="border rounded-lg p-4 space-y-3 bg-muted/20">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-muted-foreground">Education {idx + 1}</span>
+                  <Button variant="ghost" size="sm" onClick={() => removeEducation(edu.id)}>
+                    <Trash2 className="w-4 h-4 text-destructive" />
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="col-span-2">
+                    <Label className="text-xs">School / University *</Label>
+                    <Input 
+                      placeholder="University of California"
+                      value={edu.school}
+                      onChange={e => updateEducation(edu.id, 'school', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Degree</Label>
+                    <Input 
+                      placeholder="Bachelor of Science"
+                      value={edu.degree}
+                      onChange={e => updateEducation(edu.id, 'degree', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Field of Study</Label>
+                    <Input 
+                      placeholder="Computer Science"
+                      value={edu.field}
+                      onChange={e => updateEducation(edu.id, 'field', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Start Year</Label>
+                    <Input 
+                      placeholder="2016"
+                      value={edu.startDate}
+                      onChange={e => updateEducation(edu.id, 'startDate', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">End Year</Label>
+                    <Input 
+                      placeholder="2020"
+                      value={edu.endDate}
+                      onChange={e => updateEducation(edu.id, 'endDate', e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+            <Button variant="outline" onClick={addEducation} className="w-full">
+              <Plus className="w-4 h-4 mr-2" /> Add Education
+            </Button>
+          </TabsContent>
+
+          <TabsContent value="skills" className="space-y-4 mt-4">
+            <div>
+              <Label>Add Skills</Label>
+              <div className="flex gap-2">
+                <Input 
+                  placeholder="JavaScript, React, Project Management..."
+                  value={skillInput}
+                  onChange={e => setSkillInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addSkill())}
+                />
+                <Button onClick={addSkill}>Add</Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">Press Enter or click Add for each skill</p>
+            </div>
+            
+            {data.skills.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {data.skills.map(skill => (
+                  <span 
+                    key={skill} 
+                    className="bg-teal-100 text-teal-800 px-3 py-1 rounded-full text-sm flex items-center gap-1"
+                  >
+                    {skill}
+                    <button onClick={() => removeSkill(skill)} className="hover:text-teal-600">
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <div className="bg-muted/30 rounded-lg p-4 mt-4">
+              <p className="text-sm font-semibold mb-2">Skill Suggestions</p>
+              <p className="text-xs text-muted-foreground">
+                Include both technical skills (programming languages, tools) and soft skills (leadership, communication).
+                Tailor skills to match the job description.
+              </p>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="extras" className="space-y-4 mt-4">
+            <div>
+              <Label>Certifications & Awards</Label>
+              <div className="flex gap-2">
+                <Input 
+                  placeholder="AWS Certified, PMP, Google Analytics..."
+                  value={certInput}
+                  onChange={e => setCertInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addCertification())}
+                />
+                <Button onClick={addCertification}>Add</Button>
+              </div>
+            </div>
+            
+            {data.certifications.length > 0 && (
+              <div className="space-y-2">
+                {data.certifications.map(cert => (
+                  <div 
+                    key={cert} 
+                    className="bg-muted/30 px-4 py-2 rounded-lg flex items-center justify-between"
+                  >
+                    <span className="text-sm">{cert}</span>
+                    <button onClick={() => removeCertification(cert)} className="text-muted-foreground hover:text-destructive">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      {/* Preview Section */}
+      <div className="lg:sticky lg:top-24 h-fit">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold flex items-center gap-2">
+            <Eye className="w-4 h-4" /> Live Preview
+          </h3>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={handlePrint}>
+              <Printer className="w-4 h-4 mr-1" /> Print
+            </Button>
+            <Button size="sm" onClick={handleDownloadPDF}>
+              <Download className="w-4 h-4 mr-1" /> Download PDF
+            </Button>
+          </div>
+        </div>
+
+        <div className="border rounded-xl bg-white shadow-lg overflow-hidden" style={{ minHeight: '600px' }}>
+          <div className="p-8 text-sm" id="resume-preview">
+            {/* Name */}
+            <h1 className="text-2xl font-bold text-center text-gray-900 mb-1">
+              {data.personalDetails.fullName || 'Your Name'}
+            </h1>
+            
+            {/* Contact */}
+            <div className="text-center text-gray-600 text-xs mb-1">
+              {[data.personalDetails.email, data.personalDetails.phone, data.personalDetails.location]
+                .filter(Boolean)
+                .join(' | ') || 'email@example.com | (555) 123-4567'}
+            </div>
+            {(data.personalDetails.linkedin || data.personalDetails.portfolio) && (
+              <div className="text-center text-gray-500 text-xs mb-4">
+                {[data.personalDetails.linkedin, data.personalDetails.portfolio].filter(Boolean).join(' | ')}
+              </div>
+            )}
+
+            {/* Summary */}
+            {data.summary && (
+              <div className="mb-4">
+                <div className="border-b border-gray-300 mb-2 pb-1">
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-gray-700">Professional Summary</h2>
+                </div>
+                <p className="text-gray-700 text-xs leading-relaxed whitespace-pre-line">{data.summary}</p>
+              </div>
+            )}
+
+            {/* Experience */}
+            {data.experience.length > 0 && (
+              <div className="mb-4">
+                <div className="border-b border-gray-300 mb-2 pb-1">
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-gray-700">Experience</h2>
+                </div>
+                {data.experience.map(exp => (
+                  <div key={exp.id} className="mb-3">
+                    <div className="flex justify-between items-baseline">
+                      <span className="font-semibold text-gray-900">{exp.title || 'Job Title'}</span>
+                      <span className="text-gray-500 text-xs">
+                        {exp.startDate} - {exp.current ? 'Present' : exp.endDate}
+                      </span>
+                    </div>
+                    <div className="text-gray-600 text-xs">
+                      {exp.company}{exp.location && `, ${exp.location}`}
+                    </div>
+                    {exp.description && (
+                      <p className="text-gray-700 text-xs mt-1 whitespace-pre-line leading-relaxed">{exp.description}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Education */}
+            {data.education.length > 0 && (
+              <div className="mb-4">
+                <div className="border-b border-gray-300 mb-2 pb-1">
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-gray-700">Education</h2>
+                </div>
+                {data.education.map(edu => (
+                  <div key={edu.id} className="mb-2">
+                    <div className="flex justify-between items-baseline">
+                      <span className="font-semibold text-gray-900">
+                        {edu.degree}{edu.field && ` in ${edu.field}`}
+                      </span>
+                      <span className="text-gray-500 text-xs">{edu.startDate} - {edu.endDate}</span>
+                    </div>
+                    <div className="text-gray-600 text-xs">{edu.school}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Skills */}
+            {data.skills.length > 0 && (
+              <div className="mb-4">
+                <div className="border-b border-gray-300 mb-2 pb-1">
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-gray-700">Skills</h2>
+                </div>
+                <p className="text-gray-700 text-xs">{data.skills.join(' • ')}</p>
+              </div>
+            )}
+
+            {/* Certifications */}
+            {data.certifications.length > 0 && (
+              <div>
+                <div className="border-b border-gray-300 mb-2 pb-1">
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-gray-700">Certifications</h2>
+                </div>
+                <ul className="text-gray-700 text-xs">
+                  {data.certifications.map(cert => (
+                    <li key={cert}>• {cert}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Empty state */}
+            {!data.summary && data.experience.length === 0 && data.education.length === 0 && data.skills.length === 0 && (
+              <div className="text-center text-gray-400 py-12">
+                <p>Start filling in your details to see the preview</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
