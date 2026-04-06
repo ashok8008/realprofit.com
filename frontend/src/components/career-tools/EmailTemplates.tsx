@@ -3,9 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Copy, Loader2, Mail, RefreshCw, CheckCircle } from "lucide-react";
+import { Copy, Loader2, Mail, RefreshCw, CheckCircle, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { canUseAi, recordAiUsage } from "@/lib/career-tools/smartSuggestions";
+import { generateStaticEmail } from "@/lib/career-tools/staticEmailTemplates";
 
 const templateTypes = [
   { type: "thank_you", name: "Thank You Email", description: "Send after an interview to express gratitude" },
@@ -45,18 +46,17 @@ export function EmailTemplates() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState<GeneratedEmail | null>(null);
   const [copied, setCopied] = useState(false);
+  const [aiUsed, setAiUsed] = useState(!canUseAi('emailTemplate'));
+  const [isAiGenerated, setIsAiGenerated] = useState(false);
 
   const update = (field: keyof FormData, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleGenerate = async () => {
-    if (!form.companyName.trim() || !form.jobTitle.trim()) {
-      toast({ title: "Missing info", description: "Please enter company name and job title.", variant: "destructive" });
-      return;
-    }
+  const generateWithAi = async () => {
     setLoading(true);
     setEmail(null);
+    setIsAiGenerated(true);
     try {
       const res = await fetch("/api/career-tools/email-template", {
         method: "POST",
@@ -70,13 +70,49 @@ export function EmailTemplates() {
           specific_points: form.specificPoints || undefined,
         }),
       });
-      if (!res.ok) throw new Error("Failed to generate email");
+      if (!res.ok) throw new Error("Failed");
       const result: GeneratedEmail = await res.json();
+      recordAiUsage('emailTemplate');
+      setAiUsed(true);
       setEmail(result);
     } catch {
-      toast({ title: "Error", description: "Could not generate email. Please try again.", variant: "destructive" });
+      // Fallback to static template on AI failure
+      const fallback = generateStaticEmail(form.templateType, {
+        companyName: form.companyName,
+        jobTitle: form.jobTitle,
+        interviewerName: form.interviewerName,
+        interviewDate: form.interviewDate,
+        specificPoints: form.specificPoints,
+      });
+      setEmail({ subject: fallback.subject, body: fallback.body, templateType: form.templateType });
+      setIsAiGenerated(false);
+      toast({ title: "Using smart template", description: "AI unavailable — generated a polished template instead." });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const generateStatic = () => {
+    const result = generateStaticEmail(form.templateType, {
+      companyName: form.companyName,
+      jobTitle: form.jobTitle,
+      interviewerName: form.interviewerName,
+      interviewDate: form.interviewDate,
+      specificPoints: form.specificPoints,
+    });
+    setEmail({ subject: result.subject, body: result.body, templateType: form.templateType });
+    setIsAiGenerated(false);
+  };
+
+  const handleGenerate = () => {
+    if (!form.companyName.trim() || !form.jobTitle.trim()) {
+      toast({ title: "Missing info", description: "Please enter company name and job title.", variant: "destructive" });
+      return;
+    }
+    if (!aiUsed && canUseAi('emailTemplate')) {
+      generateWithAi();
+    } else {
+      generateStatic();
     }
   };
 
@@ -89,7 +125,10 @@ export function EmailTemplates() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleRegenerate = () => handleGenerate();
+  const handleRegenerate = () => {
+    if (!form.companyName.trim() || !form.jobTitle.trim()) return;
+    generateStatic(); // Regenerate always uses static to save AI credits
+  };
 
   const selectedTemplate = templateTypes.find(t => t.type === form.templateType);
 
@@ -168,24 +207,38 @@ export function EmailTemplates() {
       </div>
 
       {/* Generate Button */}
-      <Button
-        onClick={handleGenerate}
-        disabled={loading || !form.companyName.trim() || !form.jobTitle.trim()}
-        className="bg-teal-600 hover:bg-teal-700 text-white px-8"
-        data-testid="email-generate-btn"
-      >
-        {loading ? (
-          <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating...</>
-        ) : (
-          <><Mail className="w-4 h-4 mr-2" /> Generate {selectedTemplate?.name}</>
+      <div className="flex items-center gap-3">
+        <Button
+          onClick={handleGenerate}
+          disabled={loading || !form.companyName.trim() || !form.jobTitle.trim()}
+          className="bg-teal-600 hover:bg-teal-700 text-white px-8"
+          data-testid="email-generate-btn"
+        >
+          {loading ? (
+            <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Generating...</>
+          ) : !aiUsed ? (
+            <><Sparkles className="w-4 h-4 mr-2" /> Generate with AI (1 free)</>
+          ) : (
+            <><Mail className="w-4 h-4 mr-2" /> Generate {selectedTemplate?.name}</>
+          )}
+        </Button>
+        {aiUsed && (
+          <span className="text-xs text-gray-400 flex items-center gap-1"><Sparkles className="w-3 h-3" /> Free AI try used — using smart templates</span>
         )}
-      </Button>
+      </div>
 
       {/* Generated Email */}
       {email && (
         <div className="max-w-3xl space-y-4" data-testid="email-result">
           <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-lg">Generated Email</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold text-lg">Generated Email</h3>
+              {isAiGenerated ? (
+                <span className="text-[10px] font-bold uppercase tracking-wider bg-violet-100 text-violet-700 px-2 py-0.5 rounded">AI Generated</span>
+              ) : (
+                <span className="text-[10px] font-bold uppercase tracking-wider bg-teal-100 text-teal-700 px-2 py-0.5 rounded">Smart Template</span>
+              )}
+            </div>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={handleRegenerate} disabled={loading} data-testid="email-regenerate-btn">
                 <RefreshCw className={`w-4 h-4 mr-1.5 ${loading ? "animate-spin" : ""}`} /> Regenerate

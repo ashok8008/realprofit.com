@@ -1,14 +1,15 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, Plus, Trash2, GripVertical, RotateCcw, Printer, Eye, Sparkles, Loader2, Check, X } from "lucide-react";
+import { Download, Plus, Trash2, GripVertical, RotateCcw, Printer, Eye, Sparkles, Loader2, Check, X, Lightbulb, AlertTriangle, Info } from "lucide-react";
 import { saveToStorage, loadFromStorage, clearStorage } from "@/lib/career-tools/storage";
 import { generateResumePDF, ResumeData } from "@/lib/career-tools/pdf-export";
 import { useToast } from "@/hooks/use-toast";
+import { analyzeBulletPoints, analyzeSummary, canUseAi, recordAiUsage } from "@/lib/career-tools/smartSuggestions";
 
 interface Experience {
   id: string;
@@ -201,10 +202,31 @@ export function ResumeBuilder() {
   // AI Enhancement State
   const [aiLoading, setAiLoading] = useState<string | null>(null);
   const [aiSuggestion, setAiSuggestion] = useState<{ id: string; original: string; improved: string; suggestions?: string[] } | null>(null);
+  const [aiBulletUsed, setAiBulletUsed] = useState(!canUseAi('resumeBullet'));
+  const [aiSummaryUsed, setAiSummaryUsed] = useState(!canUseAi('resumeSummary'));
+
+  // Smart suggestions (Grammarly-style, always free)
+  const bulletSuggestions = useMemo(() => {
+    const map: Record<string, ReturnType<typeof analyzeBulletPoints>> = {};
+    data.experience.forEach(exp => {
+      if (exp.description.trim()) {
+        map[exp.id] = analyzeBulletPoints(exp.description);
+      }
+    });
+    return map;
+  }, [data.experience]);
+
+  const summarySuggestions = useMemo(() => {
+    return data.summary.trim() ? analyzeSummary(data.summary, data.skills) : [];
+  }, [data.summary, data.skills]);
 
   const improveBulletPoint = async (expId: string, bulletText: string, jobTitle: string) => {
     if (!bulletText.trim()) {
       toast({ title: "Empty field", description: "Write some bullet points first, then improve them with AI." });
+      return;
+    }
+    if (!canUseAi('resumeBullet')) {
+      toast({ title: "Free AI try used", description: "Use the smart suggestions below for free improvements!" });
       return;
     }
     setAiLoading(`bullet-${expId}`);
@@ -217,6 +239,8 @@ export function ResumeBuilder() {
       });
       if (!res.ok) throw new Error('AI service unavailable');
       const result = await res.json();
+      recordAiUsage('resumeBullet');
+      setAiBulletUsed(true);
       setAiSuggestion({ id: `bullet-${expId}`, original: bulletText, improved: result.improved, suggestions: result.suggestions });
     } catch {
       toast({ title: "AI Error", description: "Could not reach AI service. Try again later.", variant: "destructive" });
@@ -228,6 +252,10 @@ export function ResumeBuilder() {
   const improveSummary = async () => {
     if (!data.summary.trim()) {
       toast({ title: "Empty summary", description: "Write a summary first, then improve it with AI." });
+      return;
+    }
+    if (!canUseAi('resumeSummary')) {
+      toast({ title: "Free AI try used", description: "Use the smart suggestions below for free improvements!" });
       return;
     }
     setAiLoading('summary');
@@ -244,6 +272,8 @@ export function ResumeBuilder() {
       });
       if (!res.ok) throw new Error('AI service unavailable');
       const result = await res.json();
+      recordAiUsage('resumeSummary');
+      setAiSummaryUsed(true);
       setAiSuggestion({ id: 'summary', original: data.summary, improved: result.improved });
     } catch {
       toast({ title: "AI Error", description: "Could not reach AI service. Try again later.", variant: "destructive" });
@@ -382,17 +412,21 @@ export function ResumeBuilder() {
               />
               <div className="flex items-center justify-between mt-2">
                 <p className="text-xs text-muted-foreground">A strong summary highlights your key value in 2-3 sentences.</p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={improveSummary}
-                  disabled={aiLoading === 'summary' || !data.summary.trim()}
-                  className="text-xs gap-1.5 border-violet-300 text-violet-700 hover:bg-violet-50"
-                  data-testid="ai-improve-summary-btn"
-                >
-                  {aiLoading === 'summary' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                  Improve with AI
-                </Button>
+                {!aiSummaryUsed ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={improveSummary}
+                    disabled={aiLoading === 'summary' || !data.summary.trim()}
+                    className="text-xs gap-1.5 border-violet-300 text-violet-700 hover:bg-violet-50"
+                    data-testid="ai-improve-summary-btn"
+                  >
+                    {aiLoading === 'summary' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                    Improve with AI (1 free)
+                  </Button>
+                ) : (
+                  <span className="text-[10px] text-gray-400 flex items-center gap-1"><Sparkles className="w-3 h-3" /> Free AI try used</span>
+                )}
               </div>
               {aiSuggestion?.id === 'summary' && (
                 <div className="mt-3 bg-violet-50 border border-violet-200 rounded-lg p-4" data-testid="ai-summary-suggestion">
@@ -404,6 +438,26 @@ export function ResumeBuilder() {
                     </div>
                   </div>
                   <p className="text-sm text-violet-900 whitespace-pre-line">{aiSuggestion.improved}</p>
+                </div>
+              )}
+              {/* Smart Suggestions (always free) */}
+              {summarySuggestions.length > 0 && data.summary.trim() && (
+                <div className="mt-3 space-y-1.5" data-testid="smart-summary-suggestions">
+                  {summarySuggestions.map((s, i) => (
+                    <div key={i} className={`flex items-start gap-2 px-3 py-2 rounded-lg text-xs ${
+                      s.type === 'warning' ? 'bg-amber-50 border border-amber-200 text-amber-800' :
+                      s.type === 'improvement' ? 'bg-blue-50 border border-blue-200 text-blue-800' :
+                      'bg-emerald-50 border border-emerald-200 text-emerald-800'
+                    }`}>
+                      {s.type === 'warning' ? <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" /> :
+                       s.type === 'improvement' ? <Lightbulb className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" /> :
+                       <Info className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />}
+                      <div>
+                        <span className="font-semibold">{s.message}</span>
+                        {s.fix && <span className="block text-[11px] mt-0.5 opacity-80">{s.fix}</span>}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -480,17 +534,21 @@ export function ResumeBuilder() {
                   />
                   <div className="flex items-center justify-between mt-1.5">
                     <p className="text-xs text-muted-foreground">Use bullet points starting with action verbs</p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => improveBulletPoint(exp.id, exp.description, exp.title)}
-                      disabled={aiLoading === `bullet-${exp.id}` || !exp.description.trim()}
-                      className="text-xs gap-1.5 border-violet-300 text-violet-700 hover:bg-violet-50"
-                      data-testid={`ai-improve-bullet-${idx}`}
-                    >
-                      {aiLoading === `bullet-${exp.id}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                      Improve with AI
-                    </Button>
+                    {!aiBulletUsed ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => improveBulletPoint(exp.id, exp.description, exp.title)}
+                        disabled={aiLoading === `bullet-${exp.id}` || !exp.description.trim()}
+                        className="text-xs gap-1.5 border-violet-300 text-violet-700 hover:bg-violet-50"
+                        data-testid={`ai-improve-bullet-${idx}`}
+                      >
+                        {aiLoading === `bullet-${exp.id}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                        Improve with AI (1 free)
+                      </Button>
+                    ) : (
+                      <span className="text-[10px] text-gray-400 flex items-center gap-1"><Sparkles className="w-3 h-3" /> Free AI try used</span>
+                    )}
                   </div>
                   {aiSuggestion?.id === `bullet-${exp.id}` && (
                     <div className="mt-3 bg-violet-50 border border-violet-200 rounded-lg p-4" data-testid={`ai-bullet-suggestion-${idx}`}>
@@ -512,6 +570,26 @@ export function ResumeBuilder() {
                           </ul>
                         </div>
                       )}
+                    </div>
+                  )}
+                  {/* Smart Suggestions (always free, Grammarly-style) */}
+                  {bulletSuggestions[exp.id] && bulletSuggestions[exp.id].length > 0 && (
+                    <div className="mt-2 space-y-1.5" data-testid={`smart-bullet-suggestions-${idx}`}>
+                      {bulletSuggestions[exp.id].map((s, i) => (
+                        <div key={i} className={`flex items-start gap-2 px-3 py-2 rounded-lg text-xs ${
+                          s.type === 'warning' ? 'bg-amber-50 border border-amber-200 text-amber-800' :
+                          s.type === 'improvement' ? 'bg-blue-50 border border-blue-200 text-blue-800' :
+                          'bg-emerald-50 border border-emerald-200 text-emerald-800'
+                        }`}>
+                          {s.type === 'warning' ? <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" /> :
+                           s.type === 'improvement' ? <Lightbulb className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" /> :
+                           <Info className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />}
+                          <div>
+                            <span className="font-semibold">{s.message}</span>
+                            {s.fix && <span className="block text-[11px] mt-0.5 opacity-80">{s.fix}</span>}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>

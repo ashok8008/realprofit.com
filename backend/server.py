@@ -73,7 +73,7 @@ async def get_ai_response(system_message: str, user_message: str) -> str:
             api_key=api_key,
             session_id=f"career-tools-{os.urandom(8).hex()}",
             system_message=system_message
-        ).with_model("openai", "gpt-4o")
+        ).with_model("openai", "gpt-4o-mini")
         
         message = UserMessage(text=user_message)
         response = await chat.send_message(message)
