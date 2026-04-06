@@ -1,7 +1,7 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://realprofits.com/sitemap.xml
+Sitemap: https://realprofits.com/api/sitemap.xml
 
 User-agent: Googlebot
 Allow: /

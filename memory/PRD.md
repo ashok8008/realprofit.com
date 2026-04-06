@@ -28,7 +28,16 @@ RealProfits is a financial + career decision platform with free calculators, pro
 
 ## What's Been Implemented
 
-### April 6, 2026 - Resume Score System (LATEST)
+### April 6, 2026 - pSEO Engine Upgrade (LATEST)
+- Variation engine with value-bucket-based content differentiation (3 buckets x 3 variants x 6 types)
+- 3 new guide clusters: mortgage (65 pages), debt (30 pages), freelancer (38 pages)
+- Expanded existing clusters: salary (60), tax (60), savings (34)
+- Dynamic sitemap endpoint: GET /api/sitemap.xml (422+ URLs, auto-generated)
+- Sitemap stats API: GET /api/sitemap/stats
+- Updated Guides Hub with all 6 sections + collapsible variant sections
+- Testing: 100% pass (18/18 tests)
+
+### April 6, 2026 - Resume Score System
 - Deterministic scoring engine (resumeScore.ts) — 5 categories, 100 points
 - Real-time score circle with animated progress ring
 - Category breakdown bars (color-coded)
@@ -54,11 +63,20 @@ RealProfits is a financial + career decision platform with free calculators, pro
 - Full migration, 39+ calculators, 7 tools, 10 career tools
 - AI resume/email, 5 PDF templates, salary benchmarks
 
+## pSEO System (Scalable, 1000+ page ready)
+- **Variation Engine** (`variationEngine.ts`): value-bucket-based (low/mid/high) intro, explanation, FAQ generators. 3 variants per bucket per type = unique content across pages.
+- **6 Guide Clusters**: salary (60), tax (60), savings (34), mortgage (65), debt (30), freelancer (38) = **287 guide pages**
+- **Dynamic Sitemap**: `GET /api/sitemap.xml` generates 422+ URLs dynamically from all datasets, calculators, tools, articles. No manual updates needed.
+- **Datasets**: `/lib/pseo/datasets/` — algorithmic generation from amount ranges, preserving all legacy slugs
+- **Anti-duplication**: Bucket-varied intros + modulo-rotated variants within same bucket
+
 ## Key API Endpoints
 - GET /api/health
 - POST /api/career-tools/improve-bullet (GPT-4o-mini)
 - POST /api/career-tools/improve-summary (GPT-4o-mini)
 - POST /api/career-tools/email-template (GPT-4o-mini)
+- GET /api/sitemap.xml (dynamic sitemap)
+- GET /api/sitemap/stats (page count stats)
 
 ## Prioritized Backlog
 
@@ -68,8 +86,10 @@ RealProfits is a financial + career decision platform with free calculators, pro
 - [x] Quick Salary Check + code splitting
 - [x] Hybrid AI (Smart + AI, 3 free uses)
 - [x] Resume Score system (100pt, 5 categories, real-time)
+- [x] pSEO engine upgrade (variation engine, 6 clusters, dynamic sitemap, 287+ pages)
 
 ### P1 (Next)
+- [ ] Refactor ResumeBuilder.tsx into sub-components
 - [ ] Google Analytics tracking verification
 - [ ] SEO meta tags audit
 
@@ -77,3 +97,4 @@ RealProfits is a financial + career decision platform with free calculators, pro
 - [ ] Premium ATS resume checks
 - [ ] User accounts / saved profiles
 - [ ] A/B test hero CTAs
+- [ ] Expand pSEO to 1000+ pages (add more amounts to dataset arrays)
