@@ -33,7 +33,14 @@ User requested migration of RealProfits site from Replit to Emergent platform.
 
 ## What's Been Implemented
 
-### January 6, 2026
+### January 6, 2026 - Update 2
+- ✅ Added "100% FREE - No signup required" badge to Calculators hub hero
+- ✅ Added "100% FREE - No signup required" badge to Tools hub hero  
+- ✅ Fixed Side Hustle Earnings calculator to show Weekly, Monthly, AND Annual values
+- ✅ Added download arrow icon to PDF export buttons
+- ✅ Verified tax calculators working correctly
+
+### January 6, 2026 - Initial Migration
 - ✅ Successfully migrated RealProfits from Replit to Emergent platform
 - ✅ Converted pnpm monorepo structure to standalone yarn project
 - ✅ Removed Replit-specific plugins and dependencies
