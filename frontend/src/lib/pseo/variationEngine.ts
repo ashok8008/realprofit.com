@@ -1,4 +1,4 @@
-export type PseoType = "salary" | "tax" | "savings" | "mortgage" | "debt" | "freelancer";
+export type PseoType = "salary" | "tax" | "savings" | "mortgage" | "debt" | "freelancer" | "location-salary";
 export type ValueBucket = "low" | "mid" | "high";
 
 const thresholds: Record<PseoType, [number, number]> = {
@@ -8,6 +8,7 @@ const thresholds: Record<PseoType, [number, number]> = {
   mortgage: [200000, 500000],
   debt: [5000, 25000],
   freelancer: [50000, 150000],
+  "location-salary": [40000, 100000],
 };
 
 export function getValueBucket(type: PseoType, value: number): ValueBucket {
@@ -127,6 +128,23 @@ const intros: Record<PseoType, Record<ValueBucket, string[]>> = {
       "At this income level, the difference between naive and optimized tax strategy can exceed five figures annually. Professional-grade planning pays for itself.",
     ],
   },
+  "location-salary": {
+    low: [
+      "At lower income levels, your city's cost of living dramatically determines your actual quality of life. The same salary can feel tight in one city and comfortable in another.",
+      "Where you live matters as much as what you earn when income is modest. Understanding local costs helps you decide whether relocating could significantly improve your finances.",
+      "A below-median salary stretches much further in affordable metros. Comparing your purchasing power across cities reveals surprisingly large lifestyle differences.",
+    ],
+    mid: [
+      "At middle-income levels, location choice becomes a strategic financial decision. The same salary buys vastly different lifestyles depending on local housing costs and tax rates.",
+      "Your salary's real value depends on where you spend it. Cost-of-living differences between major cities can make a moderate income feel either comfortable or strained.",
+      "Mid-range earners benefit most from location arbitrage — the practice of earning in one market and spending in another through remote work or strategic relocation.",
+    ],
+    high: [
+      "At higher incomes, state tax policy becomes a major factor in net compensation. The difference between a no-income-tax state and a high-tax state can exceed tens of thousands annually.",
+      "High earners in expensive cities often find their lifestyle surprisingly similar to middle earners in affordable areas. Understanding adjusted purchasing power prevents costly location lock-in.",
+      "Location decisions at higher income levels involve complex trade-offs between career access, tax burden, cost of living, and quality of life. The numbers reveal what intuition misses.",
+    ],
+  },
 };
 
 export function generateIntro(type: PseoType, value: number): string {
@@ -238,6 +256,23 @@ const explanations: Record<PseoType, Record<ValueBucket, string[]>> = {
       "Consider hiring a CPA who specializes in self-employment taxation. At this income level, professional tax planning typically saves multiples of its cost through optimized strategies.",
     ],
   },
+  "location-salary": {
+    low: [
+      "At this income level in this city, the 30% housing rule is critical. If rent consumes more than a third of take-home pay, explore neighborhoods further from the city center or consider shared housing.",
+      "Transportation costs vary dramatically by city. In transit-friendly metros, ditching a car can save $500-800/month — a game-changer when every dollar matters.",
+      "Look into city-specific assistance programs. Many high-cost cities offer rent stabilization, utility assistance, and food programs for residents below certain income thresholds.",
+    ],
+    mid: [
+      "At moderate income levels, the rent-to-income ratio reveals whether a city is truly affordable for you. A healthy ratio is under 30%, but in expensive metros it often exceeds 40%.",
+      "Remote work has created unprecedented location arbitrage opportunities. If your employer allows it, earning a mid-range salary while living in a low-cost city can feel like a substantial raise.",
+      "State income tax differences are pure savings. Moving from a 7-9% state tax state to a no-income-tax state on this salary means thousands more in your pocket annually.",
+    ],
+    high: [
+      "At this income level, state tax arbitrage alone can generate five-figure annual savings. High earners in states like California or New York pay dramatically more than peers in Texas or Florida.",
+      "Higher earners in expensive cities should evaluate whether the career premium justifies the cost premium. If your industry allows remote work, the math often favors relocation.",
+      "Consider the total compensation picture: some cities offer higher salaries but the cost-of-living adjustment more than offsets the nominal increase. Net purchasing power is what matters.",
+    ],
+  },
 };
 
 export function generateExplanation(type: PseoType, value: number): string {
@@ -341,19 +376,29 @@ export function generateFAQs(type: PseoType, value: number): { question: string;
   }
 
   // freelancer
-  const base: { question: string; answer: string }[] = [
-    { question: `How much self-employment tax on ${v}?`, answer: `Self-employment tax is 15.3% on 92.35% of net earnings (up to the Social Security cap). On ${v}, that's approximately ${fmt(Math.round(value*0.9235*0.153))}.` },
-    { question: `How much should I set aside for taxes on ${v}?`, answer: bucket === "low" ? `Set aside 25-30% of each payment. At ${v}, that means saving ${fmt(Math.round(value*0.275))} for the year.` : bucket === "mid" ? `Set aside 30-35% of each payment. At ${v}, that means saving roughly ${fmt(Math.round(value*0.325))} for annual tax obligations.` : `Set aside 35-40% of each payment. At ${v}, total tax liability (SE + income + state) can reach ${fmt(Math.round(value*0.375))}.` },
-  ];
-  if (bucket === "low") {
-    base.push({ question: `Do I need to pay quarterly taxes on ${v}?`, answer: `If you expect to owe $1,000+ in taxes, quarterly estimated payments are required. On ${v}, you likely meet this threshold and should file Form 1040-ES.` });
-    base.push({ question: `What can I deduct as a freelancer earning ${v}?`, answer: `Common deductions include home office, internet, phone, equipment, software, mileage, health insurance premiums, and half of your SE tax.` });
-  } else if (bucket === "mid") {
-    base.push({ question: `Should I open a retirement account for my ${v} freelance income?`, answer: `A SEP-IRA or Solo 401(k) lets you contribute up to 25% of net self-employment earnings (or $23,500 + 25% for Solo 401k), directly reducing taxable income.` });
-    base.push({ question: `What business structure is best at ${v}?`, answer: `At ${v}, operating as a sole proprietor with a SEP-IRA is often sufficient. As income grows toward $80-100k+, an S-corp may save on SE tax.` });
-  } else {
-    base.push({ question: `Should I form an S-Corp at ${v}?`, answer: `At ${v}, an S-corp can save thousands in SE tax. You'd pay yourself a "reasonable salary" (subject to FICA) and take remaining profit as distributions (exempt from SE tax).` });
-    base.push({ question: `How do I maximize retirement savings at ${v}?`, answer: `With a Solo 401(k), you can contribute up to $70,000/year (2025 limits). At ${v}, maximizing this reduces your taxable income significantly.` });
+  if (type === "freelancer") {
+    const base: { question: string; answer: string }[] = [
+      { question: `How much self-employment tax on ${v}?`, answer: `Self-employment tax is 15.3% on 92.35% of net earnings (up to the Social Security cap). On ${v}, that's approximately ${fmt(Math.round(value*0.9235*0.153))}.` },
+      { question: `How much should I set aside for taxes on ${v}?`, answer: bucket === "low" ? `Set aside 25-30% of each payment. At ${v}, that means saving ${fmt(Math.round(value*0.275))} for the year.` : bucket === "mid" ? `Set aside 30-35% of each payment. At ${v}, that means saving roughly ${fmt(Math.round(value*0.325))} for annual tax obligations.` : `Set aside 35-40% of each payment. At ${v}, total tax liability (SE + income + state) can reach ${fmt(Math.round(value*0.375))}.` },
+    ];
+    if (bucket === "low") {
+      base.push({ question: `Do I need to pay quarterly taxes on ${v}?`, answer: `If you expect to owe $1,000+ in taxes, quarterly estimated payments are required. On ${v}, you likely meet this threshold and should file Form 1040-ES.` });
+      base.push({ question: `What can I deduct as a freelancer earning ${v}?`, answer: `Common deductions include home office, internet, phone, equipment, software, mileage, health insurance premiums, and half of your SE tax.` });
+    } else if (bucket === "mid") {
+      base.push({ question: `Should I open a retirement account for my ${v} freelance income?`, answer: `A SEP-IRA or Solo 401(k) lets you contribute up to 25% of net self-employment earnings (or $23,500 + 25% for Solo 401k), directly reducing taxable income.` });
+      base.push({ question: `What business structure is best at ${v}?`, answer: `At ${v}, operating as a sole proprietor with a SEP-IRA is often sufficient. As income grows toward $80-100k+, an S-corp may save on SE tax.` });
+    } else {
+      base.push({ question: `Should I form an S-Corp at ${v}?`, answer: `At ${v}, an S-corp can save thousands in SE tax. You'd pay yourself a "reasonable salary" (subject to FICA) and take remaining profit as distributions (exempt from SE tax).` });
+      base.push({ question: `How do I maximize retirement savings at ${v}?`, answer: `With a Solo 401(k), you can contribute up to $70,000/year (2025 limits). At ${v}, maximizing this reduces your taxable income significantly.` });
+    }
+    return base;
   }
-  return base;
+
+  // location-salary (fallback — city-specific FAQs are generated in the page component)
+  return [
+    { question: `Is ${v} a good salary for this area?`, answer: `It depends on the local cost of living. In affordable cities, ${v} provides solid purchasing power. In expensive metros, it may feel tight after rent and taxes.` },
+    { question: `How does cost of living affect ${v}?`, answer: `A city with a cost-of-living index of 150 means your ${v} has the purchasing power of roughly ${fmt(Math.round(value * 100 / 150))} at the national average.` },
+    { question: `Should I relocate for a better cost of living?`, answer: bucket === "low" ? "At this income level, relocating to a lower-cost city can dramatically improve quality of life. Even a 20% cost reduction is transformative." : bucket === "mid" ? "Location arbitrage at this income level can be powerful, especially if remote work allows you to keep the same salary while reducing expenses." : "At higher incomes, the decision involves career access, networking, and tax strategy alongside raw cost-of-living calculations." },
+    { question: `What percentage of income should go to rent?`, answer: `Financial advisors recommend keeping housing costs under 30% of take-home pay. In expensive cities, this may require living further from the center or considering roommates.` },
+  ];
 }

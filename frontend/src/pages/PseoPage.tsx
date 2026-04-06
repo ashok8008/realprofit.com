@@ -1,8 +1,8 @@
 import React from "react";
 import { useParams, Link } from "wouter";
 import { Seo, buildHowToSchema, buildFAQSchema, buildBreadcrumbSchema } from "@/components/Seo";
-import { findBySlug, salaryEntries, taxEntries, savingsEntries, mortgageEntries, debtEntries, freelancerEntries } from "@/lib/pseo/datasets";
-import type { SalaryEntry, TaxEntry, SavingsEntry, MortgageEntry, DebtEntry, FreelancerEntry } from "@/lib/pseo/datasets";
+import { findBySlug, salaryEntries, taxEntries, savingsEntries, mortgageEntries, debtEntries, freelancerEntries, locationSalaryEntries } from "@/lib/pseo/datasets";
+import type { SalaryEntry, TaxEntry, SavingsEntry, MortgageEntry, DebtEntry, FreelancerEntry, LocationSalaryEntry } from "@/lib/pseo/datasets";
 import { generateIntro, generateExplanation, generateFAQs } from "@/lib/pseo/variationEngine";
 import { ChevronRight, ArrowRight } from "lucide-react";
 import { CalculatorInlineCard, YouMightAlsoNeed } from "@/components/linking/InternalLinks";
@@ -97,6 +97,7 @@ export default function PseoPage() {
     case "mortgage": return <MortgageGuidePage data={entry as MortgageEntry} />;
     case "debt": return <DebtGuidePage data={entry as DebtEntry} />;
     case "freelancer": return <FreelancerGuidePage data={entry as FreelancerEntry} />;
+    case "location-salary": return <LocationSalaryGuidePage data={entry as LocationSalaryEntry} />;
     default: return null;
   }
 }
@@ -561,6 +562,124 @@ function FreelancerGuidePage({ data }: { data: FreelancerEntry }) {
 
         <CompareWithOthers current={data.slug} allItems={freelancerEntries.filter(e => e.variant === data.variant)} type="Income Levels" labelFn={item => isSETax ? `SE Tax on ${fmt(item.value)}` : `Tax Set-Aside on ${fmt(item.value)}`} />
         <YouMightAlsoNeed currentCategory="income-freelance" />
+      </div>
+    </div>
+  );
+}
+
+// ─── LOCATION SALARY ────────────────────────────────────────
+
+function LocationSalaryGuidePage({ data }: { data: LocationSalaryEntry }) {
+  const v = fmt(data.value);
+  const intro = generateIntro("location-salary", data.value);
+  const explanation = generateExplanation("location-salary", data.value);
+  const faqs = generateFAQs("location-salary", data.value);
+
+  const colDiff = data.costOfLivingIndex - 100;
+  const colLabel = colDiff > 0 ? `${colDiff}% above` : colDiff < 0 ? `${Math.abs(colDiff)}% below` : "at";
+  const noStateTax = data.stateTaxRate === 0;
+
+  const howTo = buildHowToSchema({
+    title: `How ${v} Compares in ${data.cityName}`,
+    description: data.title,
+    steps: [
+      { name: "Adjust for cost of living", text: `${data.cityName}'s COL index is ${data.costOfLivingIndex} (${colLabel} average). ${v} has the purchasing power of ${fmt(data.adjustedSalary)} at national average costs.` },
+      { name: "Calculate take-home", text: `After federal (${fmt(data.estimatedFedTax)}), state (${noStateTax ? "no state tax" : fmt(data.estimatedStateTax)}), and FICA (${fmt(data.estimatedFICA)}), monthly take-home is ${fmt(data.monthlyNet)}.` },
+      { name: "Evaluate rent burden", text: `Average 1BR rent in ${data.cityName} is ${fmt(data.avgRent1br)}/mo, consuming ${data.rentBurden1br}% of take-home pay.` },
+    ],
+  });
+
+  const faqSchema = buildFAQSchema([
+    { question: `Is ${v} a good salary in ${data.cityName}?`, answer: data.costOfLivingIndex > 130 ? `${v} is below average purchasing power in ${data.cityName} due to the high cost of living (${data.costOfLivingIndex} index). It has the equivalent purchasing power of ${fmt(data.adjustedSalary)} at national average costs.` : data.costOfLivingIndex > 100 ? `${v} provides moderate purchasing power in ${data.cityName}. The slightly above-average cost of living means your real purchasing power is equivalent to ${fmt(data.adjustedSalary)}.` : `${v} goes further in ${data.cityName} than in many other metros. With a below-average cost of living, your purchasing power is equivalent to ${fmt(data.adjustedSalary)} at national average costs.` },
+    ...faqs,
+  ]);
+
+  const breadcrumbs = buildBreadcrumbSchema([
+    { name: "Home", url: "https://realprofits.com" },
+    { name: "Guides", url: "https://realprofits.com/guides" },
+    { name: data.title, url: `https://realprofits.com/guides/${data.slug}` },
+  ]);
+
+  // Find same salary in other cities for comparison
+  const sameSalaryOtherCities = locationSalaryEntries
+    .filter(e => e.value === data.value && e.citySlug !== data.citySlug)
+    .sort(() => Math.random() - 0.5)
+    .slice(0, 5);
+
+  return (
+    <div className="w-full bg-background" data-testid="location-salary-guide-page">
+      <Seo title={data.title} description={`What is ${v} really worth in ${data.cityName}, ${data.state}? See cost-of-living adjusted salary, rent burden, state taxes, and comparison to other cities.`} keywords={`${v} salary ${data.cityName}, cost of living ${data.cityName}, ${v} in ${data.state}, rent on ${v} salary, salary comparison cities`} path={`/guides/${data.slug}`} jsonLd={[howTo, faqSchema, breadcrumbs]} />
+
+      <div className="container mx-auto px-4 py-12 max-w-4xl">
+        <PseoBreadcrumb label={`${v} in ${data.cityName}`} />
+        <h1 className="font-serif text-4xl md:text-5xl font-bold mb-6 leading-tight">{data.title}</h1>
+
+        <DirectAnswer>
+          In {data.cityName}, {data.state}, a {v} salary has the purchasing power of {fmt(data.adjustedSalary)} at national average costs (COL index: {data.costOfLivingIndex}). After taxes, monthly take-home is {fmt(data.monthlyNet)}.
+          Average 1BR rent ({fmt(data.avgRent1br)}/mo) consumes {data.rentBurden1br}% of take-home pay.
+          {noStateTax && ` ${data.state} has no state income tax, saving you ${fmt(Math.round(data.value * 0.05))}/year vs a 5% tax state.`}
+        </DirectAnswer>
+
+        <div className="prose prose-lg prose-headings:font-serif max-w-none">
+          <h2>What {v} Buys You in {data.cityName}</h2>
+          <p>{intro}</p>
+
+          <div className="not-prose my-8 bg-white border rounded-xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50"><tr><th className="text-left p-4 font-bold">Detail</th><th className="text-right p-4 font-bold">Amount</th></tr></thead>
+              <tbody className="divide-y">
+                <tr><td className="p-4">Gross Salary</td><td className="text-right p-4 font-semibold">{v}</td></tr>
+                <tr><td className="p-4">Cost-of-Living Index</td><td className="text-right p-4">{data.costOfLivingIndex} ({colLabel} nat'l avg)</td></tr>
+                <tr><td className="p-4">Purchasing Power (adjusted)</td><td className="text-right p-4 font-bold" style={{color: data.adjustedSalary >= data.value ? "#059669" : "#dc2626"}}>{fmt(data.adjustedSalary)}</td></tr>
+                <tr><td className="p-4">Federal Tax</td><td className="text-right p-4 text-red-600">-{fmt(data.estimatedFedTax)}</td></tr>
+                <tr><td className="p-4">{data.state} State Tax{noStateTax ? " (none!)" : ` (${(data.stateTaxRate * 100).toFixed(1)}%)`}</td><td className="text-right p-4 text-red-600">{noStateTax ? <span className="text-emerald-600 font-semibold">$0</span> : `-${fmt(data.estimatedStateTax)}`}</td></tr>
+                <tr><td className="p-4">FICA</td><td className="text-right p-4 text-red-600">-{fmt(data.estimatedFICA)}</td></tr>
+                <tr className="bg-teal-50 font-bold"><td className="p-4">Monthly Take-Home</td><td className="text-right p-4 text-teal-700">{fmt(data.monthlyNet)}/mo</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h2>Rent Burden in {data.cityName}</h2>
+          <p>Housing is typically the largest expense. In {data.cityName}:</p>
+
+          <div className="not-prose my-8 bg-white border rounded-xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50"><tr><th className="text-left p-4 font-bold">Housing Type</th><th className="text-right p-4 font-bold">Avg Rent</th><th className="text-right p-4 font-bold">% of Take-Home</th><th className="text-right p-4 font-bold">Status</th></tr></thead>
+              <tbody className="divide-y">
+                <tr><td className="p-4">1 Bedroom</td><td className="text-right p-4">{fmt(data.avgRent1br)}/mo</td><td className="text-right p-4 font-semibold">{data.rentBurden1br}%</td><td className="text-right p-4"><span className={`px-2 py-0.5 rounded-full text-xs font-bold ${data.rentBurden1br <= 30 ? "bg-emerald-100 text-emerald-700" : data.rentBurden1br <= 40 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"}`}>{data.rentBurden1br <= 30 ? "Healthy" : data.rentBurden1br <= 40 ? "Stretched" : "Burdened"}</span></td></tr>
+                <tr><td className="p-4">2 Bedroom</td><td className="text-right p-4">{fmt(data.avgRent2br)}/mo</td><td className="text-right p-4 font-semibold">{data.rentBurden2br}%</td><td className="text-right p-4"><span className={`px-2 py-0.5 rounded-full text-xs font-bold ${data.rentBurden2br <= 30 ? "bg-emerald-100 text-emerald-700" : data.rentBurden2br <= 40 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"}`}>{data.rentBurden2br <= 30 ? "Healthy" : data.rentBurden2br <= 40 ? "Stretched" : "Burdened"}</span></td></tr>
+                <tr className="bg-gray-50"><td className="p-4 text-muted-foreground" colSpan={4}>Recommended: Keep rent under 30% of take-home ({fmt(Math.round(data.monthlyNet * 0.3))}/mo)</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h2>Location Strategy</h2>
+          <p>{explanation}</p>
+          <CalculatorInlineCard slug="cost-of-living-comparison" />
+
+          <FAQSection faqs={[
+            { question: `Is ${v} a good salary in ${data.cityName}?`, answer: data.costOfLivingIndex > 130 ? `${v} is below average purchasing power in ${data.cityName} due to the high cost of living (${data.costOfLivingIndex} index). It has the equivalent purchasing power of ${fmt(data.adjustedSalary)} at national average costs.` : data.costOfLivingIndex > 100 ? `${v} provides moderate purchasing power in ${data.cityName}. The slightly above-average cost of living means your real purchasing power is equivalent to ${fmt(data.adjustedSalary)}.` : `${v} goes further in ${data.cityName} than in many other metros. With a below-average cost of living, your purchasing power is equivalent to ${fmt(data.adjustedSalary)} at national average costs.` },
+            ...faqs,
+          ]} />
+        </div>
+
+        {/* Compare same salary across cities */}
+        {sameSalaryOtherCities.length > 0 && (
+          <div className="bg-gray-50 border rounded-xl p-6 mt-10" data-testid="pseo-compare-section">
+            <h3 className="font-serif text-lg font-bold mb-4">{v} in Other Cities</h3>
+            <ul className="space-y-2">
+              {sameSalaryOtherCities.map(item => (
+                <li key={item.slug}>
+                  <Link href={`/guides/${item.slug}`} className="text-teal-600 hover:text-teal-800 text-sm font-medium flex items-center gap-1">
+                    <ArrowRight className="h-3 w-3" />
+                    {v} Salary in {(item as LocationSalaryEntry).cityName}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        <YouMightAlsoNeed currentCategory="life-decisions" />
       </div>
     </div>
   );

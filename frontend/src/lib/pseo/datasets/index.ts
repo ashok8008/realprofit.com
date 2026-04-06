@@ -4,9 +4,10 @@ import { savingsEntries, type SavingsEntry } from "./savings";
 import { mortgageEntries, type MortgageEntry } from "./mortgage";
 import { debtEntries, type DebtEntry } from "./debt";
 import { freelancerEntries, type FreelancerEntry } from "./freelancer";
+import { locationSalaryEntries, type LocationSalaryEntry } from "./locationSalary";
 import type { PseoType } from "../variationEngine";
 
-export type PseoEntry = SalaryEntry | TaxEntry | SavingsEntry | MortgageEntry | DebtEntry | FreelancerEntry;
+export type PseoEntry = SalaryEntry | TaxEntry | SavingsEntry | MortgageEntry | DebtEntry | FreelancerEntry | LocationSalaryEntry;
 
 const slugMap = new Map<string, PseoEntry>();
 
@@ -22,6 +23,7 @@ register(savingsEntries as PseoEntry[]);
 register(mortgageEntries as PseoEntry[]);
 register(debtEntries as PseoEntry[]);
 register(freelancerEntries as PseoEntry[]);
+register(locationSalaryEntries as PseoEntry[]);
 
 export function findBySlug(slug: string): PseoEntry | undefined {
   return slugMap.get(slug);
@@ -32,13 +34,14 @@ export function getAllSlugs(): string[] {
 }
 
 export function getEntriesByType(type: PseoType): PseoEntry[] {
-  const map: Record<PseoType, PseoEntry[]> = {
+  const map: Record<PseoType | "location-salary", PseoEntry[]> = {
     salary: salaryEntries,
     tax: taxEntries,
     savings: savingsEntries,
     mortgage: mortgageEntries,
     debt: debtEntries,
     freelancer: freelancerEntries,
+    "location-salary": locationSalaryEntries,
   };
   return map[type] || [];
 }
@@ -50,8 +53,10 @@ export function getTotalPageCount(): number {
 export {
   salaryEntries, taxEntries, savingsEntries,
   mortgageEntries, debtEntries, freelancerEntries,
+  locationSalaryEntries,
 };
 export type {
   SalaryEntry, TaxEntry, SavingsEntry,
   MortgageEntry, DebtEntry, FreelancerEntry,
+  LocationSalaryEntry,
 };

@@ -282,6 +282,18 @@ async def dynamic_sitemap():
     freelancer_amounts = [10000, 15000, 20000, 25000, 30000, 35000, 40000, 50000, 60000,
                           70000, 80000, 90000, 100000, 120000, 150000, 175000, 200000, 250000, 300000]
 
+    # Location Salary
+    location_salary_amounts = [30000, 40000, 50000, 60000, 70000, 80000, 90000, 100000,
+                               120000, 150000, 175000, 200000, 250000, 300000]
+    city_slugs = [
+        "new-york", "san-francisco", "los-angeles", "san-jose", "seattle",
+        "boston", "washington-dc", "chicago", "miami", "denver",
+        "austin", "dallas", "houston", "san-antonio", "nashville",
+        "atlanta", "phoenix", "portland", "minneapolis", "philadelphia",
+        "charlotte", "raleigh", "salt-lake-city", "pittsburgh", "tampa",
+        "detroit", "kansas-city", "columbus", "san-diego", "las-vegas",
+    ]
+
     # Articles (static list)
     article_slugs = [
         "build-emergency-fund-no-money", "freelance-taxes-reality", "hysa-vs-investing",
@@ -374,6 +386,11 @@ async def dynamic_sitemap():
         add(f"/guides/self-employment-tax-{a}", "0.6", "monthly")
         add(f"/guides/how-much-tax-to-set-aside-{a}", "0.6", "monthly")
 
+    # Guides: Location Salary
+    for a in location_salary_amounts:
+        for city in city_slugs:
+            add(f"/guides/{a}-salary-in-{city}", "0.6", "monthly")
+
     # Articles
     for s in article_slugs:
         add(f"/articles/{s}", "0.7", "monthly")
@@ -399,8 +416,9 @@ async def sitemap_stats():
     mortgage_term = 8 * 2
     debt_count = 15 * 2
     freelancer_count = 19 * 2
+    location_salary_count = 14 * 30  # 14 salary amounts × 30 cities
 
-    total_guides = salary_count + tax_count + savings_count + mortgage_base + mortgage_rate + mortgage_term + debt_count + freelancer_count
+    total_guides = salary_count + tax_count + savings_count + mortgage_base + mortgage_rate + mortgage_term + debt_count + freelancer_count + location_salary_count
 
     return {
         "salary_guides": salary_count,
@@ -409,6 +427,7 @@ async def sitemap_stats():
         "mortgage_guides": mortgage_base + mortgage_rate + mortgage_term,
         "debt_guides": debt_count,
         "freelancer_guides": freelancer_count,
+        "location_salary_guides": location_salary_count,
         "total_guide_pages": total_guides,
         "total_sitemap_urls": total_guides + 13 + 8 + 38 + 7 + 10 + 59,
     }

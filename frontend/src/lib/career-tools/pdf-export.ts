@@ -81,6 +81,7 @@ export interface ResumeData {
   };
   summary: string;
   experience: Array<{
+    id?: string;
     title: string;
     company: string;
     location: string;
@@ -90,6 +91,7 @@ export interface ResumeData {
     description: string;
   }>;
   education: Array<{
+    id?: string;
     school: string;
     degree: string;
     field: string;

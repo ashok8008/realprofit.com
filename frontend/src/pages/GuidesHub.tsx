@@ -1,7 +1,8 @@
 import React from "react";
 import { Link } from "wouter";
 import { Seo } from "@/components/Seo";
-import { salaryEntries, taxEntries, savingsEntries, mortgageEntries, debtEntries, freelancerEntries, getTotalPageCount } from "@/lib/pseo/datasets";
+import { salaryEntries, taxEntries, savingsEntries, mortgageEntries, debtEntries, freelancerEntries, locationSalaryEntries, getTotalPageCount } from "@/lib/pseo/datasets";
+import { allCities, allLocationSalaryAmounts } from "@/lib/pseo/datasets/locationSalary";
 
 const fmt = (n: number) => n.toLocaleString("en-US");
 
@@ -135,6 +136,30 @@ export default function GuidesHub() {
                     <GuideCard key={f.slug} href={`/guides/${f.slug}`} label={`$${fmt(f.value)}`} sublabel="Tax Set-Aside" />
                   ))}
                 </GuideGrid>
+              </div>
+            </details>
+          </section>
+
+          {/* Location Salary */}
+          <section className="mb-16" data-testid="location-salary-guides-section">
+            <h2 className="font-serif text-2xl font-bold mb-2">Salary by City Guides</h2>
+            <p className="text-muted-foreground mb-6">See what any salary is really worth in {allCities.length} major U.S. cities — with cost-of-living adjustments, rent burden, and state tax impact.</p>
+            <div className="mb-4">
+              <span className="text-sm text-muted-foreground">Browse by city ({allLocationSalaryAmounts.length} salary levels per city):</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 mb-6">
+              {allCities.slice(0, 15).map(city => (
+                <GuideCard key={city.slug} href={`/guides/80000-salary-in-${city.slug}`} label={city.name} sublabel={`COL: ${city.col} | ${city.stateTax === 0 ? "No state tax" : `${(city.stateTax * 100).toFixed(1)}% tax`}`} />
+              ))}
+            </div>
+            <details>
+              <summary className="text-sm font-medium text-teal-600 cursor-pointer hover:text-teal-800">Show all {allCities.length} cities</summary>
+              <div className="mt-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                  {allCities.slice(15).map(city => (
+                    <GuideCard key={city.slug} href={`/guides/80000-salary-in-${city.slug}`} label={city.name} sublabel={`COL: ${city.col} | ${city.stateTax === 0 ? "No state tax" : `${(city.stateTax * 100).toFixed(1)}% tax`}`} />
+                  ))}
+                </div>
               </div>
             </details>
           </section>
