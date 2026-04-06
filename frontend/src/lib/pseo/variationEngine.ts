@@ -402,3 +402,217 @@ export function generateFAQs(type: PseoType, value: number): { question: string;
     { question: `What percentage of income should go to rent?`, answer: `Financial advisors recommend keeping housing costs under 30% of take-home pay. In expensive cities, this may require living further from the center or considering roommates.` },
   ];
 }
+
+// ─── CITY-AWARE LOCATION SALARY GENERATORS ──────────────────
+
+export type CostTier = "low" | "moderate" | "high" | "very-high";
+
+export interface LocationContext {
+  cityName: string;
+  stateName: string;
+  costOfLivingIndex: number;
+  costTier: CostTier;
+  hasStateTax: boolean;
+  stateTaxRate: number;
+  avgRent1br: number;
+  adjustedSalary: number;
+  monthlyNet: number;
+}
+
+export function getCostTier(col: number): CostTier {
+  if (col < 95) return "low";
+  if (col <= 105) return "moderate";
+  if (col <= 140) return "high";
+  return "very-high";
+}
+
+const costTierLabels: Record<CostTier, string> = {
+  "low": "more affordable than most major U.S. metros",
+  "moderate": "close to the national average in cost of living",
+  "high": "above the national average in living costs",
+  "very-high": "among the most expensive places to live in the United States",
+};
+
+const costTierAdj: Record<CostTier, string> = {
+  "low": "affordable",
+  "moderate": "moderately priced",
+  "high": "above-average cost",
+  "very-high": "very expensive",
+};
+
+export function generateLocationIntro(value: number, ctx: LocationContext): string {
+  const bucket = getValueBucket("location-salary", value);
+  const v = fmt(value);
+  const tierLabel = costTierLabels[ctx.costTier];
+  const tierAdj = costTierAdj[ctx.costTier];
+  const taxNote = ctx.hasStateTax
+    ? `with a ${(ctx.stateTaxRate * 100).toFixed(1)}% state income tax rate`
+    : `with no state income tax — a meaningful advantage`;
+
+  const templates: Record<ValueBucket, Record<CostTier, string[]>> = {
+    low: {
+      "very-high": [
+        `${ctx.cityName} is ${tierLabel}, and on a ${v} salary, that reality hits hard. After federal taxes and ${ctx.stateName}'s ${ctx.hasStateTax ? "state income tax" : "tax-free status"}, the take-home shrinks — then ${ctx.cityName}'s housing costs claim an outsized share of what remains.`,
+        `Earning ${v} in ${ctx.cityName} puts you in a difficult position. The city is ${tierLabel}, meaning your purchasing power is significantly reduced compared to what the same salary would buy elsewhere.`,
+        `At ${v} in a city as expensive as ${ctx.cityName}, every budgeting decision matters. The gap between gross pay and real lifestyle is wider here than in almost any other U.S. metro.`,
+      ],
+      "high": [
+        `${ctx.cityName} has above-average living costs, and at ${v}, that translates to tighter margins than the same salary would produce in a more affordable city. Understanding your real take-home after taxes in ${ctx.stateName} (${taxNote}) is the first step.`,
+        `A ${v} salary in ${ctx.cityName} faces the double pressure of ${ctx.hasStateTax ? "state taxes and" : ""} above-average housing costs. Knowing exactly how far your paycheck stretches here helps you plan realistically.`,
+        `In ${ctx.cityName}, where costs run above the national average, ${v} requires deliberate budgeting. The numbers below show what you actually keep after taxes and what local rents demand.`,
+      ],
+      "moderate": [
+        `${ctx.cityName} is ${tierLabel}, which means a ${v} salary here buys roughly what it would in an average American city. That said, at this income level, careful budgeting is still essential — even moderate costs can strain a lower salary.`,
+        `At ${v} in ${ctx.cityName}, you benefit from a cost of living near the national average. While it's not a high-cost metro, this income level still requires disciplined spending on housing and essentials.`,
+        `${ctx.cityName}'s balanced cost of living means your ${v} salary isn't dramatically eroded by local prices. But at this income range, the margin between comfort and stress remains thin.`,
+      ],
+      "low": [
+        `${ctx.cityName} is ${tierLabel}, which is a genuine advantage on a ${v} salary. Your dollars stretch further here — housing costs are well below coastal city levels, and ${ctx.hasStateTax ? `${ctx.stateName}'s ${(ctx.stateTaxRate * 100).toFixed(1)}% state tax is manageable` : `${ctx.stateName} charges no state income tax, keeping more money in your pocket`}.`,
+        `A ${v} salary goes meaningfully further in ${ctx.cityName} than in pricier metros. With a cost-of-living index of ${ctx.costOfLivingIndex}, your purchasing power exceeds what the raw number suggests.`,
+        `In ${ctx.cityName}, ${v} buys a lifestyle that would be difficult to achieve in higher-cost cities. The combination of ${tierAdj} housing and ${ctx.hasStateTax ? "moderate taxes" : "no state income tax"} makes each dollar work harder.`,
+      ],
+    },
+    mid: {
+      "very-high": [
+        `Earning ${v} in ${ctx.cityName} sounds solid on paper, but this city is ${tierLabel}. After federal taxes, ${ctx.stateName} ${ctx.hasStateTax ? "state taxes" : "tax savings"}, and FICA, the monthly take-home faces ${ctx.cityName}'s aggressive housing market — where average rents can consume a startling percentage of net pay.`,
+        `${ctx.cityName} is one of America's most expensive cities, and a ${v} salary here provides a very different lifestyle than the same income in a mid-cost metro. The numbers below reveal exactly how much ${ctx.cityName}'s cost of living compresses your real purchasing power.`,
+        `At ${v} in ${ctx.cityName}, the salary-to-lifestyle equation is more complex than in most cities. The cost of living index of ${ctx.costOfLivingIndex} means your effective purchasing power is closer to ${fmt(ctx.adjustedSalary)} at national average prices.`,
+      ],
+      "high": [
+        `${ctx.cityName}'s above-average cost of living (index: ${ctx.costOfLivingIndex}) means a ${v} salary here doesn't stretch as far as the number suggests. Combined ${taxNote}, understanding your real take-home and rent burden is essential for planning.`,
+        `A ${v} salary in ${ctx.cityName} provides a moderate lifestyle, but the city's costs run above the national average. Smart choices about housing and commuting can significantly improve how far this income actually goes.`,
+        `In ${ctx.cityName}, ${v} places you in the middle — not struggling, but not flush either. With costs ${Math.round(ctx.costOfLivingIndex - 100)}% above the national average, strategic budgeting makes the difference between feeling comfortable and feeling pinched.`,
+      ],
+      "moderate": [
+        `${ctx.cityName} sits near the national cost-of-living average (index: ${ctx.costOfLivingIndex}), making a ${v} salary here a relatively strong position. Your purchasing power closely matches the nominal figure, and ${ctx.hasStateTax ? `${ctx.stateName}'s tax rate adds a manageable burden` : `${ctx.stateName}'s lack of state income tax is a real bonus`}.`,
+        `At ${v} in ${ctx.cityName}, you're in a favorable position. The city's moderate costs mean your salary translates to real purchasing power without the dramatic erosion seen in coastal metros.`,
+        `${ctx.cityName}'s cost of living is close to the U.S. average, which means ${v} here buys approximately what you'd expect. This makes budgeting more predictable and savings goals more achievable than in higher-cost cities.`,
+      ],
+      "low": [
+        `${ctx.cityName} is ${tierLabel}, and at ${v}, that's a real advantage. Your purchasing power here is equivalent to ${fmt(ctx.adjustedSalary)} at national average costs — effectively a built-in raise compared to working in a pricier metro.`,
+        `Earning ${v} in ${ctx.cityName} puts you in a strong position relative to local costs. With a COL index of ${ctx.costOfLivingIndex}, you have more room for saving, investing, and lifestyle than the same salary would provide in most large cities.`,
+        `A ${v} salary combined with ${ctx.cityName}'s lower-than-average costs creates real financial opportunity. ${ctx.hasStateTax ? `Even with ${ctx.stateName}'s state tax, ` : `With no state income tax in ${ctx.stateName}, `}your net purchasing power here outperforms most major metros.`,
+      ],
+    },
+    high: {
+      "very-high": [
+        `Even at ${v}, ${ctx.cityName} tests your budget. The city is ${tierLabel}, with a COL index of ${ctx.costOfLivingIndex} — meaning your real purchasing power is closer to ${fmt(ctx.adjustedSalary)}. ${ctx.hasStateTax ? `Add ${ctx.stateName}'s ${(ctx.stateTaxRate * 100).toFixed(1)}% state tax` : `${ctx.stateName}'s lack of state income tax helps`}, and the picture becomes clearer: high income doesn't automatically mean high comfort in ${ctx.cityName}.`,
+        `${v} is a strong salary nationally, but ${ctx.cityName}'s extreme cost of living (index ${ctx.costOfLivingIndex}) reshapes what that number actually means. The gap between this salary's national buying power and its local buying power is larger here than in nearly any other U.S. metro.`,
+        `At ${v} in ${ctx.cityName}, you earn well above the national median — but the city's costs are equally above average. The result is a lifestyle that may feel more "comfortable middle" than "high earner" depending on housing choices.`,
+      ],
+      "high": [
+        `A ${v} salary in ${ctx.cityName} provides a good lifestyle, but the city's above-average costs (index: ${ctx.costOfLivingIndex}) mean you're not as far ahead as the number suggests. ${ctx.hasStateTax ? `${ctx.stateName}'s state income tax adds to the picture` : `The absence of state income tax in ${ctx.stateName} is a meaningful advantage`}, making tax planning especially important.`,
+        `In ${ctx.cityName}, ${v} translates to solid purchasing power — but not as much as you'd enjoy in a lower-cost metro. Understanding how ${ctx.cityName}'s specific cost structure (housing, taxes, transit) affects this salary helps you optimize.`,
+        `${ctx.cityName}'s cost of living sits ${Math.round(ctx.costOfLivingIndex - 100)}% above the national average, which tempers the impact of a ${v} salary. Still, at this income level, you have meaningful room to build savings and invest if housing costs are managed.`,
+      ],
+      "moderate": [
+        `${v} in ${ctx.cityName} is an excellent position. With costs near the national average and ${ctx.hasStateTax ? "manageable state taxes" : "no state income tax"}, almost all of your above-average salary translates to above-average lifestyle and savings capacity.`,
+        `At ${v} in ${ctx.cityName}, you're earning well above what the local cost of living demands. This creates significant room for aggressive saving, investing, or lifestyle upgrades that wouldn't be possible at the same salary in a coastal metro.`,
+        `${ctx.cityName}'s moderate costs combined with a ${v} salary create one of the better income-to-lifestyle ratios available in a U.S. metro. Your purchasing power of ${fmt(ctx.adjustedSalary)} closely matches (or exceeds) the nominal figure.`,
+      ],
+      "low": [
+        `${v} in ${ctx.cityName} is an exceptionally strong financial position. The city's low cost of living (index: ${ctx.costOfLivingIndex}) amplifies your purchasing power to ${fmt(ctx.adjustedSalary)} at national average prices. ${ctx.hasStateTax ? `Even with state taxes, ` : `With no state income tax, `}the combination is powerful.`,
+        `Earning ${v} in an affordable city like ${ctx.cityName} is a wealth-building accelerator. Your monthly take-home of ${fmt(ctx.monthlyNet)} faces housing costs far below what peers pay in coastal cities, leaving substantial room for savings and investing.`,
+        `At ${v} in ${ctx.cityName}, you experience one of the strongest purchasing power multipliers in the country. This income level here provides a lifestyle that would require ${fmt(Math.round(value * ctx.costOfLivingIndex / 100))}+ in a city at the national average.`,
+      ],
+    },
+  };
+
+  const options = templates[bucket][ctx.costTier];
+  return pick(options, value);
+}
+
+export function generateLocationExplanation(value: number, ctx: LocationContext): string {
+  const bucket = getValueBucket("location-salary", value);
+  const v = fmt(value);
+  const taxSentence = ctx.hasStateTax
+    ? `${ctx.stateName}'s ${(ctx.stateTaxRate * 100).toFixed(1)}% state income tax takes ${fmt(Math.round(value * ctx.stateTaxRate))} annually from your ${v} salary`
+    : `${ctx.stateName} has no state income tax — saving you roughly ${fmt(Math.round(value * 0.05))} per year compared to a state with a 5% rate`;
+
+  if (bucket === "low") {
+    return pick([
+      `In ${ctx.cityName}, the 30% housing rule is especially critical at ${v}. With average 1-bedroom rent at ${fmt(ctx.avgRent1br)}/month against your take-home of ${fmt(ctx.monthlyNet)}/month, ${ctx.avgRent1br / ctx.monthlyNet > 0.3 ? "rent alone exceeds the recommended threshold — shared housing or neighborhoods further from the center may be necessary" : "you're near or within the recommended range, though it leaves limited room for other expenses"}. ${taxSentence}.`,
+      `At ${v} in ${ctx.cityName}, every dollar allocation matters. ${taxSentence}. After housing at local rates, the remaining budget for transportation, food, and savings is ${ctx.costTier === "very-high" || ctx.costTier === "high" ? "extremely tight" : "workable but requires discipline"}. Prioritizing employer-matched retirement contributions and building a $1,000 emergency fund should come before discretionary spending.`,
+      `${ctx.cityName}'s ${costTierAdj[ctx.costTier]} housing market defines what ${v} feels like here. ${taxSentence}. The key question is whether rent below ${fmt(Math.round(ctx.monthlyNet * 0.3))}/month (the 30% threshold) is achievable in ${ctx.cityName} — and the data suggests it ${ctx.avgRent1br <= ctx.monthlyNet * 0.3 ? "is, with careful neighborhood selection" : "requires significant compromises like roommates or longer commutes"}.`,
+    ], value);
+  }
+
+  if (bucket === "mid") {
+    return pick([
+      `${ctx.cityName}'s cost structure shapes how ${v} actually feels. ${taxSentence}. Housing is the single largest variable: at ${fmt(ctx.avgRent1br)}/month for a 1-bedroom, rent consumes ${Math.round(ctx.avgRent1br / ctx.monthlyNet * 100)}% of your monthly take-home. ${ctx.avgRent1br / ctx.monthlyNet <= 0.3 ? "This is within the healthy range, leaving room for saving 15-20% of gross income." : "This exceeds the recommended 30% threshold, meaning savings goals require trade-offs elsewhere."}`,
+      `At this income level in ${ctx.cityName}, strategic decisions about housing and transportation have outsized impact. ${taxSentence}. If remote work allows flexibility, living slightly outside ${ctx.cityName}'s core can reduce rent by 15-25% while keeping access to the city's opportunities.`,
+      `The ${v}-in-${ctx.cityName} equation comes down to housing efficiency. With take-home of ${fmt(ctx.monthlyNet)}/month, keeping rent near ${fmt(Math.round(ctx.monthlyNet * 0.3))}/month is the target. ${taxSentence}. Smart budgeting at this level means automating at least 15% of gross into savings before allocating for lifestyle spending.`,
+    ], value);
+  }
+
+  return pick([
+    `At ${v} in ${ctx.cityName}, the question shifts from "can I afford it?" to "am I optimizing it?" ${taxSentence}. With take-home of ${fmt(ctx.monthlyNet)}/month, the ${fmt(ctx.avgRent1br)} average rent (${Math.round(ctx.avgRent1br / ctx.monthlyNet * 100)}% of take-home) is ${ctx.avgRent1br / ctx.monthlyNet <= 0.25 ? "well within comfortable range" : ctx.avgRent1br / ctx.monthlyNet <= 0.35 ? "manageable but notable" : "a significant portion even at this income"}. Maxing out tax-advantaged accounts (401k, IRA, HSA) should be baseline strategy.`,
+    `High earners in ${ctx.cityName} have a different calculus than in lower-cost metros. ${taxSentence}. The real question is opportunity cost: does ${ctx.cityName}'s job market and networking value justify the premium over a city where ${v} would have ${fmt(Math.round(value * (100 / ctx.costOfLivingIndex) - value))} more in effective purchasing power?`,
+    `${v} in ${ctx.cityName} provides ${ctx.costTier === "low" || ctx.costTier === "moderate" ? "substantial financial power — prioritize wealth building through aggressive investing and retirement account maximization" : "good income but not unlimited comfort. " + (ctx.hasStateTax ? `Combined federal and ${ctx.stateName} state taxes claim a significant portion, ` : "The lack of state income tax helps, ") + "so housing efficiency and tax-advantaged accounts become the key levers for building long-term wealth"}.`,
+  ], value);
+}
+
+export function generateLocationFAQs(value: number, ctx: LocationContext): { question: string; answer: string }[] {
+  const bucket = getValueBucket("location-salary", value);
+  const v = fmt(value);
+  const rentPct = Math.round(ctx.avgRent1br / ctx.monthlyNet * 100);
+
+  const faqs: { question: string; answer: string }[] = [
+    {
+      question: `Is ${v} a good salary in ${ctx.cityName}?`,
+      answer: ctx.costTier === "very-high"
+        ? `${v} in ${ctx.cityName} provides below-average purchasing power due to the very high cost of living (index ${ctx.costOfLivingIndex}). Your effective purchasing power is ${fmt(ctx.adjustedSalary)} at national average costs. ${bucket === "low" ? "It will be challenging without supplemental income or shared housing." : bucket === "mid" ? "It's livable but requires careful budgeting, especially around housing." : "It provides a comfortable but not lavish lifestyle by local standards."}`
+        : ctx.costTier === "high"
+        ? `${v} in ${ctx.cityName} is ${bucket === "low" ? "below average for the local cost of living" : bucket === "mid" ? "moderate — enough to live on but with limited room for aggressive saving" : "solid, providing a comfortable lifestyle with room for savings"}. The above-average costs (index ${ctx.costOfLivingIndex}) reduce purchasing power to ${fmt(ctx.adjustedSalary)}.`
+        : ctx.costTier === "moderate"
+        ? `${v} in ${ctx.cityName} is ${bucket === "low" ? "below median but workable given the moderate costs" : bucket === "mid" ? "a solid middle-class salary that goes roughly as far as the national average" : "an excellent salary that provides strong purchasing power and saving capacity"}. Your purchasing power closely matches the nominal figure at ${fmt(ctx.adjustedSalary)}.`
+        : `${v} in ${ctx.cityName} goes further than in most major cities. With a cost-of-living index of only ${ctx.costOfLivingIndex}, your purchasing power is ${fmt(ctx.adjustedSalary)} — ${bucket === "low" ? "making an otherwise tight salary more manageable" : bucket === "mid" ? "giving you more breathing room than peers in expensive metros" : "creating excellent conditions for rapid wealth building"}.`,
+    },
+    {
+      question: `How much does rent cost on ${v} in ${ctx.cityName}?`,
+      answer: `Average 1BR rent in ${ctx.cityName} is ${fmt(ctx.avgRent1br)}/month. On a ${v} salary with monthly take-home of ${fmt(ctx.monthlyNet)}, that's ${rentPct}% of net pay. ${rentPct <= 30 ? "This is within the recommended 30% threshold." : rentPct <= 40 ? `This exceeds the 30% guideline. To stay within budget, target rent below ${fmt(Math.round(ctx.monthlyNet * 0.3))}/month.` : `This is significantly rent-burdened. Consider shared housing or neighborhoods outside ${ctx.cityName}'s core to reduce costs.`}`,
+    },
+    {
+      question: `Can you live comfortably in ${ctx.cityName} on ${v}?`,
+      answer: ctx.costTier === "very-high" && bucket === "low"
+        ? `${v} in ${ctx.cityName} will be very challenging. After rent and taxes, little remains for savings or discretionary spending. Shared housing is typically necessary.`
+        : ctx.costTier === "very-high"
+        ? `Comfort in ${ctx.cityName} on ${v} depends heavily on housing choices. ${bucket === "mid" ? "It's doable with a modest apartment, but aggressive saving is difficult." : "Yes, but be aware that the same salary buys significantly more in other cities."}`
+        : rentPct <= 35
+        ? `Yes. With rent consuming ${rentPct}% of take-home and ${ctx.hasStateTax ? "manageable state taxes" : "no state income tax"}, ${v} provides a comfortable lifestyle in ${ctx.cityName} with room for savings.`
+        : `It's possible but requires trade-offs. Rent at ${rentPct}% of take-home pay is above the comfort threshold, so careful budgeting around food, transportation, and entertainment is important.`,
+    },
+    {
+      question: `How does ${ctx.cityName}'s cost of living compare to the national average?`,
+      answer: `${ctx.cityName}'s cost-of-living index is ${ctx.costOfLivingIndex}, which is ${ctx.costOfLivingIndex > 100 ? `${ctx.costOfLivingIndex - 100}% above` : ctx.costOfLivingIndex < 100 ? `${100 - ctx.costOfLivingIndex}% below` : "exactly at"} the national average of 100. This means ${v} in ${ctx.cityName} has the purchasing power of ${fmt(ctx.adjustedSalary)} in an average-cost U.S. city. ${ctx.hasStateTax ? `${ctx.stateName}'s ${(ctx.stateTaxRate * 100).toFixed(1)}% state income tax adds to the cost consideration.` : `${ctx.stateName}'s lack of state income tax partially offsets ${ctx.costOfLivingIndex > 100 ? "the higher costs" : "expenses"}, improving your net position.`}`,
+    },
+    {
+      question: `Should I move to ${ctx.cityName} for a ${v} salary?`,
+      answer: bucket === "low"
+        ? `At ${v}, ${ctx.costTier === "low" || ctx.costTier === "moderate" ? `${ctx.cityName}'s ${costTierAdj[ctx.costTier]} costs make it a reasonable choice. Your salary stretches ${ctx.costTier === "low" ? "further than average" : "about as expected"}.` : `${ctx.cityName}'s higher costs mean ${v} won't go as far as in more affordable cities. Consider whether career opportunities here justify the cost premium.`}`
+        : bucket === "mid"
+        ? `${ctx.costTier === "very-high" || ctx.costTier === "high" ? `Only if the career opportunity significantly outweighs the cost premium. Your ${v} has the purchasing power of ${fmt(ctx.adjustedSalary)} here.` : `${ctx.cityName} is a solid choice at ${v}. The ${costTierAdj[ctx.costTier]} costs mean your salary maintains strong purchasing power.`}`
+        : `At ${v}, ${ctx.cityName} ${ctx.costTier === "very-high" ? "is livable but you'd build wealth faster in a lower-cost city" : ctx.costTier === "high" ? "offers a good lifestyle with some trade-offs vs cheaper metros" : "is an excellent choice — your high salary combined with " + (ctx.costTier === "low" ? "low costs" : "moderate costs") + " creates powerful wealth-building conditions"}.`,
+    },
+  ];
+
+  return faqs;
+}
+
+export function generateCityComparison(value: number, ctx: LocationContext): string {
+  const v = fmt(value);
+  const diff = ctx.adjustedSalary - value;
+  const direction = diff >= 0 ? "more" : "less";
+  const absDiff = Math.abs(diff);
+
+  if (ctx.costTier === "very-high") {
+    return `Compared to the national average, ${ctx.cityName} has a very high cost of living — your ${v} buys what ${fmt(ctx.adjustedSalary)} would buy elsewhere, meaning you lose ${fmt(absDiff)} in purchasing power. ${ctx.hasStateTax ? `Factor in ${ctx.stateName}'s ${(ctx.stateTaxRate * 100).toFixed(1)}% state tax, and the effective cost of living in ${ctx.cityName} is even steeper.` : `The silver lining: ${ctx.stateName} has no state income tax, partially offsetting the higher costs.`} Someone earning the same ${v} in a city with a COL index around 95 would have roughly ${fmt(Math.round(value * 100 / 95))} in purchasing power — a ${fmt(Math.round(value * 100 / 95) - ctx.adjustedSalary)} difference.`;
+  }
+  if (ctx.costTier === "high") {
+    return `${ctx.cityName}'s cost of living is ${ctx.costOfLivingIndex - 100}% above the national average. Your ${v} effectively buys what ${fmt(ctx.adjustedSalary)} would in an average-cost city — a ${fmt(absDiff)} reduction in real purchasing power. ${ctx.hasStateTax ? `${ctx.stateName}'s state income tax adds another layer of cost.` : `However, ${ctx.stateName}'s zero state income tax keeps more of each paycheck in your pocket.`}`;
+  }
+  if (ctx.costTier === "moderate") {
+    return `${ctx.cityName}'s cost of living sits close to the national average (index: ${ctx.costOfLivingIndex}), meaning your ${v} salary translates almost dollar-for-dollar to real purchasing power. ${diff >= 0 ? `You actually gain ${fmt(absDiff)} in effective purchasing power compared to the average city.` : `The ${fmt(absDiff)} difference is minimal and unlikely to affect major financial decisions.`} ${ctx.hasStateTax ? `${ctx.stateName}'s ${(ctx.stateTaxRate * 100).toFixed(1)}% state tax is a standard consideration.` : `${ctx.stateName}'s lack of state income tax is a meaningful additional advantage.`}`;
+  }
+  return `${ctx.cityName} is ${direction === "more" ? "more affordable" : "comparable to"} the average U.S. city (COL index: ${ctx.costOfLivingIndex}). Your ${v} has the effective purchasing power of ${fmt(ctx.adjustedSalary)} — that's ${fmt(absDiff)} ${direction} than the same salary in an average-cost city. ${ctx.hasStateTax ? `Even with ${ctx.stateName}'s state tax, ` : `Combined with ${ctx.stateName}'s zero state income tax, `}${ctx.cityName} is one of the more financially efficient places to earn this salary.`;
+}

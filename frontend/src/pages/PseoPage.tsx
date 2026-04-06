@@ -3,7 +3,7 @@ import { useParams, Link } from "wouter";
 import { Seo, buildHowToSchema, buildFAQSchema, buildBreadcrumbSchema } from "@/components/Seo";
 import { findBySlug, salaryEntries, taxEntries, savingsEntries, mortgageEntries, debtEntries, freelancerEntries, locationSalaryEntries } from "@/lib/pseo/datasets";
 import type { SalaryEntry, TaxEntry, SavingsEntry, MortgageEntry, DebtEntry, FreelancerEntry, LocationSalaryEntry } from "@/lib/pseo/datasets";
-import { generateIntro, generateExplanation, generateFAQs } from "@/lib/pseo/variationEngine";
+import { generateIntro, generateExplanation, generateFAQs, generateLocationIntro, generateLocationExplanation, generateLocationFAQs, generateCityComparison, getCostTier, type LocationContext } from "@/lib/pseo/variationEngine";
 import { ChevronRight, ArrowRight } from "lucide-react";
 import { CalculatorInlineCard, YouMightAlsoNeed } from "@/components/linking/InternalLinks";
 
@@ -571,13 +571,26 @@ function FreelancerGuidePage({ data }: { data: FreelancerEntry }) {
 
 function LocationSalaryGuidePage({ data }: { data: LocationSalaryEntry }) {
   const v = fmt(data.value);
-  const intro = generateIntro("location-salary", data.value);
-  const explanation = generateExplanation("location-salary", data.value);
-  const faqs = generateFAQs("location-salary", data.value);
-
+  const noStateTax = data.stateTaxRate === 0;
   const colDiff = data.costOfLivingIndex - 100;
   const colLabel = colDiff > 0 ? `${colDiff}% above` : colDiff < 0 ? `${Math.abs(colDiff)}% below` : "at";
-  const noStateTax = data.stateTaxRate === 0;
+
+  const ctx: LocationContext = {
+    cityName: data.cityName,
+    stateName: data.state,
+    costOfLivingIndex: data.costOfLivingIndex,
+    costTier: getCostTier(data.costOfLivingIndex),
+    hasStateTax: !noStateTax,
+    stateTaxRate: data.stateTaxRate,
+    avgRent1br: data.avgRent1br,
+    adjustedSalary: data.adjustedSalary,
+    monthlyNet: data.monthlyNet,
+  };
+
+  const intro = generateLocationIntro(data.value, ctx);
+  const explanation = generateLocationExplanation(data.value, ctx);
+  const faqs = generateLocationFAQs(data.value, ctx);
+  const comparison = generateCityComparison(data.value, ctx);
 
   const howTo = buildHowToSchema({
     title: `How ${v} Compares in ${data.cityName}`,
@@ -589,11 +602,7 @@ function LocationSalaryGuidePage({ data }: { data: LocationSalaryEntry }) {
     ],
   });
 
-  const faqSchema = buildFAQSchema([
-    { question: `Is ${v} a good salary in ${data.cityName}?`, answer: data.costOfLivingIndex > 130 ? `${v} is below average purchasing power in ${data.cityName} due to the high cost of living (${data.costOfLivingIndex} index). It has the equivalent purchasing power of ${fmt(data.adjustedSalary)} at national average costs.` : data.costOfLivingIndex > 100 ? `${v} provides moderate purchasing power in ${data.cityName}. The slightly above-average cost of living means your real purchasing power is equivalent to ${fmt(data.adjustedSalary)}.` : `${v} goes further in ${data.cityName} than in many other metros. With a below-average cost of living, your purchasing power is equivalent to ${fmt(data.adjustedSalary)} at national average costs.` },
-    ...faqs,
-  ]);
-
+  const faqSchema = buildFAQSchema(faqs);
   const breadcrumbs = buildBreadcrumbSchema([
     { name: "Home", url: "https://realprofits.com" },
     { name: "Guides", url: "https://realprofits.com/guides" },
@@ -653,14 +662,14 @@ function LocationSalaryGuidePage({ data }: { data: LocationSalaryEntry }) {
             </table>
           </div>
 
-          <h2>Location Strategy</h2>
+          <h2>{data.cityName} vs National Average</h2>
+          <p>{comparison}</p>
+
+          <h2>Living on {v} in {data.cityName}</h2>
           <p>{explanation}</p>
           <CalculatorInlineCard slug="cost-of-living-comparison" />
 
-          <FAQSection faqs={[
-            { question: `Is ${v} a good salary in ${data.cityName}?`, answer: data.costOfLivingIndex > 130 ? `${v} is below average purchasing power in ${data.cityName} due to the high cost of living (${data.costOfLivingIndex} index). It has the equivalent purchasing power of ${fmt(data.adjustedSalary)} at national average costs.` : data.costOfLivingIndex > 100 ? `${v} provides moderate purchasing power in ${data.cityName}. The slightly above-average cost of living means your real purchasing power is equivalent to ${fmt(data.adjustedSalary)}.` : `${v} goes further in ${data.cityName} than in many other metros. With a below-average cost of living, your purchasing power is equivalent to ${fmt(data.adjustedSalary)} at national average costs.` },
-            ...faqs,
-          ]} />
+          <FAQSection faqs={faqs} />
         </div>
 
         {/* Compare same salary across cities */}
