@@ -174,7 +174,7 @@ export function ExportToPDFButton({ elementId, title }: ExportProps) {
 
   return (
     <Button variant="outline" size="sm" onClick={handleExport} className="flex items-center gap-2">
-      <FileText className="w-4 h-4" /> PDF
+      <Download className="w-4 h-4" /> PDF
     </Button>
   );
 }

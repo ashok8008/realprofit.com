@@ -34,6 +34,10 @@ export default function ToolsHub() {
         <div className="container mx-auto max-w-6xl relative z-10">
           <div className="flex flex-col lg:flex-row items-center gap-12">
             <div className="lg:w-1/2 text-white">
+              <div className="inline-flex items-center gap-2 bg-white/20 rounded-full px-4 py-1.5 mb-4">
+                <span className="text-xs font-bold text-white">100% FREE</span>
+                <span className="text-xs text-white/80">No signup required</span>
+              </div>
               <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6">
                 Productive Tools That Save You Time
               </h1>

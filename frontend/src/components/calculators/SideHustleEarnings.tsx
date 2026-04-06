@@ -7,7 +7,8 @@ export function SideHustleEarnings() {
   const [hoursPerWeek, setHoursPerWeek] = useState(10);
   const [weeksPerMonth, setWeeksPerMonth] = useState(4);
 
-  const monthly = hourlyRate * hoursPerWeek * weeksPerMonth;
+  const weekly = hourlyRate * hoursPerWeek;
+  const monthly = weekly * weeksPerMonth;
   const annual = monthly * 12;
 
   return (
@@ -27,7 +28,11 @@ export function SideHustleEarnings() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-muted/30 p-6 rounded-xl border text-center">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-muted/30 p-6 rounded-xl border text-center">
+        <div>
+          <h3 className="font-bold mb-1">Weekly Extra</h3>
+          <div className="text-4xl font-serif font-bold text-blue-600">${Math.round(weekly).toLocaleString()}</div>
+        </div>
         <div>
           <h3 className="font-bold mb-1">Monthly Extra</h3>
           <div className="text-4xl font-serif font-bold text-primary">${Math.round(monthly).toLocaleString()}</div>
