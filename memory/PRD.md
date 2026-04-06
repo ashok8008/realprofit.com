@@ -3,43 +3,38 @@
 ## Overview
 RealProfits is a financial + career decision platform — not just a calculator site. It provides free calculators, productive money tools, career tools, practical guides, and what-if simulations for better life decisions.
 
-## Original Problem Statement
-User migrated RealProfits from Replit to Emergent, then expanded it from a calculator site into a multi-product platform with career tools, AI-powered resume enhancements, and a complete homepage redesign.
-
 ## Architecture
 - **Frontend**: React + Vite + TypeScript, Tailwind CSS, shadcn/ui, wouter, Recharts, jsPDF
 - **Backend**: FastAPI with AI integration via emergentintegrations
 - **Fonts**: Playfair Display (headings), Inter/Manrope (body)
-- **State**: localStorage for persistence, no DB for user data
+- **State**: localStorage for persistence
+- **Code Splitting**: React.lazy() + Suspense for all route pages except Home
+- **Lazy Charts**: Recharts loaded on-demand (HeroCharts, WhatIfChart components)
 
 ## What's Been Implemented
 
-### April 6, 2026 - Homepage Redesign (LATEST)
-- Complete homepage rewrite: 12 sections in optimized hierarchy
-- New hero: "Understand Your Money, Income & Career — Instantly" + platform-representative floating cards
-- "Start Here" section: 6 clickable action-oriented question cards
-- "What You Can Do Here": 4-pillar platform overview (Calculators, Tools, Career, Planning)
-- "Popular Tools Right Now": 6 featured tools with tags
-- Career Tools hero-like dark section: "Grow Your Income, Not Just Track It"
-- What-If moved higher with AreaChart gradient fill
-- Tightened Calculators, Tools, Articles sections with better copy
-- Redesigned Trust section: "Built to Be Useful. Designed to Be Trusted."
-- Updated Footer: Career Tools link added, improved CTA copy
+### April 6, 2026 - Performance Optimization & Quick Salary Check (LATEST)
+- Quick Salary Check interactive widget in hero section (job title + salary → instant market badge)
+- React.lazy() code splitting for all 18 route pages (only Home stays eager)
+- Suspense fallback with PageLoader spinner
+- Lazy-loaded Recharts components (HeroCharts.tsx, WhatIfChart.tsx) for faster initial load
+- Testing: 100% pass (widget, code splitting, lazy charts, all routes, no console errors)
+
+### April 6, 2026 - Homepage Redesign
+- 12-section platform-positioning homepage
+- Hero: "Understand Your Money, Income & Career — Instantly"
+- Start Here (6 action questions), What You Can Do (4 pillars), Popular Tools, Career Tools dark section
+- What-If simulator, Calculators, Tools, Articles, Trust, Footer sections
 - Sitemap updated with 11 career tool URLs
-- Testing: 100% pass (all 12 sections, navigation, responsive, no errors)
 
 ### April 6, 2026 - Phase 3 Career Tools (AI + Email + Data Refactor)
-- AI "Improve with AI" buttons in Resume Builder (bullet points + summaries)
-- Email Templates tool (5 types: Thank You, Follow Up, Negotiation, Accept, Decline)
-- Refactored SalaryComparison & AmIUnderpaid to use centralized salaryBenchmarks.ts
+- AI "Improve with AI" buttons in Resume Builder
+- Email Templates tool (5 types)
+- Refactored salary tools to use centralized salaryBenchmarks.ts
 
-### Earlier Completed Work
-- Full Replit migration (Jan 2026)
-- 39+ financial calculators, 7 productive tools
-- 9 career tools (Resume Builder, Cover Letter, Salary Comparison, Am I Underpaid, Resume Score, Job Readiness, Offer Comparison, Salary Negotiation, Interview Prep)
-- 5 premium PDF resume templates
-- Bug fixes (tax calc, earnings, download icons, "100% Free" badges)
-- Structured salary benchmark dataset (90+ entries, 15+ job families)
+### Earlier
+- Full Replit migration, 39+ calculators, 7 tools, 10 career tools
+- 5 premium PDF resume templates, bug fixes, structured salary benchmarks
 
 ## Key API Endpoints
 - GET /api/health
@@ -49,33 +44,37 @@ User migrated RealProfits from Replit to Emergent, then expanded it from a calcu
 - GET /api/career-tools/email-templates
 
 ## Homepage Section Order
-1. Hero (platform messaging)
+1. Hero (platform messaging + Quick Salary Check widget)
 2. Start Here (6 action questions)
 3. What You Can Do (4 pillars)
 4. Popular Tools (6 featured)
 5. Career Tools (dark hero-like)
-6. What-If Simulator (chart)
+6. What-If Simulator (lazy chart)
 7. Financial Calculators (6 featured + "View All 39+")
 8. Productive Tools (6 tools)
-9. Articles & Guides (subordinated)
+9. Articles & Guides
 10. Trust (4 pillars)
-11. Email CTA (in footer)
+11. Email CTA (footer)
 12. Footer (with career tools link)
+
+## Code Splitting Architecture
+- Home.tsx: Eager loaded (always first page)
+- All other pages: React.lazy() with Suspense boundary
+- Heavy components: HeroCharts.tsx, WhatIfChart.tsx lazy-loaded within Home
+- Suspense fallback: PageLoader spinner component
 
 ## Prioritized Backlog
 
 ### P0 — All Complete
 - [x] Migration, all calculators/tools functional
 - [x] Career Tools (10 tools with AI)
-- [x] Homepage redesign
-- [x] Email templates
-- [x] Salary data refactor
-- [x] Sitemap updated with career tools
+- [x] Homepage redesign (12 sections)
+- [x] Quick Salary Check hero widget
+- [x] Performance optimization (code splitting + lazy charts)
 
 ### P1 (Next)
 - [ ] Google Analytics tracking verification
 - [ ] SEO meta tags audit across all pages
-- [ ] Performance optimization (lazy loading images, code splitting)
 
 ### P2 (Future)
 - [ ] Premium ATS resume checks
