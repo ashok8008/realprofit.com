@@ -1,0 +1,139 @@
+{
+  "theme": "light",
+  "archetype": "Archetype 5 (Jewel & Luxury) infused with Archetype 1 (Organic & Earthy)",
+  "typography": {
+    "headings": {
+      "family": "Playfair Display, serif",
+      "strategy": "Use tight letter spacing (tracking-tight) for large headers. Do NOT use Inter or generic sans-serif for headings."
+    },
+    "body": {
+      "family": "Manrope, sans-serif",
+      "strategy": "Clean, legible geometric sans for data, tools, and long-form text. Highly legible at small sizes."
+    },
+    "mono": {
+      "family": "JetBrains Mono, monospace",
+      "strategy": "Use for financial numbers, tickers, and calculator inputs."
+    }
+  },
+  "colors": {
+    "primary": "#0f766e",
+    "primary_hover": "#115e59",
+    "accent": "#f5c542",
+    "background_light": "#fafaf9",
+    "background_dark": "#020617",
+    "surface_light": "#ffffff",
+    "surface_dark": "#0f172a",
+    "border_light": "#e7e5e4",
+    "border_dark": "#1e293b",
+    "text_primary_light": "#1c1917",
+    "text_secondary_light": "#57534e",
+    "text_primary_dark": "#f8fafc",
+    "text_secondary_dark": "#94a3b8"
+  },
+  "layout_and_spacing": {
+    "section_spacing": "py-24 md:py-32",
+    "container_padding": "px-6 md:px-12 lg:px-24",
+    "grid_strategy": "Use Bento 'Tetris' grid (asymmetric) for marketing sections. Use 'Control Room' dense grid for calculators and tools.",
+    "border_radius": "rounded-2xl for large containers, rounded-xl for cards, rounded-lg for buttons."
+  },
+  "components": {
+    "buttons": "Flat solid background for primary CTAs. Always include focus-visible rings and hover states (translate-y-[-1px]). No pill shapes, use rounded-lg.",
+    "cards": "Subtle 1px border with no default shadow. On hover: shadow-xl and -translate-y-1. Do not overuse cards; try flat bento styles.",
+    "glassmorphism": "Strictly for sticky headers and floating tooltips. Requires backdrop-blur-xl and a delicate 1px inner stroke (border-white/20 or border-black/5)."
+  },
+  "sections_architecture": [
+    {
+      "name": "Hero",
+      "theme": "light",
+      "description": "Premium positioning. Large Playfair Display heading communicating 'Financial + Career Platform'. Background uses subtle abstract grain. Features an interactive dashboard/calculator preview."
+    },
+    {
+      "name": "Start Here",
+      "theme": "light",
+      "description": "Clickable questions driving users to tools. Clean, asymmetric list layout."
+    },
+    {
+      "name": "What You Can Do",
+      "theme": "light",
+      "description": "4-pillar section. Bento grid layout with generous padding."
+    },
+    {
+      "name": "Popular Tools",
+      "theme": "light",
+      "description": "Highlighting top tools with 'The Tracing Beam' border effect on the featured tool."
+    },
+    {
+      "name": "Career Tools",
+      "theme": "dark",
+      "description": "Hero-like section with dark slate background (#020617). Uses the office image with a bg-black/50 overlay. High contrast white serif text."
+    },
+    {
+      "name": "What-If Simulator",
+      "theme": "light",
+      "description": "Interactive Recharts line chart showing compound growth. Minimalist card styling."
+    },
+    {
+      "name": "Financial Calculators",
+      "theme": "light",
+      "description": "Dense grid of calculator links/cards. Functional UI."
+    },
+    {
+      "name": "Productive Tools",
+      "theme": "light",
+      "description": "Dense grid, similar to calculators but distinct icon styling."
+    },
+    {
+      "name": "Articles & Guides",
+      "theme": "light",
+      "description": "Editorial layout. Large images, serif titles, ample negative space."
+    },
+    {
+      "name": "Trust",
+      "theme": "light",
+      "description": "Partner logos using Marquee strategy (Editorial Ribbon) - slow drift, low contrast."
+    },
+    {
+      "name": "Email CTA",
+      "theme": "dark",
+      "description": "Dark container in Jewel tone teal (#042f2e). High contrast input field."
+    },
+    {
+      "name": "Footer",
+      "theme": "dark",
+      "description": "Massive py-32 spacing. Brand logo prominent. Clean columns."
+    }
+  ],
+  "media": {
+    "hero_abstract": {
+      "url": "https://images.unsplash.com/photo-1762279389020-eeeb69c25813?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA0MTJ8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMGZpbmFuY2lhbCUyMGdyb3d0aHxlbnwwfHx8fDE3NzU1MDYwNDd8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Abstract financial visualization"
+    },
+    "career_office": {
+      "url": "https://images.unsplash.com/photo-1759593218431-6f1585bc14de?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2ODh8MHwxfHNlYXJjaHwyfHxwcm9mZXNzaW9uYWwlMjB3b3JraW5nJTIwbW9kZXJuJTIwb2ZmaWNlfGVufDB8fHx8MTc3NTUwNjA0N3ww&ixlib=rb-4.1.0&q=85",
+      "alt": "Professional modern office working"
+    },
+    "trust_logos": [
+      {
+        "url": "https://images.unsplash.com/photo-1769985090528-5a4da245e9a8?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Nzd8MHwxfHNlYXJjaHwyfHxjb21wYW55JTIwbG9nbyUyMG1pbmltYWxpc3R8ZW58MHx8fHwxNzc1NTA2MDQ2fDA&ixlib=rb-4.1.0&q=85",
+        "alt": "Partner Logo 1"
+      },
+      {
+        "url": "https://images.unsplash.com/photo-1765978856539-b9247f2e0d5f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Nzd8MHwxfHNlYXJjaHwzfHxjb21wYW55JTIwbG9nbyUyMG1pbmltYWxpc3R8ZW58MHx8fHwxNzc1NTA2MDQ2fDA&ixlib=rb-4.1.0&q=85",
+        "alt": "Partner Logo 2"
+      }
+    ]
+  },
+  "testing": {
+    "strategy": "All interactive elements, forms, and key sections must include 'data-testid' attributes (e.g., 'hero-cta-button', 'what-if-chart')."
+  },
+  "instructions_to_main_agent": [
+    "Strictly follow the Old Money Tech typography pairing (Playfair Display for headings, Manrope for body). Do NOT use Inter.",
+    "Implement the 12 sections in the exact order specified in the problem statement.",
+    "Career Tools section MUST use the dark theme (#020617 background) to stand out, with the provided 'career_office' image with an overlay.",
+    "Use Recharts for the 'What-If' simulator chart. Ensure it looks premium (no default axes styling, use monospace font for numbers, custom tooltip).",
+    "Replace generic card styles with 1px borders and subtle hover lifts. No heavy drop shadows.",
+    "Do NOT use transparent headers over images without a backdrop-blur glassmorphism effect.",
+    "Ensure the hero section communicates the financial + career dual-purpose within 5 seconds through clear H1 and layout.",
+    "Write code for React (.jsx/.js files), not TypeScript (.tsx) as specified in the strict instructions."
+  ]
+}
