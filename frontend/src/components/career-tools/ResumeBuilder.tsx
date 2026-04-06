@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, Plus, Trash2, GripVertical, RotateCcw, Printer, Eye } from "lucide-react";
+import { Download, Plus, Trash2, GripVertical, RotateCcw, Printer, Eye, Sparkles, Loader2, Check, X } from "lucide-react";
 import { saveToStorage, loadFromStorage, clearStorage } from "@/lib/career-tools/storage";
 import { generateResumePDF, ResumeData } from "@/lib/career-tools/pdf-export";
 import { useToast } from "@/hooks/use-toast";
@@ -198,6 +198,74 @@ export function ResumeBuilder() {
     window.print();
   };
 
+  // AI Enhancement State
+  const [aiLoading, setAiLoading] = useState<string | null>(null);
+  const [aiSuggestion, setAiSuggestion] = useState<{ id: string; original: string; improved: string; suggestions?: string[] } | null>(null);
+
+  const improveBulletPoint = async (expId: string, bulletText: string, jobTitle: string) => {
+    if (!bulletText.trim()) {
+      toast({ title: "Empty field", description: "Write some bullet points first, then improve them with AI." });
+      return;
+    }
+    setAiLoading(`bullet-${expId}`);
+    setAiSuggestion(null);
+    try {
+      const res = await fetch('/api/career-tools/improve-bullet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bullet_point: bulletText, job_title: jobTitle }),
+      });
+      if (!res.ok) throw new Error('AI service unavailable');
+      const result = await res.json();
+      setAiSuggestion({ id: `bullet-${expId}`, original: bulletText, improved: result.improved, suggestions: result.suggestions });
+    } catch {
+      toast({ title: "AI Error", description: "Could not reach AI service. Try again later.", variant: "destructive" });
+    } finally {
+      setAiLoading(null);
+    }
+  };
+
+  const improveSummary = async () => {
+    if (!data.summary.trim()) {
+      toast({ title: "Empty summary", description: "Write a summary first, then improve it with AI." });
+      return;
+    }
+    setAiLoading('summary');
+    setAiSuggestion(null);
+    try {
+      const res = await fetch('/api/career-tools/improve-summary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          current_summary: data.summary,
+          job_title: data.experience[0]?.title || '',
+          skills: data.skills.slice(0, 5),
+        }),
+      });
+      if (!res.ok) throw new Error('AI service unavailable');
+      const result = await res.json();
+      setAiSuggestion({ id: 'summary', original: data.summary, improved: result.improved });
+    } catch {
+      toast({ title: "AI Error", description: "Could not reach AI service. Try again later.", variant: "destructive" });
+    } finally {
+      setAiLoading(null);
+    }
+  };
+
+  const acceptAiSuggestion = () => {
+    if (!aiSuggestion) return;
+    if (aiSuggestion.id === 'summary') {
+      setData(prev => ({ ...prev, summary: aiSuggestion.improved }));
+    } else {
+      const expId = aiSuggestion.id.replace('bullet-', '');
+      updateExperience(expId, 'description', aiSuggestion.improved);
+    }
+    toast({ title: "Applied!", description: "AI suggestion has been applied." });
+    setAiSuggestion(null);
+  };
+
+  const dismissAiSuggestion = () => setAiSuggestion(null);
+
   const summaryWordCount = data.summary.trim().split(/\s+/).filter(Boolean).length;
 
   return (
@@ -312,6 +380,32 @@ export function ResumeBuilder() {
                 value={data.summary}
                 onChange={e => setData(prev => ({ ...prev, summary: e.target.value }))}
               />
+              <div className="flex items-center justify-between mt-2">
+                <p className="text-xs text-muted-foreground">A strong summary highlights your key value in 2-3 sentences.</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={improveSummary}
+                  disabled={aiLoading === 'summary' || !data.summary.trim()}
+                  className="text-xs gap-1.5 border-violet-300 text-violet-700 hover:bg-violet-50"
+                  data-testid="ai-improve-summary-btn"
+                >
+                  {aiLoading === 'summary' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                  Improve with AI
+                </Button>
+              </div>
+              {aiSuggestion?.id === 'summary' && (
+                <div className="mt-3 bg-violet-50 border border-violet-200 rounded-lg p-4" data-testid="ai-summary-suggestion">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-semibold text-violet-700 flex items-center gap-1"><Sparkles className="w-3 h-3" /> AI Suggestion</span>
+                    <div className="flex gap-1">
+                      <Button size="sm" variant="ghost" className="h-7 px-2 text-emerald-600 hover:bg-emerald-50" onClick={acceptAiSuggestion} data-testid="ai-accept-summary"><Check className="w-3.5 h-3.5 mr-1" /> Accept</Button>
+                      <Button size="sm" variant="ghost" className="h-7 px-2 text-red-600 hover:bg-red-50" onClick={dismissAiSuggestion} data-testid="ai-dismiss-summary"><X className="w-3.5 h-3.5 mr-1" /> Dismiss</Button>
+                    </div>
+                  </div>
+                  <p className="text-sm text-violet-900 whitespace-pre-line">{aiSuggestion.improved}</p>
+                </div>
+              )}
             </div>
           </TabsContent>
 
@@ -384,7 +478,42 @@ export function ResumeBuilder() {
                     value={exp.description}
                     onChange={e => updateExperience(exp.id, 'description', e.target.value)}
                   />
-                  <p className="text-xs text-muted-foreground mt-1">Use bullet points starting with action verbs</p>
+                  <div className="flex items-center justify-between mt-1.5">
+                    <p className="text-xs text-muted-foreground">Use bullet points starting with action verbs</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => improveBulletPoint(exp.id, exp.description, exp.title)}
+                      disabled={aiLoading === `bullet-${exp.id}` || !exp.description.trim()}
+                      className="text-xs gap-1.5 border-violet-300 text-violet-700 hover:bg-violet-50"
+                      data-testid={`ai-improve-bullet-${idx}`}
+                    >
+                      {aiLoading === `bullet-${exp.id}` ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                      Improve with AI
+                    </Button>
+                  </div>
+                  {aiSuggestion?.id === `bullet-${exp.id}` && (
+                    <div className="mt-3 bg-violet-50 border border-violet-200 rounded-lg p-4" data-testid={`ai-bullet-suggestion-${idx}`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-semibold text-violet-700 flex items-center gap-1"><Sparkles className="w-3 h-3" /> AI Suggestion</span>
+                        <div className="flex gap-1">
+                          <Button size="sm" variant="ghost" className="h-7 px-2 text-emerald-600 hover:bg-emerald-50" onClick={acceptAiSuggestion} data-testid={`ai-accept-bullet-${idx}`}><Check className="w-3.5 h-3.5 mr-1" /> Accept</Button>
+                          <Button size="sm" variant="ghost" className="h-7 px-2 text-red-600 hover:bg-red-50" onClick={dismissAiSuggestion} data-testid={`ai-dismiss-bullet-${idx}`}><X className="w-3.5 h-3.5 mr-1" /> Dismiss</Button>
+                        </div>
+                      </div>
+                      <p className="text-sm text-violet-900 whitespace-pre-line">{aiSuggestion.improved}</p>
+                      {aiSuggestion.suggestions && aiSuggestion.suggestions.length > 0 && (
+                        <div className="mt-2 pt-2 border-t border-violet-200">
+                          <span className="text-xs font-semibold text-violet-600">Tips:</span>
+                          <ul className="mt-1 space-y-0.5">
+                            {aiSuggestion.suggestions.map((tip, i) => (
+                              <li key={i} className="text-xs text-violet-700">• {tip}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}

@@ -6,8 +6,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Download, Info, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { Link } from "wouter";
 import { saveToStorage, loadFromStorage } from "@/lib/career-tools/storage";
-import { findBenchmark, getSalaryRange, locationMultipliers, salaryBenchmarks } from "@/data/career-tools/benchmarks";
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell, ReferenceLine, Legend } from "recharts";
+import { findBenchmark, analyzeSalary, getAllJobTitles, getLocationType } from "@/lib/career-tools/salaryBenchmarks";
+import { locationMultipliers } from "@/data/career-tools/benchmarks";
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from "recharts";
 
 const STORAGE_KEY = 'salary_comparison';
 
@@ -42,30 +43,31 @@ export function SalaryComparison() {
     setData(prev => ({ ...prev, [field]: value }));
   };
 
-  const benchmark = findBenchmark(data.jobTitle);
+  const allTitles = getAllJobTitles();
   const salary = parseInt(data.currentSalary.replace(/[^0-9]/g, '')) || 0;
   const years = parseInt(data.yearsExperience) || 0;
   
-  let range = null;
+  const analysis = salary > 0 && data.jobTitle.trim()
+    ? analyzeSalary(data.jobTitle, years, salary, data.location)
+    : null;
+  
+  const benchmark = analysis?.benchmark ?? null;
+  const range = analysis?.adjustedRange ?? null;
+  const gap = analysis?.gap ?? null;
+  
   let assessment: 'below' | 'average' | 'above' = 'average';
-  let gap = 0;
   let percentile = 50;
+  let gapValue = 0;
 
-  if (benchmark && salary > 0) {
-    range = getSalaryRange(benchmark, years, data.location);
-    
-    if (salary < range.min) {
-      assessment = 'below';
-      percentile = Math.round((salary / range.min) * 25);
-      gap = range.min - salary;
-    } else if (salary > range.max) {
-      assessment = 'above';
+  if (range && gap) {
+    assessment = gap.position === 'below' ? 'below' : gap.position === 'above' ? 'above' : 'average';
+    gapValue = gap.differenceFromMid;
+    if (assessment === 'below') {
+      percentile = Math.max(1, Math.round((salary / range.min) * 25));
+    } else if (assessment === 'above') {
       percentile = Math.min(99, 75 + Math.round(((salary - range.max) / range.max) * 25));
-      gap = salary - range.max;
     } else {
-      assessment = 'average';
       percentile = 25 + Math.round(((salary - range.min) / (range.max - range.min)) * 50);
-      gap = salary - range.mid;
     }
   }
 
@@ -78,11 +80,13 @@ export function SalaryComparison() {
 
   // Calculate take-home (simplified)
   const estimateTakeHome = (gross: number) => {
-    const fedTax = gross * 0.18; // Simplified
+    const fedTax = gross * 0.18;
     const stateTax = gross * 0.05;
     const fica = gross * 0.0765;
     return gross - fedTax - stateTax - fica;
   };
+
+  const experienceLevel = years < 3 ? 'Entry Level' : years < 6 ? 'Mid Level' : 'Senior Level';
 
   return (
     <div className="space-y-8">
@@ -95,10 +99,11 @@ export function SalaryComparison() {
             value={data.jobTitle}
             onChange={e => handleUpdate('jobTitle', e.target.value)}
             list="job-titles"
+            data-testid="salary-job-title-input"
           />
           <datalist id="job-titles">
-            {salaryBenchmarks.map(b => (
-              <option key={b.role} value={b.role} />
+            {allTitles.map(title => (
+              <option key={title} value={title} />
             ))}
           </datalist>
         </div>
@@ -173,10 +178,10 @@ export function SalaryComparison() {
                   'text-blue-700'
                 }`}>
                   {assessment === 'below' 
-                    ? `Your salary is ${Math.abs(gap).toLocaleString()} below the typical range for ${benchmark.role} with ${years} years of experience in ${data.location}.`
+                    ? `Your salary is $${Math.abs(range.min - salary).toLocaleString()} below the typical range for ${benchmark.jobTitle} (${experienceLevel}) in ${data.location}.`
                     : assessment === 'above'
-                    ? `Your salary is ${Math.abs(gap).toLocaleString()} above the typical range for ${benchmark.role} with ${years} years of experience in ${data.location}.`
-                    : `Your salary is within the expected range for ${benchmark.role} with ${years} years of experience in ${data.location}.`
+                    ? `Your salary is $${Math.abs(salary - range.max).toLocaleString()} above the typical range for ${benchmark.jobTitle} (${experienceLevel}) in ${data.location}.`
+                    : `Your salary is within the expected range for ${benchmark.jobTitle} (${experienceLevel}) in ${data.location}.`
                   }
                 </p>
               </div>
@@ -195,8 +200,8 @@ export function SalaryComparison() {
             </div>
             <div className="bg-muted/30 rounded-xl p-4 text-center">
               <div className="text-sm text-muted-foreground mb-1">Gap from Mid</div>
-              <div className={`text-2xl font-bold ${gap >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                {gap >= 0 ? '+' : ''}{gap.toLocaleString()}
+              <div className={`text-2xl font-bold ${gapValue >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                {gapValue >= 0 ? '+' : ''}${gapValue.toLocaleString()}
               </div>
             </div>
             <div className="bg-muted/30 rounded-xl p-4 text-center">
@@ -254,7 +259,7 @@ export function SalaryComparison() {
 
           {/* Market Range */}
           <div className="bg-card border rounded-xl p-6">
-            <h4 className="font-semibold mb-4">Market Range for {benchmark.role} ({range.level})</h4>
+            <h4 className="font-semibold mb-4">Market Range for {benchmark.jobTitle} ({experienceLevel})</h4>
             <div className="grid grid-cols-3 gap-4 text-center">
               <div>
                 <div className="text-sm text-muted-foreground">Low</div>
@@ -311,14 +316,14 @@ export function SalaryComparison() {
       )}
 
       {/* Empty State */}
-      {(!benchmark || salary === 0) && (
+      {(!benchmark || salary === 0 || !range) && (
         <div className="text-center py-12 bg-muted/20 rounded-xl border border-dashed">
           <p className="text-muted-foreground">
             {!data.jobTitle ? 'Enter a job title to see salary comparisons' :
-             !benchmark ? `No benchmark data found for "${data.jobTitle}". Try a different role.` :
-             'Enter your current salary to see the comparison'}
+             salary === 0 ? 'Enter your current salary to see the comparison' :
+             `No benchmark data found for "${data.jobTitle}". Try a different role.`}
           </p>
-          {!benchmark && data.jobTitle && (
+          {!benchmark && data.jobTitle && salary > 0 && (
             <p className="text-sm text-muted-foreground mt-2">
               Try: Software Engineer, Data Analyst, Product Manager, Marketing Manager, etc.
             </p>

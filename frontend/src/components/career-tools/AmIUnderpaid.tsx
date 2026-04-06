@@ -7,7 +7,8 @@ import { Switch } from "@/components/ui/switch";
 import { AlertTriangle, CheckCircle, TrendingUp, ArrowRight } from "lucide-react";
 import { Link } from "wouter";
 import { saveToStorage, loadFromStorage } from "@/lib/career-tools/storage";
-import { findBenchmark, getSalaryRange, assessSalary, locationMultipliers, salaryBenchmarks } from "@/data/career-tools/benchmarks";
+import { analyzeSalary, getAllJobTitles } from "@/lib/career-tools/salaryBenchmarks";
+import { locationMultipliers } from "@/data/career-tools/benchmarks";
 
 const STORAGE_KEY = 'am_i_underpaid';
 
@@ -44,31 +45,48 @@ export function AmIUnderpaid() {
     setData(prev => ({ ...prev, [field]: value }));
   };
 
-  const benchmark = findBenchmark(data.jobTitle);
+  const allTitles = getAllJobTitles();
   const salary = parseInt(data.salary.replace(/[^0-9]/g, '')) || 0;
   const years = parseInt(data.yearsExperience) || 0;
 
-  let result = null;
-  if (benchmark && salary > 0) {
-    const assessment = assessSalary(salary, benchmark, years, data.location);
-    // Manager adjustment
-    if (data.isManager) {
-      assessment.range.min = Math.round(assessment.range.min * 1.15);
-      assessment.range.mid = Math.round(assessment.range.mid * 1.15);
-      assessment.range.max = Math.round(assessment.range.max * 1.15);
-      // Recalculate status
-      if (salary < assessment.range.min) {
-        assessment.status = 'underpaid';
-        assessment.gap = salary - assessment.range.min;
-      } else if (salary > assessment.range.max) {
-        assessment.status = 'above';
-        assessment.gap = salary - assessment.range.max;
-      } else {
-        assessment.status = 'fair';
-        assessment.gap = salary - assessment.range.mid;
+  let result: { status: 'underpaid' | 'fair' | 'above'; gap: number; percentile: number; range: { min: number; mid: number; max: number }; jobTitle: string } | null = null;
+  
+  if (data.jobTitle.trim() && salary > 0) {
+    const analysis = analyzeSalary(data.jobTitle, years, salary, data.location);
+    if (analysis.benchmark && analysis.adjustedRange && analysis.gap) {
+      let adjRange = { ...analysis.adjustedRange };
+      
+      // Manager adjustment
+      if (data.isManager) {
+        adjRange = {
+          min: Math.round(adjRange.min * 1.15),
+          mid: Math.round(adjRange.mid * 1.15),
+          max: Math.round(adjRange.max * 1.15),
+        };
       }
+      
+      let status: 'underpaid' | 'fair' | 'above';
+      let percentile: number;
+      
+      if (salary < adjRange.min) {
+        status = 'underpaid';
+        percentile = Math.max(1, Math.round((salary / adjRange.min) * 25));
+      } else if (salary > adjRange.max) {
+        status = 'above';
+        percentile = Math.min(99, 75 + Math.round(((salary - adjRange.max) / adjRange.max) * 25));
+      } else {
+        status = 'fair';
+        percentile = 25 + Math.round(((salary - adjRange.min) / (adjRange.max - adjRange.min)) * 50);
+      }
+      
+      result = {
+        status,
+        gap: salary - adjRange.mid,
+        percentile,
+        range: adjRange,
+        jobTitle: analysis.benchmark.jobTitle,
+      };
     }
-    result = assessment;
   }
 
   const getMessage = () => {
@@ -114,8 +132,8 @@ export function AmIUnderpaid() {
               list="job-titles-underpaid"
             />
             <datalist id="job-titles-underpaid">
-              {salaryBenchmarks.map(b => (
-                <option key={b.role} value={b.role} />
+              {allTitles.map(title => (
+                <option key={title} value={title} />
               ))}
             </datalist>
           </div>
@@ -323,12 +341,12 @@ export function AmIUnderpaid() {
       )}
 
       {/* Empty State */}
-      {(!benchmark || salary === 0) && (
+      {!result && (
         <div className="text-center py-12 bg-muted/20 rounded-xl border border-dashed max-w-2xl mx-auto">
           <p className="text-muted-foreground">
             {!data.jobTitle ? 'Enter your job title and salary to find out if you\'re underpaid' :
-             !benchmark ? `No benchmark data for "${data.jobTitle}". Try: Software Engineer, Data Analyst, etc.` :
-             'Enter your salary to see results'}
+             salary === 0 ? 'Enter your salary to see results' :
+             `No benchmark data for "${data.jobTitle}". Try: Software Engineer, Data Analyst, etc.`}
           </p>
         </div>
       )}

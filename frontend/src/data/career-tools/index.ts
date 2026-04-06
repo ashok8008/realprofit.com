@@ -81,6 +81,14 @@ export const careerTools: CareerToolDef[] = [
     category: "assessment",
     status: 'active'
   },
+  { 
+    id: "email-templates", 
+    name: "Email Templates", 
+    slug: "email-templates", 
+    description: "Generate professional follow-up, thank you, and negotiation emails with AI.", 
+    category: "documents",
+    status: 'active'
+  },
 ];
 
 export const careerToolCategories = [
