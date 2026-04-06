@@ -33,6 +33,20 @@ User requested migration of RealProfits site from Replit to Emergent platform.
 
 ## What's Been Implemented
 
+### January 6, 2026 - Career Tools Platform
+- ✅ Built new top-level "Career Tools" section with 6 fully functional tools
+- ✅ Added Career Tools navigation link between Productive Tools and Guides
+- ✅ Created Career Tools Hub page at /career-tools with hero, popular tools, how it works sections
+- ✅ Resume Builder: Multi-tab form, 3 templates, live preview, PDF export, localStorage persistence
+- ✅ Cover Letter Generator: Template-based generation, tone/length options, copy/PDF export
+- ✅ Salary Comparison Tool: Market benchmarks for 25+ roles, location multipliers, charts
+- ✅ Am I Underpaid?: Gauge visualization, market range assessment, action suggestions
+- ✅ Resume Score: Analyze builder data or pasted text, category breakdowns, improvement checklist
+- ✅ Job Readiness Score: Comprehensive checklist, progress visualization, tool recommendations
+- ✅ Added Career Tools section to homepage with dark theme design
+- ✅ All tools work without login, data saved in localStorage
+- ✅ Internal linking between related tools and existing calculators/guides
+
 ### January 6, 2026 - Update 2
 - ✅ Added "100% FREE - No signup required" badge to Calculators hub hero
 - ✅ Added "100% FREE - No signup required" badge to Tools hub hero  
@@ -54,6 +68,16 @@ User requested migration of RealProfits site from Replit to Emergent platform.
 - ✅ Navigation and routing working correctly
 
 ## Features by Category
+
+### Career Tools (NEW)
+1. Resume Builder (PDF export, ATS-friendly templates)
+2. Cover Letter Generator (template-based)
+3. Salary Comparison Tool (25+ role benchmarks)
+4. Am I Underpaid? (market assessment)
+5. Resume Score (completeness analysis)
+6. Job Readiness Score (checklist assessment)
+7. Offer Comparison Tool (coming soon)
+8. Salary Negotiation Helper (coming soon)
 
 ### Financial Calculators
 - Mortgage Calculator
