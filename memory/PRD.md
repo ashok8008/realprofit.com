@@ -87,11 +87,30 @@ RealProfits is a financial + career decision platform with free calculators, pro
 - [x] Hybrid AI (Smart + AI, 3 free uses)
 - [x] Resume Score system (100pt, 5 categories, real-time)
 - [x] pSEO engine upgrade (variation engine, 6 clusters, dynamic sitemap, 287+ pages)
+- [x] ResumeBuilder refactoring (1040-line monolith → 8 focused sub-components)
+- [x] Location-based salary guides (30 cities × 14 salary amounts = 420 pages, total 707 guides)
 
 ### P1 (Next)
-- [ ] Refactor ResumeBuilder.tsx into sub-components
 - [ ] Google Analytics tracking verification
 - [ ] SEO meta tags audit
+- [ ] Add more pSEO cities (international metros)
+- [ ] Industry/role-based salary guides ("{salary} for {role}")
+
+### P2 (Future)
+- [ ] Premium ATS resume checks
+- [ ] User accounts / saved profiles
+- [ ] A/B test hero CTAs
+- [ ] Expand pSEO to 1000+ pages (add more amounts to dataset arrays)
+ + code splitting
+- [x] Hybrid AI (Smart + AI, 3 free uses)
+- [x] Resume Score system (100pt, 5 categories, real-time)
+- [x] pSEO engine upgrade (variation engine, 6 clusters, dynamic sitemap, 287+ pages)
+
+### P1 (Next)
+- [ ] Google Analytics tracking verification
+- [ ] SEO meta tags audit
+- [ ] Add more pSEO cities (international metros)
+- [ ] Industry/role-based salary guides ("{salary} for {role}")
 
 ### P2 (Future)
 - [ ] Premium ATS resume checks
