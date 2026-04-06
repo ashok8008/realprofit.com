@@ -49,9 +49,11 @@ const defaultResumeData: ResumeData = {
 };
 
 const templates = [
-  { id: 'clean', name: 'Clean & Modern', desc: 'Simple, ATS-friendly format' },
-  { id: 'professional', name: 'Professional', desc: 'Traditional business style' },
-  { id: 'minimal', name: 'Minimal', desc: 'Maximum whitespace' },
+  { id: 'clean', name: 'Clean', desc: 'Simple ATS-friendly', premium: false },
+  { id: 'professional', name: 'Professional', desc: 'Traditional business', premium: false },
+  { id: 'minimal', name: 'Minimal', desc: 'Maximum whitespace', premium: false },
+  { id: 'executive', name: 'Executive', desc: 'Bold header with accent', premium: true },
+  { id: 'modern', name: 'Modern', desc: 'Two-column layout', premium: true },
 ];
 
 export function ResumeBuilder() {
@@ -214,19 +216,22 @@ export function ResumeBuilder() {
         {/* Template Selection */}
         <div className="bg-muted/30 rounded-lg p-4">
           <Label className="text-sm font-semibold mb-3 block">Choose Template</Label>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
             {templates.map(t => (
               <button
                 key={t.id}
                 onClick={() => setTemplate(t.id)}
-                className={`p-3 rounded-lg border text-left transition-all ${
+                className={`p-2.5 rounded-lg border text-left transition-all relative ${
                   template === t.id 
                     ? 'border-teal-500 bg-teal-50' 
                     : 'border-gray-200 hover:border-gray-300'
                 }`}
               >
-                <div className="text-sm font-semibold">{t.name}</div>
-                <div className="text-xs text-muted-foreground">{t.desc}</div>
+                {t.premium && (
+                  <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-white text-[8px] px-1.5 py-0.5 rounded-full font-bold">PRO</span>
+                )}
+                <div className="text-xs font-semibold">{t.name}</div>
+                <div className="text-[10px] text-muted-foreground">{t.desc}</div>
               </button>
             ))}
           </div>

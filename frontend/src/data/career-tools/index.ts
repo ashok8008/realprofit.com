@@ -61,17 +61,25 @@ export const careerTools: CareerToolDef[] = [
     id: "offer-comparison", 
     name: "Offer Comparison Tool", 
     slug: "offer-comparison", 
-    description: "Compare multiple job offers side by side.", 
+    description: "Compare multiple job offers side by side with total compensation.", 
     category: "salary",
-    status: 'coming-soon'
+    status: 'active'
   },
   { 
     id: "salary-negotiation", 
     name: "Salary Negotiation Helper", 
     slug: "salary-negotiation", 
-    description: "Prepare for salary negotiations with data.", 
+    description: "Prepare for salary negotiations with data and scripts.", 
     category: "salary",
-    status: 'coming-soon'
+    status: 'active'
+  },
+  { 
+    id: "interview-prep", 
+    name: "Interview Prep Tool", 
+    slug: "interview-prep", 
+    description: "Organize questions, practice answers, and track interviews.", 
+    category: "assessment",
+    status: 'active'
   },
 ];
 

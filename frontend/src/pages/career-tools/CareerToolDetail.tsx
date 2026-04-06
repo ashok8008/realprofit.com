@@ -12,6 +12,9 @@ const SalaryComparison = lazy(() => import("@/components/career-tools/SalaryComp
 const AmIUnderpaid = lazy(() => import("@/components/career-tools/AmIUnderpaid").then(m => ({ default: m.AmIUnderpaid })));
 const ResumeScore = lazy(() => import("@/components/career-tools/ResumeScore").then(m => ({ default: m.ResumeScore })));
 const JobReadinessScore = lazy(() => import("@/components/career-tools/JobReadinessScore").then(m => ({ default: m.JobReadinessScore })));
+const OfferComparison = lazy(() => import("@/components/career-tools/OfferComparison").then(m => ({ default: m.OfferComparison })));
+const SalaryNegotiation = lazy(() => import("@/components/career-tools/SalaryNegotiation").then(m => ({ default: m.SalaryNegotiation })));
+const InterviewPrep = lazy(() => import("@/components/career-tools/InterviewPrep").then(m => ({ default: m.InterviewPrep })));
 
 function FallbackTool() {
   return (
@@ -29,6 +32,9 @@ function getToolComponent(slug: string) {
     case 'am-i-underpaid': return AmIUnderpaid;
     case 'resume-score': return ResumeScore;
     case 'job-readiness-score': return JobReadinessScore;
+    case 'offer-comparison': return OfferComparison;
+    case 'salary-negotiation': return SalaryNegotiation;
+    case 'interview-prep': return InterviewPrep;
     default: return FallbackTool;
   }
 }
@@ -65,15 +71,33 @@ const toolFAQs: Record<string, Array<{ q: string; a: string }>> = {
     { q: "How do I improve my readiness?", a: "Focus on the areas marked as incomplete. Use our other tools like Resume Builder and Cover Letter Generator to prepare." },
     { q: "Is this score accurate?", a: "It's based on your self-reported inputs. Be honest for the most useful assessment." },
   ],
+  'offer-comparison': [
+    { q: "What's included in total compensation?", a: "We include base salary, bonuses, stock/equity, health insurance value, 401k match, and subtract commute costs for non-remote roles." },
+    { q: "How do I value stock options?", a: "Enter the total value of your stock grant. We'll divide it by the vesting period (typically 4 years) for annual value." },
+    { q: "Can I compare more than 2 offers?", a: "Yes! You can compare up to 5 job offers side by side." },
+  ],
+  'salary-negotiation': [
+    { q: "When should I negotiate?", a: "Almost always! 70%+ of employers expect negotiation. The worst they can say is no." },
+    { q: "What if they rescind the offer?", a: "This is extremely rare for professional, respectful negotiations. Companies invest significant time and money in hiring." },
+    { q: "Should I give a salary range?", a: "No, give a specific number. Ranges signal you'll accept the bottom of the range." },
+  ],
+  'interview-prep': [
+    { q: "What is the STAR method?", a: "STAR stands for Situation, Task, Action, Result. It's a structured way to answer behavioral questions with specific examples." },
+    { q: "How many questions should I prepare?", a: "Aim to have 10-15 well-practiced answers. Most behavioral questions are variations of similar themes." },
+    { q: "How do I track my interviews?", a: "Use the Interview Tracker tab to log companies, dates, stages, and outcomes for all your interviews." },
+  ],
 };
 
 const relatedTools: Record<string, string[]> = {
   'resume-builder': ['resume-score', 'cover-letter-generator', 'job-readiness-score'],
-  'cover-letter-generator': ['resume-builder', 'job-readiness-score', 'salary-comparison'],
-  'salary-comparison': ['am-i-underpaid', 'job-readiness-score', 'resume-builder'],
-  'am-i-underpaid': ['salary-comparison', 'resume-builder', 'job-readiness-score'],
+  'cover-letter-generator': ['resume-builder', 'job-readiness-score', 'interview-prep'],
+  'salary-comparison': ['am-i-underpaid', 'salary-negotiation', 'offer-comparison'],
+  'am-i-underpaid': ['salary-comparison', 'salary-negotiation', 'offer-comparison'],
   'resume-score': ['resume-builder', 'job-readiness-score', 'cover-letter-generator'],
-  'job-readiness-score': ['resume-builder', 'resume-score', 'cover-letter-generator'],
+  'job-readiness-score': ['resume-builder', 'resume-score', 'interview-prep'],
+  'offer-comparison': ['salary-comparison', 'salary-negotiation', 'am-i-underpaid'],
+  'salary-negotiation': ['salary-comparison', 'am-i-underpaid', 'offer-comparison'],
+  'interview-prep': ['resume-builder', 'cover-letter-generator', 'job-readiness-score'],
 };
 
 export default function CareerToolDetail() {

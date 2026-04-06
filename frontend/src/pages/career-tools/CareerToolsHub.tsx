@@ -17,6 +17,7 @@ const toolIcons: Record<string, { icon: React.ReactNode; color: string }> = {
   "job-readiness-score": { icon: <Target className="w-5 h-5" />, color: "bg-teal-100 text-teal-600" },
   "offer-comparison": { icon: <Briefcase className="w-5 h-5" />, color: "bg-cyan-100 text-cyan-600" },
   "salary-negotiation": { icon: <TrendingUp className="w-5 h-5" />, color: "bg-indigo-100 text-indigo-600" },
+  "interview-prep": { icon: <Users className="w-5 h-5" />, color: "bg-pink-100 text-pink-600" },
 };
 
 export default function CareerToolsHub() {
