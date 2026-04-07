@@ -1,21 +1,25 @@
 "use client";
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, Upload } from "lucide-react";
 import { saveToStorage, loadFromStorage, clearStorage } from "@/lib/career-tools/storage";
 import { generateResumePDF, type ResumeData } from "@/lib/career-tools/pdf-export";
 import { useToast } from "@/hooks/use-toast";
 import { analyzeBulletPoints, analyzeSummary, smartRewriteBullets, smartRewriteSummary, canUseAi, recordAiUsage, getAiRemaining, AI_FREE_TOTAL } from "@/lib/career-tools/smartSuggestions";
-import { calculateResumeScore, type ScoreSuggestion } from "@/lib/career-tools/resumeScore";
 import type { Experience, Education, AiSuggestion } from "./resume/types";
-import { ResumeScorePanel } from "./resume/ResumeScorePanel";
+import { ResumeScorePanelV2 } from "./resume/ResumeScorePanel";
 import { ResumePreview } from "./resume/ResumePreview";
 import { PersonalTab } from "./resume/PersonalTab";
 import { ExperienceTab } from "./resume/ExperienceTab";
 import { EducationTab } from "./resume/EducationTab";
 import { SkillsTab, ExtrasTab } from "./resume/SkillsExtrasTab";
+import { ImportEntry } from "./resume/ImportEntry";
+import { ImportProcessing } from "./resume/ImportProcessing";
+import { ImportReview } from "./resume/ImportReview";
+import { fixAllEasyIssues } from "@/lib/career-tools/resume/improve";
+import type { SectionConfidence } from "@/lib/career-tools/resume/import/types";
 
 const STORAGE_KEY = "resume_builder";
 
@@ -36,22 +40,102 @@ const templates = [
   { id: "modern", name: "Modern", desc: "Two-column layout", premium: true },
 ];
 
+type FlowState = "entry" | "processing" | "review" | "editor";
+
 export function ResumeBuilder() {
   const { toast } = useToast();
+  const [flowState, setFlowState] = useState<FlowState>("entry");
   const [activeTab, setActiveTab] = useState("personal");
   const [template, setTemplate] = useState("clean");
-  const [data, setData] = useState<ResumeData>(() => loadFromStorage(STORAGE_KEY, defaultResumeData));
+  const [data, setData] = useState<ResumeData>(defaultResumeData);
   const [skillInput, setSkillInput] = useState("");
   const [certInput, setCertInput] = useState("");
   const [aiLoading, setAiLoading] = useState<string | null>(null);
   const [aiSuggestion, setAiSuggestion] = useState<AiSuggestion | null>(null);
   const [aiRemaining, setAiRemaining] = useState(getAiRemaining());
+  const [importSource, setImportSource] = useState<"docx" | "pdf" | "text">("text");
+  const [confidences, setConfidences] = useState<SectionConfidence[]>([]);
 
-  // Auto-save
+  // Load saved data on mount — if data exists, skip to editor
   useEffect(() => {
-    const timeout = setTimeout(() => saveToStorage(STORAGE_KEY, data), 500);
-    return () => clearTimeout(timeout);
-  }, [data]);
+    const saved = loadFromStorage<ResumeData | null>(STORAGE_KEY, null as unknown as ResumeData);
+    if (saved && (saved.personalDetails?.fullName || saved.experience?.length > 0 || saved.summary)) {
+      setData(saved);
+      setFlowState("editor");
+    }
+  }, []);
+
+  // Auto-save when in editor mode
+  useEffect(() => {
+    if (flowState === "editor") {
+      const timeout = setTimeout(() => saveToStorage(STORAGE_KEY, data), 500);
+      return () => clearTimeout(timeout);
+    }
+  }, [data, flowState]);
+
+  // ─── Import handlers ───────────────────────────────────────
+  const handleFileImport = useCallback(async (file: File) => {
+    const ext = file.name.toLowerCase();
+    const source = ext.endsWith(".docx") ? "docx" as const : "pdf" as const;
+    setImportSource(source);
+    setFlowState("processing");
+
+    try {
+      if (source === "docx") {
+        const { parseDocx } = await import("@/lib/career-tools/resume/import/docxParser");
+        const result = await parseDocx(file);
+        setData(result.data);
+        setConfidences(result.confidences);
+      } else {
+        const { parsePdf } = await import("@/lib/career-tools/resume/import/pdfParser");
+        const result = await parsePdf(file);
+        setData(result.data);
+        setConfidences(result.confidences);
+      }
+    } catch (err) {
+      console.error("Import failed:", err);
+      toast({ title: "Import failed", description: "Could not parse the file. Try pasting the text instead.", variant: "destructive" });
+      setFlowState("entry");
+    }
+  }, [toast]);
+
+  const handleTextImport = useCallback((text: string) => {
+    setImportSource("text");
+    setFlowState("processing");
+
+    // Wrap in setTimeout so the processing UI renders first
+    setTimeout(() => {
+      try {
+        const { parseText } = require("@/lib/career-tools/resume/import/textParser");
+        const result = parseText(text);
+        setData(result.data);
+        setConfidences(result.confidences);
+      } catch (err) {
+        console.error("Text parse failed:", err);
+        toast({ title: "Parse failed", description: "Could not parse the text. Try starting from scratch.", variant: "destructive" });
+        setFlowState("entry");
+      }
+    }, 100);
+  }, [toast]);
+
+  const handleStartScratch = useCallback(() => {
+    setData(defaultResumeData);
+    setFlowState("editor");
+  }, []);
+
+  const handleProcessingComplete = useCallback(() => {
+    setFlowState("review");
+  }, []);
+
+  const handleReviewContinue = useCallback(() => {
+    setFlowState("editor");
+    toast({ title: "Resume imported!", description: "Review and edit each section. Score updates in real-time." });
+  }, [toast]);
+
+  const handleNewImport = useCallback(() => {
+    setFlowState("entry");
+    setConfidences([]);
+  }, []);
 
   // ─── Data updaters ────────────────────────────────────────
   const updatePersonal = (field: keyof ResumeData["personalDetails"], value: string) => {
@@ -106,6 +190,8 @@ export function ResumeBuilder() {
     if (confirm("Are you sure you want to clear all resume data?")) {
       setData(defaultResumeData);
       clearStorage(STORAGE_KEY);
+      setFlowState("entry");
+      setConfidences([]);
       toast({ title: "Resume cleared", description: "All data has been reset." });
     }
   };
@@ -114,6 +200,22 @@ export function ResumeBuilder() {
     const pdf = generateResumePDF(data, template);
     pdf.save(`${data.personalDetails.fullName || "resume"}_resume.pdf`.replace(/\s+/g, "_"));
     toast({ title: "PDF Downloaded", description: "Your resume has been saved." });
+  };
+
+  // ─── Fix All Easy Issues ──────────────────────────────────
+  const handleFixAll = () => {
+    const fixes = fixAllEasyIssues({
+      summary: data.summary,
+      experience: data.experience.map(e => ({ description: e.description })),
+      skills: data.skills,
+    });
+    setData(prev => ({
+      ...prev,
+      summary: fixes.summary,
+      experience: prev.experience.map((e, i) => ({ ...e, description: fixes.experiences[i] || e.description })),
+      skills: fixes.skills,
+    }));
+    toast({ title: "Easy fixes applied!", description: "Action verbs, metrics placeholders, and skill normalization applied." });
   };
 
   // ─── AI / Smart Improve ───────────────────────────────────
@@ -196,31 +298,52 @@ export function ResumeBuilder() {
 
   const dismissAiSuggestion = () => setAiSuggestion(null);
 
-  // ─── Score ────────────────────────────────────────────────
-  const score = useMemo(() => calculateResumeScore(data), [data]);
   const summaryWordCount = data.summary.trim().split(/\s+/).filter(Boolean).length;
 
-  const handleFixAction = (action: ScoreSuggestion["fixAction"]) => {
-    if (!action) return;
-    switch (action) {
-      case "add-summary": setActiveTab("personal"); break;
-      case "add-experience": setActiveTab("experience"); addExperience(); break;
-      case "add-skills": setActiveTab("skills"); break;
-      case "add-education": setActiveTab("education"); addEducation(); break;
-      case "improve-bullets": case "add-metrics": case "trim-bullets": setActiveTab("experience"); break;
-    }
-  };
-
   // ─── Render ───────────────────────────────────────────────
+
+  // Entry state: show import options
+  if (flowState === "entry") {
+    return (
+      <div className="max-w-4xl mx-auto" data-testid="resume-builder-entry">
+        <ImportEntry onFileImport={handleFileImport} onTextImport={handleTextImport} onStartScratch={handleStartScratch} />
+      </div>
+    );
+  }
+
+  // Processing state: animated loader
+  if (flowState === "processing") {
+    return (
+      <div className="max-w-md mx-auto" data-testid="resume-builder-processing">
+        <ImportProcessing source={importSource} onComplete={handleProcessingComplete} />
+      </div>
+    );
+  }
+
+  // Review state: confidence summary
+  if (flowState === "review") {
+    return (
+      <div className="max-w-4xl mx-auto" data-testid="resume-builder-review">
+        <ImportReview confidences={confidences} source={importSource} onContinue={handleReviewContinue} />
+      </div>
+    );
+  }
+
+  // Editor state: full builder
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8" data-testid="resume-builder-editor">
       {/* Form */}
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-bold">Build Your Resume</h2>
-          <Button variant="outline" size="sm" onClick={handleReset} data-testid="resume-reset-btn">
-            <RotateCcw className="w-4 h-4 mr-1" /> Reset
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleNewImport} data-testid="new-import-btn">
+              <Upload className="w-4 h-4 mr-1" /> Import
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleReset} data-testid="resume-reset-btn">
+              <RotateCcw className="w-4 h-4 mr-1" /> Reset
+            </Button>
+          </div>
         </div>
 
         {/* Template Selection */}
@@ -316,7 +439,11 @@ export function ResumeBuilder() {
 
       {/* Right Column: Score + Preview */}
       <div className="space-y-6">
-        <ResumeScorePanel score={score} onFixAction={handleFixAction} />
+        <ResumeScorePanelV2
+          resumeData={data}
+          onFixAll={handleFixAll}
+          onTabSwitch={setActiveTab}
+        />
         <ResumePreview data={data} onPrint={() => window.print()} onDownloadPDF={handleDownloadPDF} />
       </div>
     </div>
