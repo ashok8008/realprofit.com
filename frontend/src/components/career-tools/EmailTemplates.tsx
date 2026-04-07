@@ -88,7 +88,7 @@ export function EmailTemplates() {
     setEmail(null);
     setIsAiGenerated(true);
     try {
-      const res = await fetch("/api/career-tools/email-template", {
+      const res = await fetch(`${import.meta.env.REACT_APP_BACKEND_URL}/api/career-tools/email-template`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

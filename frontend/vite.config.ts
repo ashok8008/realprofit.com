@@ -10,6 +10,7 @@ const basePath = process.env.BASE_PATH || "/";
 
 export default defineConfig({
   base: basePath,
+  envPrefix: ['VITE_', 'REACT_APP_'],
   plugins: [
     react(),
     tailwindcss(),
