@@ -7,6 +7,7 @@ import { BreadcrumbNav, RelatedArticles, YouMightAlsoNeed } from "@/components/l
 import { ExportToPDFButton, DownloadPNGButton, ShareResultsButton } from "@/components/export/ExportButtons";
 import { NationalBenchmarks } from "@/components/NationalBenchmarks";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
+import { CloudSyncIndicator } from "@/components/CloudSyncIndicator";
 
 const SavingsGoalCalc = lazy(() => import("@/components/calculators/SavingsGoalCalculator").then(m => ({ default: m.SavingsGoalCalculator })));
 const EmergencyFundCalc = lazy(() => import("@/components/calculators/EmergencyFundCalculator").then(m => ({ default: m.EmergencyFundCalculator })));
@@ -166,6 +167,9 @@ export default function CalculatorDetail() {
 
           <h1 className="font-serif text-4xl md:text-5xl font-bold mb-4 mt-4">{calculator.name}</h1>
           <p className="text-xl text-muted-foreground max-w-3xl">{calculator.description}</p>
+          <div className="mt-3">
+            <CloudSyncIndicator />
+          </div>
 
           <div id="ai-summary" className="bg-teal-50 border border-teal-200 rounded-xl p-5 mt-6 max-w-3xl">
             <p className="text-sm font-semibold text-teal-800 mb-1">Quick Summary</p>

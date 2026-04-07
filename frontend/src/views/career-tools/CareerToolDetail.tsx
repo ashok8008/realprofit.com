@@ -7,6 +7,7 @@ import { careerTools } from "@/data/career-tools";
 import { BreadcrumbNav } from "@/components/linking/InternalLinks";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { ArrowRight, FileText, DollarSign, CheckSquare } from "lucide-react";
+import { CloudSyncIndicator } from "@/components/CloudSyncIndicator";
 
 const ResumeBuilder = lazy(() => import("@/components/career-tools/ResumeBuilder").then(m => ({ default: m.ResumeBuilder })));
 const CoverLetterGenerator = lazy(() => import("@/components/career-tools/CoverLetterGenerator").then(m => ({ default: m.CoverLetterGenerator })));
@@ -151,9 +152,13 @@ export default function CareerToolDetail() {
             </div>
           </div>
           
+          <div className="flex items-center gap-3 mt-4">
+            <CloudSyncIndicator />
+          </div>
+          
           <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-6 max-w-3xl">
             <p className="text-sm text-amber-800">
-              <strong>Quick Summary:</strong> {tool.description} All data is stored locally in your browser — nothing is sent to our servers.
+              <strong>Quick Summary:</strong> {tool.description} Sign in to sync your data to the cloud.
             </p>
           </div>
         </div>

@@ -10,6 +10,7 @@ import { ExportToCSVButton } from "@/components/export/ExportButtons";
 import { jsPDF } from "jspdf";
 import { useToast } from "@/hooks/use-toast";
 import { saveToStorage, loadFromStorage } from "@/lib/career-tools/storage";
+import { SubscriptionSummary } from "./subscription/SubscriptionSummary";
 
 const STORAGE_KEY = "subscriptions";
 
@@ -326,68 +327,14 @@ export function SubscriptionCostAnalyzer() {
           )}
         </div>
 
-        <div className="space-y-6">
-          <div className="bg-card border rounded-xl p-6 shadow-sm space-y-4">
-            <h3 className="font-bold border-b pb-2">Summary</h3>
-
-            <div>
-              <p className="text-sm text-muted-foreground">Total Monthly</p>
-              <p className="text-3xl font-serif font-bold text-primary">${totalMonthly.toFixed(2)}</p>
-            </div>
-
-            <div>
-              <p className="text-sm text-muted-foreground">Total Annual</p>
-              <p className="text-2xl font-bold">${totalAnnual.toFixed(2)}</p>
-            </div>
-
-            <div className="pt-4 border-t grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs text-muted-foreground">Average / Sub</p>
-                <p className="font-medium">${avgMonthly.toFixed(2)}/mo</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Total Subs</p>
-                <p className="font-medium">{subs.length}</p>
-              </div>
-            </div>
-
-            {mostExpensive && (
-              <div className="pt-4 border-t">
-                <p className="text-xs text-muted-foreground mb-1">Most Expensive</p>
-                <div className="flex justify-between items-center bg-muted/30 p-2 rounded">
-                  <span className="font-medium">{mostExpensive.name}</span>
-                  <span className="font-mono text-destructive">${mostExpensive.monthlyEquivalent.toFixed(2)}/mo</span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {categoryData.length > 0 && (
-            <div className="bg-card border rounded-xl p-6 shadow-sm">
-              <h3 className="font-bold mb-4">By Category (Monthly)</h3>
-              <div className="h-48">
-                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                  <PieChart>
-                    <Pie data={categoryData} cx="50%" cy="50%" innerRadius={40} outerRadius={70} paddingAngle={2} dataKey="value">
-                      {categoryData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <RechartsTooltip formatter={(value: number) => [`$${value.toFixed(2)}`, 'Cost']} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="flex flex-wrap gap-2 mt-4 justify-center">
-                {categoryData.map((entry, index) => (
-                  <div key={entry.name} className="flex items-center gap-1 text-xs">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: PIE_COLORS[index % PIE_COLORS.length] }}></div>
-                    <span className="capitalize">{entry.name}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+        <SubscriptionSummary
+            totalMonthly={totalMonthly}
+            totalAnnual={totalAnnual}
+            avgMonthly={avgMonthly}
+            subsCount={subs.length}
+            mostExpensive={mostExpensive}
+            categoryData={categoryData}
+          />
       </div>
     </div>
   );

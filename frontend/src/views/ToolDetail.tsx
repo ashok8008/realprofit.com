@@ -5,6 +5,7 @@ import { Seo } from "@/components/Seo";
 import { tools } from "@/data/tools";
 import { BreadcrumbNav, RelatedArticles } from "@/components/linking/InternalLinks";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
+import { CloudSyncIndicator } from "@/components/CloudSyncIndicator";
 
 const FreelanceInvoiceGenerator = lazy(() => import("@/components/tools/FreelanceInvoiceGenerator").then(m => ({ default: m.FreelanceInvoiceGenerator })));
 const SubscriptionCostAnalyzer = lazy(() => import("@/components/tools/SubscriptionCostAnalyzer").then(m => ({ default: m.SubscriptionCostAnalyzer })));
@@ -63,6 +64,9 @@ export default function ToolDetail() {
           
           <h1 className="font-serif text-4xl md:text-5xl font-bold mb-4 mt-4">{tool.name}</h1>
           <p className="text-xl text-muted-foreground max-w-3xl">{tool.description}</p>
+          <div className="mt-3">
+            <CloudSyncIndicator />
+          </div>
         </div>
       </div>
       
@@ -79,7 +83,7 @@ export default function ToolDetail() {
             <AccordionItem value="item-1">
               <AccordionTrigger>Is my data saved?</AccordionTrigger>
               <AccordionContent>
-                Your data is saved locally on your device using your browser's storage. It is not sent to our servers. If you clear your browser data or use a different device, your saved entries will not be available.
+              Your data is automatically saved. Sign in to sync your data to the cloud and access it from any device. Anonymous usage saves data in your browser only.
               </AccordionContent>
             </AccordionItem>
             <AccordionItem value="item-2">
