@@ -280,6 +280,13 @@ CAREER_SLUGS = [
     "career-tools/interview-prep", "career-tools/email-templates",
 ]
 
+TAX_TOOL_SLUGS = [
+    "tax-tools/freelancer-tax-planner", "tax-tools/income-mix-planner",
+    "tax-tools/tax-checklist-generator", "tax-tools/1040es-prep-generator",
+    "tax-tools/schedule-c-prep-summary", "tax-tools/tax-summary-pdf",
+    "tax-tools/w2-1099-organizer", "tax-tools/year-end-tax-packet",
+]
+
 ARTICLE_SLUGS = [
     "build-emergency-fund-no-money", "freelance-taxes-reality", "hysa-vs-investing",
     "paid-off-student-loans-story", "rent-vs-buy-today", "how-much-money-saved-every-age",
@@ -427,6 +434,9 @@ async def dynamic_sitemap():
     for s in CAREER_SLUGS:
         urls.append(_build_sitemap_url(domain, f"/{s}", "0.8", "monthly", today))
 
+    for s in TAX_TOOL_SLUGS:
+        urls.append(_build_sitemap_url(domain, f"/{s}", "0.8", "monthly", today))
+
     urls.extend(_build_guide_urls(domain, today))
 
     for s in ARTICLE_SLUGS:
@@ -461,5 +471,5 @@ async def sitemap_stats():
         "freelancer_guides": freelancer_count,
         "location_salary_guides": location_salary_count,
         "total_guide_pages": total_guides,
-        "total_sitemap_urls": total_guides + len(STATIC_PAGES) + len(CATEGORY_SLUGS) + len(CALCULATOR_SLUGS) + len(TOOL_SLUGS) + len(CAREER_SLUGS) + len(ARTICLE_SLUGS),
+        "total_sitemap_urls": total_guides + len(STATIC_PAGES) + len(CATEGORY_SLUGS) + len(CALCULATOR_SLUGS) + len(TOOL_SLUGS) + len(CAREER_SLUGS) + len(TAX_TOOL_SLUGS) + len(ARTICLE_SLUGS),
     }

@@ -12,6 +12,7 @@ export function Navbar() {
 
   const links = [
     { name: "FINANCIAL CALCULATORS", href: "/calculators" },
+    { name: "TAX TOOLS", href: "/tax-tools" },
     { name: "PRODUCTIVE TOOLS", href: "/tools" },
     { name: "CAREER TOOLS", href: "/career-tools" },
     { name: "GUIDES", href: "/guides" },

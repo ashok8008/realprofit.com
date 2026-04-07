@@ -4,6 +4,7 @@ import { calculators } from "@/data/calculators";
 import { tools } from "@/data/tools";
 import { careerTools } from "@/data/career-tools";
 import { articles } from "@/data/articles";
+import { taxTools } from "@/data/tax-tools";
 
 // Force static generation at build time
 export const dynamic = "force-static";
@@ -20,6 +21,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE}/calculators`, lastModified: now, changeFrequency: "weekly", priority: 0.9 },
     { url: `${BASE}/tools`, lastModified: now, changeFrequency: "weekly", priority: 0.9 },
     { url: `${BASE}/career-tools`, lastModified: now, changeFrequency: "weekly", priority: 0.9 },
+    { url: `${BASE}/tax-tools`, lastModified: now, changeFrequency: "weekly", priority: 0.9 },
     { url: `${BASE}/guides`, lastModified: now, changeFrequency: "weekly", priority: 0.9 },
     { url: `${BASE}/what-if`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
     { url: `${BASE}/search`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
@@ -42,6 +44,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // Career tools
   for (const ct of careerTools) {
     urls.push({ url: `${BASE}/career-tools/${ct.slug}`, lastModified: now, changeFrequency: "monthly", priority: 0.8 });
+  }
+
+  // Tax tools (non-calculator section tools have their own pages)
+  for (const tt of taxTools) {
+    if (tt.section !== "calculators") {
+      urls.push({ url: `${BASE}/tax-tools/${tt.slug}`, lastModified: now, changeFrequency: "monthly", priority: 0.8 });
+    }
   }
 
   // Articles
