@@ -188,13 +188,22 @@ export function ShareScoreModal({ result, groups, scoreLabel, onClose }: ShareSc
   };
 
   const handleCopyLink = async () => {
+    const text = `${shareText}\n${shareUrl}`;
     try {
-      await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      await navigator.clipboard.writeText(text);
     } catch {
-      // fallback
+      // Fallback: textarea copy
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
     }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
