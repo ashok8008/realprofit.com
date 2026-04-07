@@ -117,7 +117,27 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - robots.txt enhanced: explicit Allow/Disallow directives, GPTBot/CCBot blocked, auth pages blocked
 - Testing: Backend 100% (4/4), Frontend 100% (21/21) — iteration_17
 
+### Phase 18: Resume Builder Parser & Score Engine (Apr 2026) -- DONE
+- DOCX/PDF/Text parsers (mammoth, pdfjs-dist) with section detection
+- 100-point 7-category deterministic scoring engine
+- Smart Improve (rule-based rewriting) + AI Improve (GPT-4o-mini)
+- Multi-step import flow: Entry → Processing → Review → Editor
+- Fix All Easy Issues bulk action
+- Testing: Frontend 100% — iteration_18
+
+### Phase 19: Resume Builder Premium UI Redesign (Apr 2026) -- DONE
+- Restructured editor into 2-column desktop layout (xl breakpoint):
+  - Left: Template picker (dark selected state) → Icon tab navigation → Form editor
+  - Right (sticky): Score panel → Quick Fixes → Live Preview → Export
+- Score panel redesigned: 3 conceptual groups (ATS Readiness, Recruiter Readability, Impact Strength) from 7 flat bars
+- Quick Fix cards with severity-colored borders, +point badges, and inline Fix buttons
+- CareerToolDetail wrapper cleaned up: removed amber alert, simpler header, max-w-7xl
+- Below-the-fold sections (How It Works, FAQs, Related Tools) refined with cleaner cards
+- Premium aesthetic: monochrome palette, generous whitespace, subtle borders, refined typography
+- Testing: Frontend 100% (31/31) — iteration_19
+
 ## Upcoming Tasks
 - Premium ATS checks for Resume Builder (P2)
 - Stripe integration for monetization (P2)
 - A/B test hero CTAs (P2)
+- "Share Your Score" feature for organic growth (Backlog)
