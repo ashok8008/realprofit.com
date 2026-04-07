@@ -109,8 +109,15 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - Iteration 15: Frontend 100% (17/17)
 - Iteration 16: Backend 100% (8/8), Frontend 100% (25/25) — Tax Tools
 
+### Phase 17: Tax Tools SEO Schemas, Canonical URLs, Sitemap & Robots (Apr 2026) -- DONE
+- Added JSON-LD structured data: BreadcrumbList, ItemList, FAQPage on hub; WebApplication, BreadcrumbList, FAQPage on detail pages
+- Canonical URLs via Next.js generateMetadata on all tax-tools routes
+- OpenGraph and Twitter Card meta tags on all tax tool pages
+- Sitemap verified: 9 tax tool URLs in both frontend and backend sitemaps (1,216+ total URLs)
+- robots.txt enhanced: explicit Allow/Disallow directives, GPTBot/CCBot blocked, auth pages blocked
+- Testing: Backend 100% (4/4), Frontend 100% (21/21) — iteration_17
+
 ## Upcoming Tasks
-- Tax Tools SEO schemas (FAQ, breadcrumb, WebApplication) and canonical URLs (P1)
 - Premium ATS checks for Resume Builder (P2)
 - Stripe integration for monetization (P2)
 - A/B test hero CTAs (P2)
