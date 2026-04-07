@@ -8,6 +8,7 @@ RealProfits is a financial + career decision platform with free calculators, pro
 - **Backend**: FastAPI + GPT-4o-mini via emergentintegrations (optimized short prompts)
 - **State**: localStorage (data, AI usage, resume score)
 - **Code Splitting**: React.lazy() + Suspense for all route pages except Home
+- **Deployment**: Emergent native deployment (Kubernetes containerization)
 
 ## AI Usage Strategy (Hybrid)
 - **Smart Improve** (free, unlimited): Rule-based rewriting + template generation
@@ -22,98 +23,43 @@ RealProfits is a financial + career decision platform with free calculators, pro
   - Impact (25): numbers/metrics in bullets
   - Structure & Readability (10): bullet count, summary length
   - ATS Safety (10): format, special chars, email validity
-- **Suggestions**: Severity-ranked (critical → low), with +Xpts indicators
+- **Suggestions**: Severity-ranked (critical -> low), with +Xpts indicators
 - **Fix Buttons**: Navigate to relevant tab and auto-trigger actions
-- **Labels**: Getting Started → Needs Work → Fair → Good → Excellent
+- **Labels**: Getting Started -> Needs Work -> Fair -> Good -> Excellent
+
+## pSEO System
+- **Variation Engine** (`variationEngine.ts`): Prevents duplicate content across 700+ programmatic pages
+- **Dynamic Sitemap**: FastAPI `/api/sitemap.xml` generates XML on the fly (842 URLs)
+- **Datasets**: Salary, Tax, Savings, Mortgage, Debt, Freelancer, Location-Salary
+- **City-Aware Templates**: Location-salary pages inject cityName, costTier, hasStateTax for unique content
+- **Rendering**: Single `PseoPage.tsx` component handles all guide types via slug matching
 
 ## What's Been Implemented
 
-### April 6, 2026 - pSEO Engine Upgrade (LATEST)
-- Variation engine with value-bucket-based content differentiation (3 buckets x 3 variants x 6 types)
-- 3 new guide clusters: mortgage (65 pages), debt (30 pages), freelancer (38 pages)
-- Expanded existing clusters: salary (60), tax (60), savings (34)
-- Dynamic sitemap endpoint: GET /api/sitemap.xml (422+ URLs, auto-generated)
-- Sitemap stats API: GET /api/sitemap/stats
-- Updated Guides Hub with all 6 sections + collapsible variant sections
-- Testing: 100% pass (18/18 tests)
+### Phase 1: Core Platform
+- Financial calculators (salary, tax, savings, mortgage, debt, freelancer)
+- Career tools: Resume Builder, Email Templates, Salary Benchmarks
+- Homepage with hero, features, guides hub
 
-### April 6, 2026 - Resume Score System
-- Deterministic scoring engine (resumeScore.ts) — 5 categories, 100 points
-- Real-time score circle with animated progress ring
-- Category breakdown bars (color-coded)
-- Up to 8 actionable suggestions with severity ranking
-- "Fix" buttons that navigate to correct tab + trigger actions
-- Points-to-gain indicators (+Xpts)
-- Testing: 100% pass (14/14 tests)
+### Phase 2: pSEO Engine
+- Built variation engine for unique text generation across all guide types
+- Dynamic sitemap endpoint (842 URLs)
+- 7 dataset types with city-aware location-salary guides
+- Self-audit confirmed LOW duplication risk
 
-### April 6, 2026 - Hybrid AI Strategy
-- Dual buttons: Smart Improve (free) + AI Improve (3 uses)
-- Rule-based rewriting engine (weak verbs, generic phrases, passive voice)
-- Static email templates fallback
-- Shared AI counter, GPT-4o-mini (33x cheaper)
+### Phase 3: Resume Builder Refactor
+- Modularized ResumeBuilder.tsx into sub-components
+- ResumeScorePanel, PersonalTab, ExperienceTab, etc.
 
-### April 6, 2026 - Performance + Quick Salary Check
-- Quick Salary Check hero widget
-- React.lazy() code splitting
+### Phase 4: Deployment Fixes (Feb 2026)
+- Fixed `.gitignore` blocking `.env` files from deployment
+- Created `frontend/.env` with `REACT_APP_BACKEND_URL`
+- Updated `vite.config.ts` with `envPrefix` to expose `REACT_APP_*` vars
+- Updated all frontend fetch calls to use `import.meta.env.REACT_APP_BACKEND_URL`
 
-### April 6, 2026 - Homepage Redesign
-- 12-section platform homepage
-
-### Earlier
-- Full migration, 39+ calculators, 7 tools, 10 career tools
-- AI resume/email, 5 PDF templates, salary benchmarks
-
-## pSEO System (Scalable, 1000+ page ready)
-- **Variation Engine** (`variationEngine.ts`): value-bucket-based (low/mid/high) intro, explanation, FAQ generators. 3 variants per bucket per type = unique content across pages.
-- **6 Guide Clusters**: salary (60), tax (60), savings (34), mortgage (65), debt (30), freelancer (38) = **287 guide pages**
-- **Dynamic Sitemap**: `GET /api/sitemap.xml` generates 422+ URLs dynamically from all datasets, calculators, tools, articles. No manual updates needed.
-- **Datasets**: `/lib/pseo/datasets/` — algorithmic generation from amount ranges, preserving all legacy slugs
-- **Anti-duplication**: Bucket-varied intros + modulo-rotated variants within same bucket
-
-## Key API Endpoints
-- GET /api/health
-- POST /api/career-tools/improve-bullet (GPT-4o-mini)
-- POST /api/career-tools/improve-summary (GPT-4o-mini)
-- POST /api/career-tools/email-template (GPT-4o-mini)
-- GET /api/sitemap.xml (dynamic sitemap)
-- GET /api/sitemap/stats (page count stats)
-
-## Prioritized Backlog
-
-### P0 — All Complete
-- [x] Full platform migration
-- [x] Homepage redesign
-- [x] Quick Salary Check + code splitting
-- [x] Hybrid AI (Smart + AI, 3 free uses)
-- [x] Resume Score system (100pt, 5 categories, real-time)
-- [x] pSEO engine upgrade (variation engine, 6 clusters, dynamic sitemap, 287+ pages)
-- [x] ResumeBuilder refactoring (1040-line monolith → 8 focused sub-components)
-- [x] Location-based salary guides (30 cities × 14 salary amounts = 420 pages, total 707 guides)
-
-### P1 (Next)
-- [ ] Google Analytics tracking verification
-- [ ] SEO meta tags audit
-- [ ] Add more pSEO cities (international metros)
-- [ ] Industry/role-based salary guides ("{salary} for {role}")
-
-### P2 (Future)
-- [ ] Premium ATS resume checks
-- [ ] User accounts / saved profiles
-- [ ] A/B test hero CTAs
-- [ ] Expand pSEO to 1000+ pages (add more amounts to dataset arrays)
- + code splitting
-- [x] Hybrid AI (Smart + AI, 3 free uses)
-- [x] Resume Score system (100pt, 5 categories, real-time)
-- [x] pSEO engine upgrade (variation engine, 6 clusters, dynamic sitemap, 287+ pages)
-
-### P1 (Next)
-- [ ] Google Analytics tracking verification
-- [ ] SEO meta tags audit
-- [ ] Add more pSEO cities (international metros)
-- [ ] Industry/role-based salary guides ("{salary} for {role}")
-
-### P2 (Future)
-- [ ] Premium ATS resume checks
-- [ ] User accounts / saved profiles
-- [ ] A/B test hero CTAs
-- [ ] Expand pSEO to 1000+ pages (add more amounts to dataset arrays)
+## Upcoming Tasks
+- Scale pSEO location pages to 2000+ (P1)
+- Premium ATS checks for Resume Builder (P2)
+- Saved user profiles / Database Integration (P2)
+- Stripe integration for monetization (P2)
+- A/B test hero CTAs (P2)
