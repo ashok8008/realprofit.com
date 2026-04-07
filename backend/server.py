@@ -326,9 +326,10 @@ async def dynamic_sitemap():
 
     # ─── Build XML ───
     urls = []
+    domain = os.environ.get("APP_DOMAIN", "https://realprofits.com")
 
     def add(path, priority, freq):
-        urls.append(f'  <url>\n    <loc>https://realprofits.com{path}</loc>\n    <lastmod>{today}</lastmod>\n    <changefreq>{freq}</changefreq>\n    <priority>{priority}</priority>\n  </url>')
+        urls.append(f'  <url>\n    <loc>{domain}{path}</loc>\n    <lastmod>{today}</lastmod>\n    <changefreq>{freq}</changefreq>\n    <priority>{priority}</priority>\n  </url>')
 
     # Static
     for path, pri, freq in static_pages:

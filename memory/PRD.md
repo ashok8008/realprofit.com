@@ -1,38 +1,43 @@
 # RealProfits - Product Requirements Document
 
 ## Overview
-RealProfits is a financial + career decision platform with free calculators, productive money tools, career tools, guides, and what-if simulations.
+RealProfits is a financial + career decision platform with free calculators, tools, career tools, guides, and what-if simulations. Organic traffic via pSEO is the primary acquisition channel.
 
 ## Architecture
-- **Frontend**: React + Vite + TypeScript, Tailwind CSS, shadcn/ui, wouter, Recharts, jsPDF
-- **Backend**: FastAPI + GPT-4o-mini via emergentintegrations (optimized short prompts)
+- **Frontend**: Next.js 16 (App Router) + TypeScript + Tailwind CSS + shadcn/ui + Recharts
+- **Backend**: FastAPI + GPT-4o-mini via emergentintegrations (Emergent LLM Key)
 - **State**: localStorage (data, AI usage, resume score)
-- **Code Splitting**: React.lazy() + Suspense for all route pages except Home
+- **SSR/SSG**: pSEO pages are server components with generateMetadata for SEO
 - **Deployment**: Emergent native deployment (Kubernetes containerization)
 
-## AI Usage Strategy (Hybrid)
-- **Smart Improve** (free, unlimited): Rule-based rewriting + template generation
-- **AI Improve** (limited, 3 total uses): GPT-4o-mini, shared pool across all features
-- **Smart Suggestions**: Grammarly-style inline analysis (always visible, always free)
-- **Resume Score**: 100% deterministic, zero AI, real-time updates
+## Tech Stack Migration (Feb 2026)
+- **From**: React + Vite + Wouter + react-helmet-async (SPA, client-rendered)
+- **To**: Next.js 16 App Router (server-rendered pSEO pages, client components for interactive tools)
+- **Key Changes**:
+  - `wouter` Link/useParams → `next/link` + `next/navigation`
+  - `react-helmet-async` → Next.js Metadata API (`generateMetadata`)
+  - Vite build → Next.js build with `@tailwindcss/postcss`
+  - `src/pages/` renamed to `src/views/` (avoid Next.js Pages Router conflict)
+  - Environment vars: `REACT_APP_*` → `NEXT_PUBLIC_*`
 
-## Resume Score System
-- **Total**: 100 points across 5 categories
-  - Completeness (30): name, email, summary, experience, education, skills
-  - Content Quality (25): action verbs, bullet length
-  - Impact (25): numbers/metrics in bullets
-  - Structure & Readability (10): bullet count, summary length
-  - ATS Safety (10): format, special chars, email validity
-- **Suggestions**: Severity-ranked (critical -> low), with +Xpts indicators
-- **Fix Buttons**: Navigate to relevant tab and auto-trigger actions
-- **Labels**: Getting Started -> Needs Work -> Fair -> Good -> Excellent
+## SEO Strategy
+- **Server-rendered pSEO**: 700+ guide pages with full HTML in initial response
+- **Metadata**: Unique title, description, OG tags, canonical URL per page
+- **JSON-LD**: HowTo, FAQPage, BreadcrumbList schemas on every guide
+- **Sitemap**: Next.js built-in `app/sitemap.ts` generating all URLs
+- **Robots**: `app/robots.ts` with crawler rules
+- **Variation Engine**: Prevents duplicate content across programmatic pages
 
 ## pSEO System
-- **Variation Engine** (`variationEngine.ts`): Prevents duplicate content across 700+ programmatic pages
-- **Dynamic Sitemap**: FastAPI `/api/sitemap.xml` generates XML on the fly (842 URLs)
 - **Datasets**: Salary, Tax, Savings, Mortgage, Debt, Freelancer, Location-Salary
-- **City-Aware Templates**: Location-salary pages inject cityName, costTier, hasStateTax for unique content
-- **Rendering**: Single `PseoPage.tsx` component handles all guide types via slug matching
+- **Variation Engine** (`variationEngine.ts`): City-aware content generation
+- **Dynamic Sitemap**: Both Next.js sitemap.ts and FastAPI `/api/sitemap`
+- **City-Aware Templates**: Location-salary pages inject cityName, costTier, hasStateTax
+
+## AI Usage Strategy
+- **Smart Improve** (free, unlimited): Rule-based rewriting + template generation
+- **AI Improve** (limited, 3 total uses): GPT-4o-mini, shared pool across all features
+- **Resume Score**: 100% deterministic, zero AI, real-time updates
 
 ## What's Been Implemented
 
@@ -45,17 +50,19 @@ RealProfits is a financial + career decision platform with free calculators, pro
 - Built variation engine for unique text generation across all guide types
 - Dynamic sitemap endpoint (842 URLs)
 - 7 dataset types with city-aware location-salary guides
-- Self-audit confirmed LOW duplication risk
 
 ### Phase 3: Resume Builder Refactor
 - Modularized ResumeBuilder.tsx into sub-components
-- ResumeScorePanel, PersonalTab, ExperienceTab, etc.
 
 ### Phase 4: Deployment Fixes (Feb 2026)
-- Fixed `.gitignore` blocking `.env` files from deployment
-- Created `frontend/.env` with `REACT_APP_BACKEND_URL`
-- Updated `vite.config.ts` with `envPrefix` to expose `REACT_APP_*` vars
-- Updated all frontend fetch calls to use `import.meta.env.REACT_APP_BACKEND_URL`
+- Fixed .gitignore, created frontend/.env, updated API URLs
+
+### Phase 5: Next.js Migration (Feb 2026)
+- Migrated entire frontend from React Vite SPA to Next.js 16 App Router
+- All pSEO pages now server-rendered with generateMetadata
+- OG tags, canonical URLs, JSON-LD schemas in initial HTML
+- Built-in sitemap.ts and robots.ts
+- All 18 tests passed (100% success rate)
 
 ## Upcoming Tasks
 - Scale pSEO location pages to 2000+ (P1)

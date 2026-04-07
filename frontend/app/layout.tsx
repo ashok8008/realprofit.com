@@ -18,7 +18,7 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://realprofits.com"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_BACKEND_URL || "https://realprofits.com"),
   title: {
     default: "RealProfits - Smart Financial Tools & Career Guides",
     template: "%s | RealProfits",

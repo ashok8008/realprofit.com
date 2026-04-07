@@ -5,7 +5,7 @@ import { tools } from "@/data/tools";
 import { careerTools } from "@/data/career-tools";
 import { articles } from "@/data/articles";
 
-const BASE = "https://realprofits.com";
+const BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "https://realprofits.com";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
