@@ -1,10 +1,11 @@
+"use client";
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CheckCircle, XCircle, AlertCircle, ArrowRight, FileText } from "lucide-react";
-import { Link } from "wouter";
+import Link from "next/link";
 import { loadFromStorage } from "@/lib/career-tools/storage";
 import type { ResumeData } from "@/lib/career-tools/pdf-export";
 

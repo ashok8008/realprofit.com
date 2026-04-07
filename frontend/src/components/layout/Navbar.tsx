@@ -1,10 +1,12 @@
+"use client";
 import React from "react";
-import { Link, useLocation } from "wouter";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 
 export function Navbar() {
   const [isOpen, setIsOpen] = React.useState(false);
-  const [location] = useLocation();
+  const location = usePathname();
 
   const links = [
     { name: "FINANCIAL CALCULATORS", href: "/calculators" },

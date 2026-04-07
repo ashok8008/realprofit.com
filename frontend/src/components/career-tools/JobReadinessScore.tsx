@@ -1,10 +1,11 @@
+"use client";
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { CheckCircle, XCircle, ArrowRight, Target } from "lucide-react";
-import { Link } from "wouter";
+import Link from "next/link";
 import { saveToStorage, loadFromStorage } from "@/lib/career-tools/storage";
 
 const STORAGE_KEY = 'job_readiness';

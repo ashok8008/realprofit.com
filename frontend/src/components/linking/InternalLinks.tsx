@@ -1,5 +1,5 @@
 import React from "react";
-import { Link } from "wouter";
+import Link from "next/link";
 import { ArrowRight, ChevronRight, Calculator, Wrench } from "lucide-react";
 import { articles } from "@/data/articles";
 import { calculators } from "@/data/calculators";

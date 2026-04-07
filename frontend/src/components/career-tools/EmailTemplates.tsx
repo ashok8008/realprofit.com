@@ -1,3 +1,4 @@
+"use client";
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -88,7 +89,7 @@ export function EmailTemplates() {
     setEmail(null);
     setIsAiGenerated(true);
     try {
-      const res = await fetch(`${import.meta.env.REACT_APP_BACKEND_URL}/api/career-tools/email-template`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/career-tools/email-template`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -1,3 +1,4 @@
+"use client";
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -5,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Copy, Download, CheckCircle, DollarSign, Target, MessageSquare, TrendingUp } from "lucide-react";
-import { Link } from "wouter";
+import Link from "next/link";
 import { saveToStorage, loadFromStorage } from "@/lib/career-tools/storage";
 import { findBenchmark, getSalaryRange, locationMultipliers, salaryBenchmarks } from "@/data/career-tools/benchmarks";
 import { useToast } from "@/hooks/use-toast";

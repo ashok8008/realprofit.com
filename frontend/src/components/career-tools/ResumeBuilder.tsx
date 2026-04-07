@@ -1,3 +1,4 @@
+"use client";
 import React, { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -156,7 +157,7 @@ export function ResumeBuilder() {
     setAiLoading(`bullet-${expId}`);
     setAiSuggestion(null);
     try {
-      const res = await fetch(`${import.meta.env.REACT_APP_BACKEND_URL}/api/career-tools/improve-bullet`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bullet_point: bulletText, job_title: jobTitle }) });
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/career-tools/improve-bullet`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bullet_point: bulletText, job_title: jobTitle }) });
       if (!res.ok) throw new Error("AI service unavailable");
       const result = await res.json();
       recordAiUsage();
@@ -172,7 +173,7 @@ export function ResumeBuilder() {
     setAiLoading("summary");
     setAiSuggestion(null);
     try {
-      const res = await fetch(`${import.meta.env.REACT_APP_BACKEND_URL}/api/career-tools/improve-summary`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ current_summary: data.summary, job_title: data.experience[0]?.title || "", skills: data.skills.slice(0, 5) }) });
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/career-tools/improve-summary`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ current_summary: data.summary, job_title: data.experience[0]?.title || "", skills: data.skills.slice(0, 5) }) });
       if (!res.ok) throw new Error("AI service unavailable");
       const result = await res.json();
       recordAiUsage();
