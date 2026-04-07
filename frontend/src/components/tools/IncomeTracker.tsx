@@ -310,7 +310,7 @@ export function IncomeTracker() {
                   <BarChart data={categoryData} layout="vertical" margin={{ left: 20 }}>
                     <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                     <XAxis type="number" tickFormatter={v => `$${v > 1000 ? v/1000+'k' : v}`} tick={{fontSize: 12}} />
-                    <YAxis dataKey="name" type="category" width={80} tick={{fontSize: 12, textTransform: 'capitalize'}} />
+                    <YAxis dataKey="name" type="category" width={80} tick={{fontSize: 12}} />
                     <RechartsTooltip formatter={(value: number) => [`$${value.toLocaleString()}`, 'Income']} />
                     <Bar dataKey="amount" fill="hsl(var(--chart-2))" radius={[0, 4, 4, 0]} />
                   </BarChart>

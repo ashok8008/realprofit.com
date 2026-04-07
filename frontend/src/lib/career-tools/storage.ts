@@ -44,7 +44,7 @@ export function clearAllCareerStorage(): void {
 import { useEffect, useRef } from 'react';
 
 export function useAutoSave<T>(key: string, data: T, delay: number = 1000): void {
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<NodeJS.Timeout>(undefined);
   
   useEffect(() => {
     if (timeoutRef.current) {
