@@ -49,3 +49,7 @@ Thumbs.db
 .cache/
 .local/
 # Environment files are committed for Emergent deployment
+-e 
+# Environment files
+*.env
+*.env.*
