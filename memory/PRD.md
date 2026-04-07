@@ -20,9 +20,9 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 ## pSEO System
 - **56 cities** across 4 cost tiers (very-high, high, moderate, low)
 - **14 salary levels** ($30K-$300K)
-- **784 location-salary pages** (56 × 14)
+- **784 location-salary pages** (56 x 14)
 - **1,071 total guide pages** (salary, tax, savings, mortgage, debt, freelancer, location-salary)
-- **1,207 total sitemap URLs**
+- **1,215+ total sitemap URLs** (including tax tools)
 - **Cost Tier Engine** (`costTier.ts`): Classifies cities by COL + rent
 - **Variation Engine** (`variationEngine.ts`): Deterministic content generation
 - Sitemap: Next.js `sitemap.ts` with `force-static` generation
@@ -35,9 +35,54 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 ### User Data (/api/user-data/*)
 - GET /, GET /{tool_key}, PUT /{tool_key}, DELETE /{tool_key}, POST /bulk
 
-### Existing
+### Career Tools (/api/career-tools/*)
+- POST /improve-bullet, /improve-summary, /email-template
+- GET /email-templates
+
+### Tax Tools (/api/tax-tools/*)
+- POST /explain (AI explanation via GPT-4o-mini, informational only)
+
+### Other
 - GET /api/health, /api/sitemap.xml, /api/sitemap/stats
-- POST /api/career/* (AI-powered career tools)
+
+## Tax Tools System (Phase 16)
+### Hub: /tax-tools
+- Hero section with PREP ONLY badge
+- Trust bar (privacy, free, not tax advice)
+- 3 Popular tools quick links
+- 12 tools organized by section
+- Compliance "What These Tools Are (and Aren't)" section
+- CTA to year-end packet
+
+### Tax Calculators (linked to /calculators/*)
+- Simple Tax Estimator
+- Self-Employment Tax Calculator
+- Tax Set-Aside Calculator
+- Quarterly Tax Calculator
+
+### Tax Planning (at /tax-tools/*)
+- Freelancer Tax Planner (quarterly set-aside, SE tax, AI insights)
+- Income Mix Tax Planner (W-2 + 1099 + other, pie chart, AI insights)
+- Tax Checklist Generator (dynamic checklist by income situation, downloadable)
+
+### IRS Prep Tools (at /tax-tools/*, all with PREP ONLY disclaimers)
+- 1040-ES Prep Generator (quarterly payments, safe harbor, PDF export)
+- Schedule C Prep Summary (business income/expenses, add/remove rows, PDF)
+- Tax Summary PDF (comprehensive year-end summary, balance/refund, PDF)
+- W-2 + 1099 Organizer (multi W-2/1099, filing checklist, PDF)
+- Year-End Tax Packet (full bundled PDF with 6 sections)
+
+### Shared Components
+- TaxAIExplain: AI insight button (1 free use via localStorage, rule-based fallback)
+- TaxPDFExport: jsPDF-based download with disclaimers
+- taxBrackets.ts: Federal tax bracket logic (single + MFJ)
+- useTaxAI.ts: Hook for AI explain + rule-based fallbacks
+
+### Compliance
+- All IRS Prep tools: "PREP ONLY" badge + AlertTriangle disclaimer
+- PDF footers: "Not for IRS submission"
+- Hub: "What These Tools Are (and Aren't)" transparency section
+- AI: Informational only, never for calculations
 
 ## Implementation History
 
@@ -47,23 +92,25 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 ### Phase 12: Sensitive Data Migration -- DONE
 ### Phase 13: Component Splitting -- DONE
 ### Phase 14: CloudSyncIndicator -- DONE
-
 ### Phase 15: pSEO City Expansion (Feb 2026) -- DONE
-- Expanded from 30 → 56 cities across all US cost tiers
-- Location-salary pages: 420 → 784 (87% increase)
-- Total guide pages: ~500 → 1,071
-- Total sitemap URLs: 265 → 1,207
-- New cities: Honolulu, Orange County, Hartford, Sacramento, Stamford, Baltimore, Orlando, Jacksonville, New Orleans, Richmond, Milwaukee, Boise, Cleveland, Cincinnati, Indianapolis, St. Louis, Memphis, Louisville, Oklahoma City, Tucson, El Paso, Omaha, Albuquerque, Birmingham, Buffalo, Des Moines
-- Fixed stale `public/sitemap.xml` override that was masking the dynamic sitemap
-- Removed incompatible `output: standalone` from next.config.ts
-- Backend CITY_SLUGS updated to match frontend (56 cities)
+### Phase 16: Tax Tools Product Section (Feb 2026) -- DONE
+- Built 12-tool Tax Tools hub at /tax-tools
+- 3 Tax Planning tools: FreelancerTaxPlanner, IncomeMixPlanner, TaxChecklistGenerator
+- 5 IRS Prep tools: Form1040ESPrep, ScheduleCPrep, TaxSummaryPDFTool, W2Organizer, YearEndPacket
+- 4 existing calculators linked from hub
+- AI tax insights via TaxAIExplain (GPT-4o-mini, 1 free use)
+- PDF export on all IRS Prep tools via jsPDF
+- Compliance disclaimers throughout (PREP ONLY, not for IRS submission)
+- Tax Tools added to navbar, sitemap, backend sitemap
+- Testing: Backend 100% (8/8), Frontend 100% (25/25) — iteration_16
 
 ## Testing Status
 - Iteration 14: Backend 95%, Frontend 100%
 - Iteration 15: Frontend 100% (17/17)
-- pSEO expansion: 26/26 new city pages verified (200 OK)
+- Iteration 16: Backend 100% (8/8), Frontend 100% (25/25) — Tax Tools
 
 ## Upcoming Tasks
+- Tax Tools SEO schemas (FAQ, breadcrumb, WebApplication) and canonical URLs (P1)
 - Premium ATS checks for Resume Builder (P2)
 - Stripe integration for monetization (P2)
 - A/B test hero CTAs (P2)
