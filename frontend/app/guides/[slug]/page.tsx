@@ -30,9 +30,14 @@ import {
   generateLocationExplanation,
   generateLocationFAQs,
   generateCityComparison,
+  generatePurchasingPowerSummary,
   getCostTier,
   type LocationContext,
 } from "@/lib/pseo/variationEngine";
+import {
+  getTaxProfile,
+  getPurchasingPowerBand,
+} from "@/lib/pseo/costTier";
 import {
   buildHowToSchema,
   buildFAQSchema,
@@ -723,22 +728,29 @@ function LocationSalaryGuidePage({ data }: { data: LocationSalaryEntry }) {
   const colDiff = data.costOfLivingIndex - 100;
   const colLabel = colDiff > 0 ? `${colDiff}% above` : colDiff < 0 ? `${Math.abs(colDiff)}% below` : "at";
 
+  const costTier = getCostTier(data.costOfLivingIndex, data.avgRent1br);
+  const taxProfile = getTaxProfile(!noStateTax);
+  const ppBand = getPurchasingPowerBand(data.adjustedSalary / data.value);
+
   const ctx: LocationContext = {
     cityName: data.cityName,
     stateName: data.state,
     costOfLivingIndex: data.costOfLivingIndex,
-    costTier: getCostTier(data.costOfLivingIndex),
+    costTier,
+    taxProfile,
     hasStateTax: !noStateTax,
     stateTaxRate: data.stateTaxRate,
     avgRent1br: data.avgRent1br,
     adjustedSalary: data.adjustedSalary,
     monthlyNet: data.monthlyNet,
+    purchasingPowerBand: ppBand,
   };
 
   const intro = generateLocationIntro(data.value, ctx);
   const explanation = generateLocationExplanation(data.value, ctx);
   const faqs = generateLocationFAQs(data.value, ctx);
   const comparison = generateCityComparison(data.value, ctx);
+  const ppSummary = generatePurchasingPowerSummary(data.value, ctx);
 
   const schemas = [
     buildHowToSchema({
@@ -811,6 +823,9 @@ function LocationSalaryGuidePage({ data }: { data: LocationSalaryEntry }) {
 
           <h2>{data.cityName} vs National Average</h2>
           <p>{comparison}</p>
+
+          <h2>Your Purchasing Power in {data.cityName}</h2>
+          <p>{ppSummary}</p>
 
           <h2>Living on {v} in {data.cityName}</h2>
           <p>{explanation}</p>
