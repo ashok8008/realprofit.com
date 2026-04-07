@@ -74,8 +74,8 @@ export default function CareerToolsHub() {
                   </div>
                 </div>
                 <div className="mt-3 flex gap-1">
-                  {['bg-blue-100', 'bg-emerald-100', 'bg-amber-100'].map((c, i) => (
-                    <span key={i} className={`${c} text-[8px] px-2 py-0.5 rounded-full`}>Skill</span>
+                  {['bg-blue-100', 'bg-emerald-100', 'bg-amber-100'].map((c) => (
+                    <span key={c} className={`${c} text-[8px] px-2 py-0.5 rounded-full`}>Skill</span>
                   ))}
                 </div>
               </div>
@@ -158,8 +158,8 @@ export default function CareerToolsHub() {
               { icon: <Clock className="w-6 h-6" />, title: "Enter Your Info", desc: "Fill in your details — everything stays in your browser" },
               { icon: <CheckSquare className="w-6 h-6" />, title: "Get Results", desc: "See instant results, scores, or generated content" },
               { icon: <Target className="w-6 h-6" />, title: "Download & Use", desc: "Export as PDF or copy to use anywhere" },
-            ].map((step, i) => (
-              <div key={i} className="text-center">
+            ].map((step) => (
+              <div key={step.title} className="text-center">
                 <div className="w-14 h-14 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center mx-auto mb-4">
                   {step.icon}
                 </div>
@@ -253,8 +253,8 @@ export default function CareerToolsHub() {
               { icon: <Shield className="w-6 h-6" />, title: "100% Private", desc: "Your data never leaves your browser. No accounts, no tracking, no selling your info." },
               { icon: <Clock className="w-6 h-6" />, title: "Save Time", desc: "Create professional documents in minutes instead of hours. Focus on your job search." },
               { icon: <Users className="w-6 h-6" />, title: "Data-Driven", desc: "Get salary insights based on market data. Know your worth before negotiating." },
-            ].map((item, i) => (
-              <div key={i} className="bg-white border rounded-xl p-6">
+            ].map((item) => (
+              <div key={item.title} className="bg-white border rounded-xl p-6">
                 <div className="w-12 h-12 rounded-xl bg-teal-100 text-teal-600 flex items-center justify-center mb-4">
                   {item.icon}
                 </div>

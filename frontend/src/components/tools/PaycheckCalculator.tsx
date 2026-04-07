@@ -35,7 +35,7 @@ export function PaycheckCalculator() {
           insurance: String(parsed.insurance ?? "100"),
           otherDeductions: String(parsed.otherDeductions ?? "50"),
         });
-      } catch {}
+      } catch (e) { console.error("Failed to load paycheck data:", e); }
     }
   }, []);
 

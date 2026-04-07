@@ -45,7 +45,7 @@ export function BillSplitTool() {
             amount: String(p.amount ?? "")
           }))
         });
-      } catch {}
+      } catch (e) { console.error("Failed to load bill split data:", e); }
     }
   }, []);
 

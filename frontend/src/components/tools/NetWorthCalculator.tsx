@@ -59,7 +59,7 @@ export function NetWorthCalculator() {
         const parsed = JSON.parse(saved);
         if (parsed.assets) setAssets(parsed.assets);
         if (parsed.liabilities) setLiabilities(parsed.liabilities);
-      } catch {}
+      } catch (e) { console.error("Failed to load net worth data:", e); }
     }
   }, []);
 

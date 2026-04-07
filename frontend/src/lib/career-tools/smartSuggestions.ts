@@ -242,7 +242,7 @@ function getUsageData(): AiUsageData {
   try {
     const raw = localStorage.getItem(AI_USAGE_KEY);
     if (raw) return JSON.parse(raw);
-  } catch {}
+  } catch (e) { console.error("Failed to load AI usage data:", e); }
   return { totalUsed: 0 };
 }
 

@@ -81,7 +81,7 @@ export default function CalculatorHub() {
                 <div className="text-[10px] font-bold text-gray-400 uppercase mb-2">Investment ROI</div>
                 <div className="flex items-end gap-1">
                   {[20, 30, 25, 40, 35, 55, 50, 65].map((h, i) => (
-                    <div key={i} className="flex-1 rounded-t" style={{ height: `${h}px`, backgroundColor: i >= 6 ? '#22c55e' : '#e5e7eb' }}></div>
+                    <div key={`bar-${h}-${i}`} className="flex-1 rounded-t" style={{ height: `${h}px`, backgroundColor: i >= 6 ? '#22c55e' : '#e5e7eb' }}></div>
                   ))}
                 </div>
               </div>
@@ -142,8 +142,8 @@ export default function CalculatorHub() {
               Stay informed with practical guides, expert tips, and real-world strategies to help you make smarter financial decisions every day.
             </p>
             <div className="flex flex-wrap justify-center gap-2 mb-10">
-              {["Explore Further", "Taxes", "Debt", "Investing", "Budgeting"].map((tab, i) => (
-                <button key={i} className={`px-5 py-2 rounded-full text-xs font-bold transition-colors ${i === 0 ? 'bg-gray-900 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100'}`}>
+              {["Explore Further", "Taxes", "Debt", "Investing", "Budgeting"].map((tab) => (
+                <button key={tab} className={`px-5 py-2 rounded-full text-xs font-bold transition-colors ${tab === "Explore Further" ? 'bg-gray-900 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100'}`}>
                   {tab}
                 </button>
               ))}
@@ -193,8 +193,8 @@ export default function CalculatorHub() {
             { icon: <BarChart3 className="w-6 h-6" />, title: "Benchmark Insights", desc: "Compare results with national averages." },
             { icon: <Share2 className="w-6 h-6" />, title: "Easy to Share", desc: "Export to PDF/CSV in one click." },
             { icon: <Lightbulb className="w-6 h-6" />, title: "Actionable Next Steps", desc: "Clear recommendations after every result." },
-          ].map((item, i) => (
-            <div key={i} className="flex items-start gap-4 p-5 rounded-xl bg-gray-50 border border-gray-100">
+          ].map((item) => (
+            <div key={item.title} className="flex items-start gap-4 p-5 rounded-xl bg-gray-50 border border-gray-100">
               <div className="w-11 h-11 rounded-full bg-teal-50 text-teal-600 flex items-center justify-center flex-shrink-0">
                 {item.icon}
               </div>

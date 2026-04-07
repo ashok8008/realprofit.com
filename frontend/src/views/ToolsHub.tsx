@@ -73,7 +73,7 @@ export default function ToolsHub() {
                 <div className="text-[10px] font-bold text-gray-400 uppercase mb-2">Expense Breakdown</div>
                 <div className="flex gap-1 items-end">
                   {[35, 50, 25, 60, 40, 55, 30].map((h, i) => (
-                    <div key={i} className="flex-1 rounded-t" style={{ height: `${h}px`, backgroundColor: i === 3 ? '#0d9488' : '#e5e7eb' }}></div>
+                    <div key={`bar-${h}-${i}`} className="flex-1 rounded-t" style={{ height: `${h}px`, backgroundColor: i === 3 ? '#0d9488' : '#e5e7eb' }}></div>
                   ))}
                 </div>
                 <div className="text-[10px] text-gray-500 mt-2">Monthly Total: <span className="font-bold text-gray-900">$3,240</span></div>

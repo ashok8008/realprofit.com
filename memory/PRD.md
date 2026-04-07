@@ -45,6 +45,14 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - Added missing SEO meta tags: geo.region, geo.placename, rating, distribution, enhanced robots directive
 - Deleted dead Vite `index.html` artifact
 
+### Phase 9: Code Quality Fixes (Feb 2026) — DONE
+- Fixed XSS: sanitized JSON-LD `dangerouslySetInnerHTML` with `\\u003c` escaping in Seo.tsx and guides/[slug]/page.tsx
+- Fixed 7 empty catch blocks across tool components + smartSuggestions (added console.error)
+- Fixed stale closure in use-toast.ts (dependency `[state]` → `[]`)
+- Replaced array-index-as-key with stable keys (slug/href/title) across Home.tsx, CareerToolsHub.tsx, CalculatorHub.tsx, ToolsHub.tsx
+- Refactored server.py `dynamic_sitemap()` from 206-line monolith → extracted constants, `_build_sitemap_url()`, `_build_guide_urls()` helpers
+- Fixed Python lint: ambiguous variable names, unnecessary f-string
+
 ## Upcoming Tasks
 - Scale pSEO location pages to 2000+ cities (P1)
 - Premium ATS checks for Resume Builder (P2)

@@ -187,8 +187,8 @@ export default function Home() {
               { q: "How long to save $10K?", href: "/calculators/savings-goal-calculator", icon: <Wallet className="w-5 h-5" />, color: "text-blue-600 bg-blue-50 border-blue-200" },
               { q: "Build my resume", href: "/career-tools/resume-builder", icon: <FileText className="w-5 h-5" />, color: "text-violet-600 bg-violet-50 border-violet-200" },
               { q: "Track my spending", href: "/tools/expense-tracker", icon: <LineChart className="w-5 h-5" />, color: "text-emerald-600 bg-emerald-50 border-emerald-200" },
-            ].map((item, i) => (
-              <Link key={i} href={item.href} className={`group flex flex-col items-center text-center gap-2.5 p-4 rounded-xl border transition-all hover:shadow-md hover:-translate-y-0.5 ${item.color}`} data-testid={`start-here-card-${i}`}>
+            ].map((item) => (
+              <Link key={item.href} href={item.href} className={`group flex flex-col items-center text-center gap-2.5 p-4 rounded-xl border transition-all hover:shadow-md hover:-translate-y-0.5 ${item.color}`} data-testid={`start-here-card-${item.q}`}>
                 {item.icon}
                 <span className="text-xs font-bold leading-tight">{item.q}</span>
               </Link>
@@ -250,8 +250,8 @@ export default function Home() {
                 cta: "Plan Your Future",
                 count: "130+",
               },
-            ].map((pillar, i) => (
-              <Link key={i} href={pillar.href} className={`group block rounded-2xl border border-gray-200 bg-white p-6 transition-all hover:shadow-lg hover:-translate-y-1 ${pillar.borderHover}`} data-testid={`pillar-card-${i}`}>
+            ].map((pillar) => (
+              <Link key={pillar.href} href={pillar.href} className={`group block rounded-2xl border border-gray-200 bg-white p-6 transition-all hover:shadow-lg hover:-translate-y-1 ${pillar.borderHover}`} data-testid={`pillar-card-${pillar.title}`}>
                 <div className="flex items-center justify-between mb-4">
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${pillar.color}`}>
                     {pillar.icon}
@@ -340,8 +340,8 @@ export default function Home() {
                 { title: "Salary Comparison", desc: "Compare pay against 90+ role benchmarks with location data", slug: "salary-comparison", icon: "M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" },
                 { title: "Am I Underpaid?", desc: "Instant market assessment of your compensation", slug: "am-i-underpaid", icon: "M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" },
                 { title: "Job Readiness", desc: "Comprehensive checklist to gauge your search preparedness", slug: "job-readiness-score", icon: "M13 10V3L4 14h7v7l9-11h-7z" },
-              ].map((tool, i) => (
-                <Link key={i} href={`/career-tools/${tool.slug}`} className="group block" data-testid={`career-card-${i}`}>
+              ].map((tool) => (
+                <Link key={tool.slug} href={`/career-tools/${tool.slug}`} className="group block" data-testid={`career-card-${tool.slug}`}>
                   <div className="rounded-xl border border-slate-700/80 bg-slate-800/60 p-5 transition-all hover:bg-slate-800 hover:border-teal-500/40 hover:shadow-xl h-full">
                     <div className="w-9 h-9 rounded-lg flex items-center justify-center mb-3 bg-teal-500/15 text-teal-400">
                       <svg viewBox="0 0 24 24" className="w-4.5 h-4.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -446,8 +446,8 @@ export default function Home() {
               { title: "Salary Reality Calculator", desc: "See your real take-home after taxes and deductions.", slug: "salary-reality-calculator", color: "text-emerald-600 bg-emerald-50", fields: [{ l: "Gross Salary", v: "$85,000" }, { l: "State", v: "California" }, { l: "Filing", v: "Single" }] },
               { title: "Tax Estimator", desc: "Estimate your federal and state tax liability.", slug: "simple-tax-estimator", color: "text-rose-600 bg-rose-50", fields: [{ l: "Income", v: "$75,000" }, { l: "Deductions", v: "Standard" }, { l: "Filing", v: "Single" }] },
               { title: "Rent vs. Buy Calculator", desc: "Should you rent or buy? Run the numbers.", slug: "rent-vs-buy-calculator", color: "text-indigo-600 bg-indigo-50", fields: [{ l: "Rent", v: "$1,800/mo" }, { l: "Home Price", v: "$350K" }, { l: "Timeline", v: "10 Years" }] },
-            ].map((calc, i) => (
-              <Link key={i} href={`/calculators/${calc.slug}`} className="group block h-full" data-testid={`calc-card-${i}`}>
+            ].map((calc) => (
+              <Link key={calc.slug} href={`/calculators/${calc.slug}`} className="group block h-full" data-testid={`calc-card-${calc.slug}`}>
                 <div className="h-full rounded-2xl border border-gray-200 bg-white p-6 transition-all hover:shadow-lg hover:-translate-y-1 hover:border-teal-400 flex flex-col">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${calc.color}`}>
                     <Calculator className="w-5 h-5" />
@@ -455,8 +455,8 @@ export default function Home() {
                   <h3 className="font-bold text-base mb-1.5 group-hover:text-teal-600 transition-colors">{calc.title}</h3>
                   <p className="text-gray-500 text-xs mb-4 flex-grow">{calc.desc}</p>
                   <div className="bg-gray-50 rounded-lg p-3 mb-4 border border-gray-100">
-                    {calc.fields.map((f, fi) => (
-                      <div key={fi} className="flex justify-between text-[10px] mb-1 last:mb-0">
+                    {calc.fields.map((f) => (
+                      <div key={f.l} className="flex justify-between text-[10px] mb-1 last:mb-0">
                         <span className="text-gray-400">{f.l}</span>
                         <span className="font-semibold text-gray-700">{f.v}</span>
                       </div>
@@ -498,8 +498,8 @@ export default function Home() {
               { title: "Net Worth Calculator", desc: "Calculate your total assets minus liabilities.", slug: "net-worth-calculator", color: "text-emerald-600 bg-emerald-50" },
               { title: "Income Tracker", desc: "Log income entries and visualize earning patterns.", slug: "income-tracker", color: "text-violet-600 bg-violet-50" },
               { title: "Expense Tracker", desc: "Record expenses and understand spending habits.", slug: "expense-tracker", color: "text-cyan-600 bg-cyan-50" },
-            ].map((tool, i) => (
-              <Link key={i} href={`/tools/${tool.slug}`} className="group block h-full" data-testid={`tool-card-${i}`}>
+            ].map((tool) => (
+              <Link key={tool.slug} href={`/tools/${tool.slug}`} className="group block h-full" data-testid={`tool-card-${tool.slug}`}>
                 <div className="h-full rounded-2xl border border-gray-200 bg-white p-6 transition-all hover:shadow-lg hover:-translate-y-1 hover:border-teal-400 flex flex-col">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${tool.color}`}>
                     <Briefcase className="w-5 h-5" />
@@ -541,8 +541,8 @@ export default function Home() {
                 { label: "Investing", href: "/category/saving-vs-investing" },
                 { label: "Budgeting", href: "/category/money-basics" },
                 { label: "Guides", href: "/guides" },
-              ].map((tab, i) => (
-                <Link key={i} href={tab.href} className={`px-5 py-2 rounded-lg text-xs font-bold transition-colors ${i === 0 ? 'bg-gray-900 text-white hover:bg-gray-800' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100'}`}>
+              ].map((tab) => (
+                <Link key={tab.href} href={tab.href} className={`px-5 py-2 rounded-lg text-xs font-bold transition-colors ${tab.href === '/search' ? 'bg-gray-900 text-white hover:bg-gray-800' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100'}`}>
                   {tab.label}
                 </Link>
               ))}
@@ -612,8 +612,8 @@ export default function Home() {
               { title: "Clear Calculations", desc: "Transparent, data-driven math you can verify. No black boxes, no guesswork.", icon: <BarChart3 className="w-6 h-6 text-teal-600" /> },
               { title: "Free and Practical", desc: "No premium tiers for core tools. Use everything, no signup required for most features.", icon: <Heart className="w-6 h-6 text-teal-600" /> },
               { title: "Built for Real People", desc: "Made for everyday decisions — not finance pros. Clear language, useful defaults.", icon: <Lock className="w-6 h-6 text-teal-600" /> },
-            ].map((card, i) => (
-              <div key={i} className="text-center" data-testid={`trust-card-${i}`}>
+            ].map((card) => (
+              <div key={card.title} className="text-center" data-testid={`trust-card-${card.title}`}>
                 <div className="w-14 h-14 rounded-2xl bg-teal-50 flex items-center justify-center mx-auto mb-5 border border-teal-100">
                   {card.icon}
                 </div>

@@ -28,7 +28,7 @@ export function IncomeTracker() {
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
-      try { setEntries(JSON.parse(saved)); } catch {}
+      try { setEntries(JSON.parse(saved)); } catch (e) { console.error("Failed to load income data:", e); }
     }
   }, []);
 

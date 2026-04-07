@@ -37,7 +37,7 @@ export function SubscriptionCostAnalyzer() {
         if (Array.isArray(parsed) && parsed.length > 0) {
           setSubs(parsed);
         }
-      } catch {}
+      } catch (e) { console.error("Failed to load subscriptions:", e); }
     }
   }, []);
 

@@ -145,9 +145,9 @@ function JsonLd({ data }: { data: Record<string, unknown> | Record<string, unkno
     <>
       {schemas.map((schema, i) => (
         <script
-          key={i}
+          key={`jsonld-${i}`}
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema).replace(/</g, "\\u003c") }}
         />
       ))}
     </>

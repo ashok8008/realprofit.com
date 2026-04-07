@@ -33,9 +33,9 @@ export function Seo({ title, jsonLd }: SeoProps) {
     <>
       {schemas.map((schema, i) => (
         <script
-          key={i}
+          key={`schema-${i}`}
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema).replace(/</g, "\\u003c") }}
         />
       ))}
     </>

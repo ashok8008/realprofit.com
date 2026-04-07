@@ -105,10 +105,10 @@ async def improve_bullet_point(request: BulletPointRequest):
     user_msg += '\nFormat: Line 1 = improved bullet. Lines 2-4 = 3 short tips.'
     
     response = await get_ai_response(system_msg, user_msg)
-    lines = [l.strip() for l in response.strip().split('\n') if l.strip()]
+    lines = [line.strip() for line in response.strip().split('\n') if line.strip()]
     
     improved = lines[0].strip('"').strip() if lines else request.bullet_point
-    suggestions = [l.lstrip('0123456789.-) ') for l in lines[1:4]]
+    suggestions = [line.lstrip('0123456789.-) ') for line in lines[1:4]]
     
     return BulletPointResponse(
         original=request.bullet_point,
@@ -188,215 +188,202 @@ async def list_email_templates():
 
 
 # ============================================================
+# Sitemap Data & Helpers
+# ============================================================
+
+STATIC_PAGES = [
+    ("/", "1.0", "weekly"),
+    ("/calculators", "0.9", "weekly"),
+    ("/tools", "0.9", "weekly"),
+    ("/guides", "0.9", "weekly"),
+    ("/career-tools", "0.9", "weekly"),
+    ("/what-if", "0.8", "monthly"),
+    ("/search", "0.7", "weekly"),
+    ("/about", "0.5", "monthly"),
+    ("/contact", "0.4", "yearly"),
+    ("/privacy", "0.3", "yearly"),
+    ("/terms", "0.3", "yearly"),
+    ("/disclaimer", "0.3", "yearly"),
+    ("/editorial-policy", "0.3", "yearly"),
+]
+
+CATEGORY_SLUGS = [
+    "money-basics", "income-side-hustles", "taxes", "saving-vs-investing",
+    "debt-credit", "life-decisions", "real-stories", "calculators",
+]
+
+CALCULATOR_SLUGS = [
+    "savings-goal-calculator", "emergency-fund-calculator", "monthly-budget-calculator",
+    "expense-breakdown-tool", "monthly-income-estimator", "side-hustle-earnings",
+    "hourly-rate-calculator", "simple-tax-estimator", "tax-set-aside-calculator",
+    "quarterly-tax-calculator", "self-employment-tax-calculator", "save-vs-invest-calculator",
+    "compound-interest-calculator", "investment-growth-calculator", "credit-card-payoff-calculator",
+    "loan-interest-calculator", "debt-snowball-calculator", "rent-vs-buy-calculator",
+    "cost-of-living-comparison", "salary-reality-calculator", "simple-savings-calculator",
+    "monthly-savings-calculator", "savings-income-calculator", "mortgage-calculator",
+    "mortgage-amortization-calculator", "personal-loan-calculator", "auto-loan-calculator",
+    "business-loan-calculator", "loan-affordability-calculator", "extra-payment-calculator",
+    "investment-return-calculator", "sip-calculator", "retirement-growth-calculator",
+    "debt-avalanche-calculator", "interest-calculator", "minimum-payment-trap-calculator",
+    "profit-margin-calculator", "net-income-calculator", "can-i-afford-this-calculator",
+]
+
+TOOL_SLUGS = [
+    "freelance-invoice-generator", "subscription-cost-analyzer", "bill-split-tool",
+    "net-worth-calculator", "paycheck-calculator", "income-tracker", "expense-tracker",
+]
+
+CAREER_SLUGS = [
+    "career-tools/resume-builder", "career-tools/cover-letter-generator",
+    "career-tools/salary-comparison", "career-tools/am-i-underpaid",
+    "career-tools/resume-score", "career-tools/job-readiness-score",
+    "career-tools/offer-comparison", "career-tools/salary-negotiation",
+    "career-tools/interview-prep", "career-tools/email-templates",
+]
+
+ARTICLE_SLUGS = [
+    "build-emergency-fund-no-money", "freelance-taxes-reality", "hysa-vs-investing",
+    "paid-off-student-loans-story", "rent-vs-buy-today", "how-much-money-saved-every-age",
+    "why-saving-money-feels-harder", "living-paycheck-to-paycheck-today",
+    "accidentally-overspend-without-realizing", "money-mistakes-in-your-20s",
+    "money-mistakes-in-your-30s", "cash-keep-vs-invest", "healthy-monthly-budget-us",
+    "dont-know-where-money-goes", "small-expenses-destroy-savings",
+    "side-hustle-worth-it-2026", "realistic-side-hustle-earnings",
+    "freelancers-struggle-irregular-income", "plan-finances-unpredictable-income",
+    "wrong-about-passive-income", "calculate-true-hourly-rate",
+    "side-hustle-become-real-business", "how-much-charge-freelancer",
+    "more-income-not-more-savings", "stabilize-income-freelance",
+    "freelancers-surprised-by-taxes", "tax-on-50000-income", "tax-on-100000-income",
+    "miss-tax-deadline", "file-taxes-under-10000", "estimated-taxes-explained",
+    "freelancers-set-aside-taxes", "tax-mistakes-first-time-freelancers",
+    "tax-software-confusing", "dont-pay-taxes-for-year", "save-or-invest-first",
+    "high-yield-savings-popular-again", "investing-too-risky-beginners",
+    "compound-interest-real-life", "invest-500-every-month", "how-long-build-real-wealth",
+    "timing-market-rarely-works", "dont-understand-about-investing",
+    "how-much-invest-vs-save", "long-term-investing-beats-short-term",
+    "credit-card-interest-explained", "minimum-payments-keep-in-debt",
+    "how-long-pay-off-credit-card", "all-debt-bad-or-useful",
+    "credit-score-means-real-life", "debt-grows-faster-than-expected",
+    "real-cost-credit-card-debt", "decide-which-debt-pay-first",
+    "stay-in-debt-good-income", "stop-paying-your-loans",
+    "high-yield-savings-account-worth-it", "debt-snowball-vs-avalanche-strategy",
+    "first-time-home-buyer-mortgage-guide", "retirement-planning-by-age",
+]
+
+CITY_SLUGS = [
+    "new-york", "san-francisco", "los-angeles", "san-jose", "seattle",
+    "boston", "washington-dc", "chicago", "miami", "denver",
+    "austin", "dallas", "houston", "san-antonio", "nashville",
+    "atlanta", "phoenix", "portland", "minneapolis", "philadelphia",
+    "charlotte", "raleigh", "salt-lake-city", "pittsburgh", "tampa",
+    "detroit", "kansas-city", "columbus", "san-diego", "las-vegas",
+]
+
+
+def _get_salary_amounts():
+    grid = list(range(20000, 105000, 5000)) + list(range(110000, 310000, 10000))
+    legacy = [42000, 48000, 52000, 58000, 62000, 68000, 72000, 78000, 82000, 88000,
+              92000, 98000, 105000, 115000, 125000, 135000, 145000, 175000, 225000,
+              275000, 350000, 400000, 500000]
+    return sorted(set(grid + legacy))
+
+
+def _get_savings_amounts():
+    grid = list(range(1000, 6000, 1000)) + list(range(10000, 55000, 5000)) + list(range(75000, 225000, 25000))
+    extra = [250000, 300000, 400000, 500000, 750000, 1000000]
+    legacy = [500, 1500, 2500, 3000, 4000, 6000, 7500, 8000, 12000, 60000]
+    return sorted(set(grid + extra + legacy))
+
+
+MORTGAGE_AMOUNTS = [50000, 100000, 150000, 200000, 250000, 300000, 350000, 400000,
+                    450000, 500000, 600000, 700000, 800000, 900000, 1000000, 1500000, 2000000]
+MORTGAGE_VARIANT_AMOUNTS = [150000, 200000, 300000, 400000, 500000, 700000, 1000000, 1500000]
+MORTGAGE_RATES = [5, 6, 7, 8]
+MORTGAGE_TERMS = [15, 30]
+
+DEBT_AMOUNTS = [1000, 2000, 3000, 4000, 5000, 7500, 10000, 15000, 20000, 25000, 30000, 40000, 50000, 75000, 100000]
+
+FREELANCER_AMOUNTS = [10000, 15000, 20000, 25000, 30000, 35000, 40000, 50000, 60000,
+                      70000, 80000, 90000, 100000, 120000, 150000, 175000, 200000, 250000, 300000]
+
+LOCATION_SALARY_AMOUNTS = [30000, 40000, 50000, 60000, 70000, 80000, 90000, 100000,
+                           120000, 150000, 175000, 200000, 250000, 300000]
+
+
+def _build_sitemap_url(domain: str, path: str, priority: str, freq: str, today: str) -> str:
+    return (f'  <url>\n    <loc>{domain}{path}</loc>\n    <lastmod>{today}</lastmod>'
+            f'\n    <changefreq>{freq}</changefreq>\n    <priority>{priority}</priority>\n  </url>')
+
+
+def _build_guide_urls(domain: str, today: str) -> list[str]:
+    """Generate all pSEO guide sitemap URLs."""
+    urls = []
+    salary_amounts = _get_salary_amounts()
+
+    for a in salary_amounts:
+        urls.append(_build_sitemap_url(domain, f"/guides/{a}-salary", "0.6", "monthly", today))
+
+    for a in salary_amounts:
+        urls.append(_build_sitemap_url(domain, f"/guides/tax-on-{a}-income", "0.6", "monthly", today))
+
+    for a in _get_savings_amounts():
+        urls.append(_build_sitemap_url(domain, f"/guides/save-{a}", "0.6", "monthly", today))
+
+    for a in MORTGAGE_AMOUNTS:
+        urls.append(_build_sitemap_url(domain, f"/guides/mortgage-{a}", "0.6", "monthly", today))
+
+    for a in MORTGAGE_VARIANT_AMOUNTS:
+        for r in MORTGAGE_RATES:
+            urls.append(_build_sitemap_url(domain, f"/guides/mortgage-{a}-{r}-percent", "0.5", "monthly", today))
+        for t in MORTGAGE_TERMS:
+            urls.append(_build_sitemap_url(domain, f"/guides/mortgage-{a}-{t}-year", "0.5", "monthly", today))
+
+    for a in DEBT_AMOUNTS:
+        urls.append(_build_sitemap_url(domain, f"/guides/pay-off-{a}-debt", "0.6", "monthly", today))
+        urls.append(_build_sitemap_url(domain, f"/guides/credit-card-interest-{a}", "0.6", "monthly", today))
+
+    for a in FREELANCER_AMOUNTS:
+        urls.append(_build_sitemap_url(domain, f"/guides/self-employment-tax-{a}", "0.6", "monthly", today))
+        urls.append(_build_sitemap_url(domain, f"/guides/how-much-tax-to-set-aside-{a}", "0.6", "monthly", today))
+
+    for a in LOCATION_SALARY_AMOUNTS:
+        for city in CITY_SLUGS:
+            urls.append(_build_sitemap_url(domain, f"/guides/{a}-salary-in-{city}", "0.6", "monthly", today))
+
+    return urls
+
+
+# ============================================================
 # Dynamic Sitemap
 # ============================================================
 
 @app.get("/api/sitemap.xml")
 async def dynamic_sitemap():
     today = date.today().isoformat()
-
-    # Static pages
-    static_pages = [
-        ("/", "1.0", "weekly"),
-        ("/calculators", "0.9", "weekly"),
-        ("/tools", "0.9", "weekly"),
-        ("/guides", "0.9", "weekly"),
-        ("/career-tools", "0.9", "weekly"),
-        ("/what-if", "0.8", "monthly"),
-        ("/search", "0.7", "weekly"),
-        ("/about", "0.5", "monthly"),
-        ("/contact", "0.4", "yearly"),
-        ("/privacy", "0.3", "yearly"),
-        ("/terms", "0.3", "yearly"),
-        ("/disclaimer", "0.3", "yearly"),
-        ("/editorial-policy", "0.3", "yearly"),
-    ]
-
-    # Categories
-    categories = [
-        "money-basics", "income-side-hustles", "taxes", "saving-vs-investing",
-        "debt-credit", "life-decisions", "real-stories", "calculators",
-    ]
-
-    # Calculators
-    calculator_slugs = [
-        "savings-goal-calculator", "emergency-fund-calculator", "monthly-budget-calculator",
-        "expense-breakdown-tool", "monthly-income-estimator", "side-hustle-earnings",
-        "hourly-rate-calculator", "simple-tax-estimator", "tax-set-aside-calculator",
-        "quarterly-tax-calculator", "self-employment-tax-calculator", "save-vs-invest-calculator",
-        "compound-interest-calculator", "investment-growth-calculator", "credit-card-payoff-calculator",
-        "loan-interest-calculator", "debt-snowball-calculator", "rent-vs-buy-calculator",
-        "cost-of-living-comparison", "salary-reality-calculator", "simple-savings-calculator",
-        "monthly-savings-calculator", "savings-income-calculator", "mortgage-calculator",
-        "mortgage-amortization-calculator", "personal-loan-calculator", "auto-loan-calculator",
-        "business-loan-calculator", "loan-affordability-calculator", "extra-payment-calculator",
-        "investment-return-calculator", "sip-calculator", "retirement-growth-calculator",
-        "debt-avalanche-calculator", "interest-calculator", "minimum-payment-trap-calculator",
-        "profit-margin-calculator", "net-income-calculator", "can-i-afford-this-calculator",
-    ]
-
-    # Tools
-    tool_slugs = [
-        "freelance-invoice-generator", "subscription-cost-analyzer", "bill-split-tool",
-        "net-worth-calculator", "paycheck-calculator", "income-tracker", "expense-tracker",
-    ]
-
-    # Career tools
-    career_slugs = [
-        "career-tools/resume-builder", "career-tools/cover-letter-generator",
-        "career-tools/salary-comparison", "career-tools/am-i-underpaid",
-        "career-tools/resume-score", "career-tools/job-readiness-score",
-        "career-tools/offer-comparison", "career-tools/salary-negotiation",
-        "career-tools/interview-prep", "career-tools/email-templates",
-    ]
-
-    # ─── pSEO Guide Slugs (generated dynamically) ───
-
-    # Salary: 20k→100k step 5k, 100k→300k step 10k + legacy
-    salary_grid = list(range(20000, 105000, 5000)) + list(range(110000, 310000, 10000))
-    salary_legacy = [42000, 48000, 52000, 58000, 62000, 68000, 72000, 78000, 82000, 88000,
-                     92000, 98000, 105000, 115000, 125000, 135000, 145000, 175000, 225000,
-                     275000, 350000, 400000, 500000]
-    salary_amounts = sorted(set(salary_grid + salary_legacy))
-
-    # Tax: same range
-    tax_amounts = salary_amounts
-
-    # Savings
-    savings_grid = list(range(1000, 6000, 1000)) + list(range(10000, 55000, 5000)) + list(range(75000, 225000, 25000))
-    savings_extra = [250000, 300000, 400000, 500000, 750000, 1000000]
-    savings_legacy = [500, 1500, 2500, 3000, 4000, 6000, 7500, 8000, 12000, 60000]
-    savings_amounts = sorted(set(savings_grid + savings_extra + savings_legacy))
-
-    # Mortgage
-    mortgage_amounts = [50000, 100000, 150000, 200000, 250000, 300000, 350000, 400000,
-                        450000, 500000, 600000, 700000, 800000, 900000, 1000000, 1500000, 2000000]
-    mortgage_variant_amounts = [150000, 200000, 300000, 400000, 500000, 700000, 1000000, 1500000]
-    mortgage_rates = [5, 6, 7, 8]
-    mortgage_terms = [15, 30]
-
-    # Debt
-    debt_amounts = [1000, 2000, 3000, 4000, 5000, 7500, 10000, 15000, 20000, 25000, 30000, 40000, 50000, 75000, 100000]
-
-    # Freelancer
-    freelancer_amounts = [10000, 15000, 20000, 25000, 30000, 35000, 40000, 50000, 60000,
-                          70000, 80000, 90000, 100000, 120000, 150000, 175000, 200000, 250000, 300000]
-
-    # Location Salary
-    location_salary_amounts = [30000, 40000, 50000, 60000, 70000, 80000, 90000, 100000,
-                               120000, 150000, 175000, 200000, 250000, 300000]
-    city_slugs = [
-        "new-york", "san-francisco", "los-angeles", "san-jose", "seattle",
-        "boston", "washington-dc", "chicago", "miami", "denver",
-        "austin", "dallas", "houston", "san-antonio", "nashville",
-        "atlanta", "phoenix", "portland", "minneapolis", "philadelphia",
-        "charlotte", "raleigh", "salt-lake-city", "pittsburgh", "tampa",
-        "detroit", "kansas-city", "columbus", "san-diego", "las-vegas",
-    ]
-
-    # Articles (static list)
-    article_slugs = [
-        "build-emergency-fund-no-money", "freelance-taxes-reality", "hysa-vs-investing",
-        "paid-off-student-loans-story", "rent-vs-buy-today", "how-much-money-saved-every-age",
-        "why-saving-money-feels-harder", "living-paycheck-to-paycheck-today",
-        "accidentally-overspend-without-realizing", "money-mistakes-in-your-20s",
-        "money-mistakes-in-your-30s", "cash-keep-vs-invest", "healthy-monthly-budget-us",
-        "dont-know-where-money-goes", "small-expenses-destroy-savings",
-        "side-hustle-worth-it-2026", "realistic-side-hustle-earnings",
-        "freelancers-struggle-irregular-income", "plan-finances-unpredictable-income",
-        "wrong-about-passive-income", "calculate-true-hourly-rate",
-        "side-hustle-become-real-business", "how-much-charge-freelancer",
-        "more-income-not-more-savings", "stabilize-income-freelance",
-        "freelancers-surprised-by-taxes", "tax-on-50000-income", "tax-on-100000-income",
-        "miss-tax-deadline", "file-taxes-under-10000", "estimated-taxes-explained",
-        "freelancers-set-aside-taxes", "tax-mistakes-first-time-freelancers",
-        "tax-software-confusing", "dont-pay-taxes-for-year", "save-or-invest-first",
-        "high-yield-savings-popular-again", "investing-too-risky-beginners",
-        "compound-interest-real-life", "invest-500-every-month", "how-long-build-real-wealth",
-        "timing-market-rarely-works", "dont-understand-about-investing",
-        "how-much-invest-vs-save", "long-term-investing-beats-short-term",
-        "credit-card-interest-explained", "minimum-payments-keep-in-debt",
-        "how-long-pay-off-credit-card", "all-debt-bad-or-useful",
-        "credit-score-means-real-life", "debt-grows-faster-than-expected",
-        "real-cost-credit-card-debt", "decide-which-debt-pay-first",
-        "stay-in-debt-good-income", "stop-paying-your-loans",
-        "high-yield-savings-account-worth-it", "debt-snowball-vs-avalanche-strategy",
-        "first-time-home-buyer-mortgage-guide", "retirement-planning-by-age",
-    ]
-
-    # ─── Build XML ───
-    urls = []
     domain = os.environ.get("APP_DOMAIN", "https://realprofits.com")
+    urls = []
 
-    def add(path, priority, freq):
-        urls.append(f'  <url>\n    <loc>{domain}{path}</loc>\n    <lastmod>{today}</lastmod>\n    <changefreq>{freq}</changefreq>\n    <priority>{priority}</priority>\n  </url>')
+    for path, pri, freq in STATIC_PAGES:
+        urls.append(_build_sitemap_url(domain, path, pri, freq, today))
 
-    # Static
-    for path, pri, freq in static_pages:
-        add(path, pri, freq)
+    for c in CATEGORY_SLUGS:
+        urls.append(_build_sitemap_url(domain, f"/category/{c}", "0.7", "weekly", today))
 
-    # Categories
-    for c in categories:
-        add(f"/category/{c}", "0.7", "weekly")
+    for s in CALCULATOR_SLUGS:
+        urls.append(_build_sitemap_url(domain, f"/calculators/{s}", "0.8", "monthly", today))
 
-    # Calculators
-    for s in calculator_slugs:
-        add(f"/calculators/{s}", "0.8", "monthly")
+    for s in TOOL_SLUGS:
+        urls.append(_build_sitemap_url(domain, f"/tools/{s}", "0.8", "monthly", today))
 
-    # Tools
-    for s in tool_slugs:
-        add(f"/tools/{s}", "0.8", "monthly")
+    for s in CAREER_SLUGS:
+        urls.append(_build_sitemap_url(domain, f"/{s}", "0.8", "monthly", today))
 
-    # Career Tools
-    for s in career_slugs:
-        add(f"/{s}", "0.8", "monthly")
+    urls.extend(_build_guide_urls(domain, today))
 
-    # Guides: Salary
-    for a in salary_amounts:
-        add(f"/guides/{a}-salary", "0.6", "monthly")
+    for s in ARTICLE_SLUGS:
+        urls.append(_build_sitemap_url(domain, f"/articles/{s}", "0.7", "monthly", today))
 
-    # Guides: Tax
-    for a in tax_amounts:
-        add(f"/guides/tax-on-{a}-income", "0.6", "monthly")
-
-    # Guides: Savings
-    for a in savings_amounts:
-        add(f"/guides/save-{a}", "0.6", "monthly")
-
-    # Guides: Mortgage (base)
-    for a in mortgage_amounts:
-        add(f"/guides/mortgage-{a}", "0.6", "monthly")
-
-    # Guides: Mortgage (rate variants)
-    for a in mortgage_variant_amounts:
-        for r in mortgage_rates:
-            add(f"/guides/mortgage-{a}-{r}-percent", "0.5", "monthly")
-
-    # Guides: Mortgage (term variants)
-    for a in mortgage_variant_amounts:
-        for t in mortgage_terms:
-            add(f"/guides/mortgage-{a}-{t}-year", "0.5", "monthly")
-
-    # Guides: Debt
-    for a in debt_amounts:
-        add(f"/guides/pay-off-{a}-debt", "0.6", "monthly")
-        add(f"/guides/credit-card-interest-{a}", "0.6", "monthly")
-
-    # Guides: Freelancer
-    for a in freelancer_amounts:
-        add(f"/guides/self-employment-tax-{a}", "0.6", "monthly")
-        add(f"/guides/how-much-tax-to-set-aside-{a}", "0.6", "monthly")
-
-    # Guides: Location Salary
-    for a in location_salary_amounts:
-        for city in city_slugs:
-            add(f"/guides/{a}-salary-in-{city}", "0.6", "monthly")
-
-    # Articles
-    for s in article_slugs:
-        add(f"/articles/{s}", "0.7", "monthly")
-
-    xml = f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + '\n'.join(urls) + '\n</urlset>'
+    xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + '\n'.join(urls) + '\n</urlset>'
 
     return Response(content=xml, media_type="application/xml")
 
@@ -404,20 +391,15 @@ async def dynamic_sitemap():
 @app.get("/api/sitemap/stats")
 async def sitemap_stats():
     """Return page count stats for the pSEO system."""
-    salary_count = len(set(list(range(20000, 105000, 5000)) + list(range(110000, 310000, 10000)) +
-                        [42000, 48000, 52000, 58000, 62000, 68000, 72000, 78000, 82000, 88000,
-                         92000, 98000, 105000, 115000, 125000, 135000, 145000, 175000, 225000,
-                         275000, 350000, 400000, 500000]))
+    salary_count = len(_get_salary_amounts())
     tax_count = salary_count
-    savings_count = len(set(list(range(1000, 6000, 1000)) + list(range(10000, 55000, 5000)) +
-                         list(range(75000, 225000, 25000)) + [250000, 300000, 400000, 500000, 750000, 1000000] +
-                         [500, 1500, 2500, 3000, 4000, 6000, 7500, 8000, 12000, 60000]))
-    mortgage_base = 17
-    mortgage_rate = 8 * 4
-    mortgage_term = 8 * 2
-    debt_count = 15 * 2
-    freelancer_count = 19 * 2
-    location_salary_count = 14 * 30  # 14 salary amounts × 30 cities
+    savings_count = len(_get_savings_amounts())
+    mortgage_base = len(MORTGAGE_AMOUNTS)
+    mortgage_rate = len(MORTGAGE_VARIANT_AMOUNTS) * len(MORTGAGE_RATES)
+    mortgage_term = len(MORTGAGE_VARIANT_AMOUNTS) * len(MORTGAGE_TERMS)
+    debt_count = len(DEBT_AMOUNTS) * 2
+    freelancer_count = len(FREELANCER_AMOUNTS) * 2
+    location_salary_count = len(LOCATION_SALARY_AMOUNTS) * len(CITY_SLUGS)
 
     total_guides = salary_count + tax_count + savings_count + mortgage_base + mortgage_rate + mortgage_term + debt_count + freelancer_count + location_salary_count
 
@@ -430,5 +412,5 @@ async def sitemap_stats():
         "freelancer_guides": freelancer_count,
         "location_salary_guides": location_salary_count,
         "total_guide_pages": total_guides,
-        "total_sitemap_urls": total_guides + 13 + 8 + 38 + 7 + 10 + 59,
+        "total_sitemap_urls": total_guides + len(STATIC_PAGES) + len(CATEGORY_SLUGS) + len(CALCULATOR_SLUGS) + len(TOOL_SLUGS) + len(CAREER_SLUGS) + len(ARTICLE_SLUGS),
     }

@@ -45,7 +45,7 @@ export function FreelanceInvoiceGenerator() {
         if (parsed.discount !== undefined) parsed.discount = String(parsed.discount);
         if (parsed.taxPercentage !== undefined) parsed.taxPercentage = String(parsed.taxPercentage);
         setData(parsed);
-      } catch {}
+      } catch (e) { console.error("Failed to load invoice data:", e); }
     }
   }, []);
 
