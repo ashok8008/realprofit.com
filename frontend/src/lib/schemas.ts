@@ -90,3 +90,47 @@ export function buildBreadcrumbSchema(items: { name: string; url: string }[]) {
     })),
   };
 }
+
+export function buildWebApplicationSchema(tool: {
+  name: string;
+  description: string;
+  slug: string;
+  section: string;
+}) {
+  const isIRSPrep = tool.section === "irs-prep";
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    name: tool.name,
+    description: tool.description + (isIRSPrep ? " Prep worksheet only — not for IRS submission." : ""),
+    applicationCategory: "FinanceApplication",
+    applicationSubCategory: isIRSPrep ? "Tax Preparation" : "Tax Planning",
+    operatingSystem: "Web Browser",
+    browserRequirements: "Requires JavaScript",
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "USD",
+    },
+    url: `https://realprofits.com/tax-tools/${tool.slug}`,
+    creator: {
+      "@type": "Organization",
+      name: "RealProfits",
+      url: "https://realprofits.com",
+    },
+  };
+}
+
+export function buildItemListSchema(items: { name: string; url: string; description: string }[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    itemListElement: items.map((item, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: item.name,
+      description: item.description,
+      url: item.url,
+    })),
+  };
+}

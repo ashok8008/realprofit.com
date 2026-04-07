@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import Link from "next/link";
-import { Seo } from "@/components/Seo";
+import { Seo, buildBreadcrumbSchema, buildFAQSchema, buildItemListSchema } from "@/components/Seo";
 import { taxTools, TaxToolDef } from "@/data/tax-tools";
 import {
   ArrowRight, Calculator, ClipboardList, FileText, Receipt,
@@ -39,6 +39,29 @@ function getToolHref(tool: TaxToolDef): string {
 export default function TaxToolsHub() {
   const sections = ["calculators", "planning", "irs-prep"] as const;
 
+  const breadcrumbSchema = buildBreadcrumbSchema([
+    { name: "Home", url: "https://realprofits.com" },
+    { name: "Tax Tools", url: "https://realprofits.com/tax-tools" },
+  ]);
+
+  const itemListSchema = buildItemListSchema(
+    taxTools.map(t => ({
+      name: t.name,
+      description: t.description,
+      url: t.section === "calculators"
+        ? `https://realprofits.com/calculators/${t.slug}`
+        : `https://realprofits.com/tax-tools/${t.slug}`,
+    }))
+  );
+
+  const hubFaqSchema = buildFAQSchema([
+    { question: "Are these tax tools free?", answer: "Yes. All RealProfits tax tools are 100% free with no signup required. Calculations run entirely in your browser." },
+    { question: "Can I file my taxes with these tools?", answer: "No. These are preparation and estimation tools only. They are NOT official IRS forms and cannot be submitted to the IRS. Always use approved tax software or a professional for filing." },
+    { question: "Is my financial data safe?", answer: "Yes. All calculations happen in your browser. No financial data is sent to our servers. You can optionally sign in to sync data to your account." },
+    { question: "How accurate are the tax estimates?", answer: "Estimates are based on standard U.S. federal tax formulas for the current tax year. Actual obligations vary based on your specific situation, deductions, credits, and current tax law." },
+    { question: "What tax tools are available?", answer: "We offer 12 tools across 3 categories: Tax Calculators (4 tools for quick estimates), Tax Planning (3 tools for freelancers and mixed-income), and IRS Prep (5 tools for document organization and prep worksheets with PDF export)." },
+  ]);
+
   return (
     <div className="w-full" data-testid="tax-tools-hub">
       <Seo
@@ -46,6 +69,7 @@ export default function TaxToolsHub() {
         description="Free tax tools for freelancers and employees. Estimate income tax, plan quarterly payments, organize W-2s and 1099s, and generate prep worksheets. No IRS filing — prep only."
         keywords="tax calculator, quarterly tax, self employment tax, 1040-ES, schedule c, tax planning, freelance tax, irs prep, w2 organizer, tax tools"
         path="/tax-tools"
+        jsonLd={[breadcrumbSchema, itemListSchema, hubFaqSchema]}
       />
 
       {/* Hero */}

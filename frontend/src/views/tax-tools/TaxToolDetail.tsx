@@ -2,7 +2,7 @@
 import React, { Suspense, lazy } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Seo } from "@/components/Seo";
+import { Seo, buildWebApplicationSchema, buildBreadcrumbSchema, buildFAQSchema } from "@/components/Seo";
 import { taxTools } from "@/data/tax-tools";
 import { BreadcrumbNav } from "@/components/linking/InternalLinks";
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
@@ -103,6 +103,25 @@ export default function TaxToolDetail() {
 
   const isIRSPrep = tool.section === "irs-prep";
 
+  const webAppSchema = buildWebApplicationSchema({
+    name: tool.name,
+    description: tool.description,
+    slug: tool.slug,
+    section: tool.section,
+  });
+
+  const breadcrumbSchema = buildBreadcrumbSchema([
+    { name: "Home", url: "https://realprofits.com" },
+    { name: "Tax Tools", url: "https://realprofits.com/tax-tools" },
+    { name: tool.name, url: `https://realprofits.com/tax-tools/${tool.slug}` },
+  ]);
+
+  const faqSchema = faqs.length > 0
+    ? buildFAQSchema(faqs.map(f => ({ question: f.q, answer: f.a })))
+    : null;
+
+  const schemas = [webAppSchema, breadcrumbSchema, ...(faqSchema ? [faqSchema] : [])];
+
   return (
     <div className="w-full min-h-screen bg-muted/10 pb-20" data-testid="tax-tool-detail">
       <Seo
@@ -110,6 +129,7 @@ export default function TaxToolDetail() {
         description={`${tool.description} Free, no signup required. Informational estimates only.`}
         keywords={`${tool.name.toLowerCase()}, ${tool.slug.replace(/-/g, " ")}, free tax tool, tax calculator, tax planning`}
         path={`/tax-tools/${tool.slug}`}
+        jsonLd={schemas}
       />
 
       <div className="bg-background border-b pt-8 pb-12 mb-8">

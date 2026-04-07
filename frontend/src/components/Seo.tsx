@@ -7,6 +7,8 @@ export {
   buildSoftwareAppSchema,
   buildHowToSchema,
   buildBreadcrumbSchema,
+  buildWebApplicationSchema,
+  buildItemListSchema,
 } from "@/lib/schemas";
 
 interface SeoProps {
