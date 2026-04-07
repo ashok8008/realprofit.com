@@ -10,66 +10,70 @@ interface Props {
 }
 
 export function ResumePreview({ data, onPrint, onDownloadPDF }: Props) {
+  const isEmpty = !data.summary && data.experience.length === 0 && data.education.length === 0 && data.skills.length === 0;
+
   return (
-    <div className="lg:sticky lg:top-24 h-fit">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold flex items-center gap-2">
-          <Eye className="w-4 h-4" /> Live Preview
+    <div data-testid="resume-preview">
+      {/* Header with export actions */}
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+          <Eye className="w-4 h-4 text-gray-400" /> Live Preview
         </h3>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={onPrint} data-testid="resume-print-btn">
-            <Printer className="w-4 h-4 mr-1" /> Print
+        <div className="flex gap-1.5">
+          <Button variant="outline" size="sm" onClick={onPrint} className="h-8 text-xs px-3 text-gray-500 hover:text-gray-700" data-testid="resume-print-btn">
+            <Printer className="w-3.5 h-3.5 mr-1.5" /> Print
           </Button>
-          <Button size="sm" onClick={onDownloadPDF} data-testid="resume-download-btn">
-            <Download className="w-4 h-4 mr-1" /> Download PDF
+          <Button size="sm" onClick={onDownloadPDF} className="h-8 text-xs px-3 bg-gray-900 hover:bg-gray-800 text-white" data-testid="resume-download-btn">
+            <Download className="w-3.5 h-3.5 mr-1.5" /> Export PDF
           </Button>
         </div>
       </div>
 
-      <div className="border rounded-xl bg-white shadow-lg overflow-hidden" style={{ minHeight: "600px" }}>
-        <div className="p-8 text-sm" id="resume-preview">
-          <h1 className="text-2xl font-bold text-center text-gray-900 mb-1">
+      {/* Preview card */}
+      <div className="border border-gray-200 rounded-xl bg-white shadow-sm overflow-hidden" style={{ minHeight: isEmpty ? "240px" : "400px" }}>
+        <div className="p-6 text-sm" id="resume-preview">
+          <h1 className="text-xl font-bold text-center text-gray-900 mb-0.5">
             {data.personalDetails.fullName || "Your Name"}
           </h1>
 
-          <div className="text-center text-gray-600 text-xs mb-1">
+          <div className="text-center text-gray-500 text-[11px] mb-0.5">
             {[data.personalDetails.email, data.personalDetails.phone, data.personalDetails.location]
               .filter(Boolean)
-              .join(" | ") || "email@example.com | (555) 123-4567"}
+              .join("  |  ") || "email@example.com | (555) 123-4567"}
           </div>
           {(data.personalDetails.linkedin || data.personalDetails.portfolio) && (
-            <div className="text-center text-gray-500 text-xs mb-4">
-              {[data.personalDetails.linkedin, data.personalDetails.portfolio].filter(Boolean).join(" | ")}
+            <div className="text-center text-gray-400 text-[11px] mb-3">
+              {[data.personalDetails.linkedin, data.personalDetails.portfolio].filter(Boolean).join("  |  ")}
             </div>
           )}
 
           {data.summary && (
-            <div className="mb-4">
-              <div className="border-b border-gray-300 mb-2 pb-1">
-                <h2 className="text-xs font-bold uppercase tracking-wider text-gray-700">Professional Summary</h2>
+            <div className="mb-3">
+              <div className="border-b border-gray-200 mb-1.5 pb-0.5">
+                <h2 className="text-[11px] font-bold uppercase tracking-wider text-gray-600">Professional Summary</h2>
               </div>
-              <p className="text-gray-700 text-xs leading-relaxed whitespace-pre-line">{data.summary}</p>
+              <p className="text-gray-600 text-[11px] leading-relaxed whitespace-pre-line">{data.summary}</p>
             </div>
           )}
 
           {data.experience.length > 0 && (
-            <div className="mb-4">
-              <div className="border-b border-gray-300 mb-2 pb-1">
-                <h2 className="text-xs font-bold uppercase tracking-wider text-gray-700">Experience</h2>
+            <div className="mb-3">
+              <div className="border-b border-gray-200 mb-1.5 pb-0.5">
+                <h2 className="text-[11px] font-bold uppercase tracking-wider text-gray-600">Experience</h2>
               </div>
               {data.experience.map((exp, i) => (
-                <div key={exp.id || i} className="mb-3">
+                <div key={exp.id || i} className="mb-2.5">
                   <div className="flex justify-between items-baseline">
-                    <span className="font-semibold text-gray-900">{exp.title || "Job Title"}</span>
-                    <span className="text-gray-500 text-xs">
+                    <span className="font-semibold text-gray-900 text-xs">{exp.title || "Job Title"}</span>
+                    <span className="text-gray-400 text-[10px]">
                       {exp.startDate} - {exp.current ? "Present" : exp.endDate}
                     </span>
                   </div>
-                  <div className="text-gray-600 text-xs">
+                  <div className="text-gray-500 text-[10px]">
                     {exp.company}{exp.location && `, ${exp.location}`}
                   </div>
                   {exp.description && (
-                    <p className="text-gray-700 text-xs mt-1 whitespace-pre-line leading-relaxed">{exp.description}</p>
+                    <p className="text-gray-600 text-[11px] mt-0.5 whitespace-pre-line leading-relaxed">{exp.description}</p>
                   )}
                 </div>
               ))}
@@ -77,39 +81,39 @@ export function ResumePreview({ data, onPrint, onDownloadPDF }: Props) {
           )}
 
           {data.education.length > 0 && (
-            <div className="mb-4">
-              <div className="border-b border-gray-300 mb-2 pb-1">
-                <h2 className="text-xs font-bold uppercase tracking-wider text-gray-700">Education</h2>
+            <div className="mb-3">
+              <div className="border-b border-gray-200 mb-1.5 pb-0.5">
+                <h2 className="text-[11px] font-bold uppercase tracking-wider text-gray-600">Education</h2>
               </div>
               {data.education.map((edu, i) => (
-                <div key={edu.id || i} className="mb-2">
+                <div key={edu.id || i} className="mb-1.5">
                   <div className="flex justify-between items-baseline">
-                    <span className="font-semibold text-gray-900">
+                    <span className="font-semibold text-gray-900 text-xs">
                       {edu.degree}{edu.field && ` in ${edu.field}`}
                     </span>
-                    <span className="text-gray-500 text-xs">{edu.startDate} - {edu.endDate}</span>
+                    <span className="text-gray-400 text-[10px]">{edu.startDate} - {edu.endDate}</span>
                   </div>
-                  <div className="text-gray-600 text-xs">{edu.school}</div>
+                  <div className="text-gray-500 text-[10px]">{edu.school}</div>
                 </div>
               ))}
             </div>
           )}
 
           {data.skills.length > 0 && (
-            <div className="mb-4">
-              <div className="border-b border-gray-300 mb-2 pb-1">
-                <h2 className="text-xs font-bold uppercase tracking-wider text-gray-700">Skills</h2>
+            <div className="mb-3">
+              <div className="border-b border-gray-200 mb-1.5 pb-0.5">
+                <h2 className="text-[11px] font-bold uppercase tracking-wider text-gray-600">Skills</h2>
               </div>
-              <p className="text-gray-700 text-xs">{data.skills.join(" \u2022 ")}</p>
+              <p className="text-gray-600 text-[11px]">{data.skills.join(" \u2022 ")}</p>
             </div>
           )}
 
           {data.certifications.length > 0 && (
             <div>
-              <div className="border-b border-gray-300 mb-2 pb-1">
-                <h2 className="text-xs font-bold uppercase tracking-wider text-gray-700">Certifications</h2>
+              <div className="border-b border-gray-200 mb-1.5 pb-0.5">
+                <h2 className="text-[11px] font-bold uppercase tracking-wider text-gray-600">Certifications</h2>
               </div>
-              <ul className="text-gray-700 text-xs">
+              <ul className="text-gray-600 text-[11px]">
                 {data.certifications.map(cert => (
                   <li key={cert}>&bull; {cert}</li>
                 ))}
@@ -117,9 +121,9 @@ export function ResumePreview({ data, onPrint, onDownloadPDF }: Props) {
             </div>
           )}
 
-          {!data.summary && data.experience.length === 0 && data.education.length === 0 && data.skills.length === 0 && (
-            <div className="text-center text-gray-400 py-12">
-              <p>Start filling in your details to see the preview</p>
+          {isEmpty && (
+            <div className="text-center text-gray-300 py-16">
+              <p className="text-sm">Start filling in your details to see the preview</p>
             </div>
           )}
         </div>

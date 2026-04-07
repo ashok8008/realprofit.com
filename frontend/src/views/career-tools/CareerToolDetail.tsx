@@ -127,7 +127,7 @@ export default function CareerToolDetail() {
     .filter(Boolean);
 
   return (
-    <div className="w-full min-h-screen bg-muted/10 pb-20">
+    <div className="w-full min-h-screen bg-gray-50/50 pb-20">
       <Seo 
         title={`${tool.name} - Free Career Tool`}
         description={tool.description + " Free, no signup required. Your data stays in your browser."}
@@ -135,81 +135,62 @@ export default function CareerToolDetail() {
         path={`/career-tools/${tool.slug}`}
       />
       
-      <div className="bg-background border-b pt-8 pb-12 mb-8">
-        <div className="container mx-auto px-4 max-w-6xl">
+      <div className="bg-white border-b border-gray-100 pt-6 pb-8 mb-6">
+        <div className="container mx-auto px-4 max-w-7xl">
           <BreadcrumbNav items={[
             { label: "Career Tools", href: "/career-tools" },
             { label: tool.name, href: `/career-tools/${tool.slug}` }
           ]} />
           
-          <div className="flex items-start justify-between flex-wrap gap-4 mt-4">
+          <div className="flex items-start justify-between flex-wrap gap-4 mt-3">
             <div>
-              <h1 className="font-serif text-4xl md:text-5xl font-bold mb-4">{tool.name}</h1>
-              <p className="text-xl text-muted-foreground max-w-3xl">{tool.description}</p>
+              <h1 className="font-serif text-3xl md:text-4xl font-bold text-gray-900 mb-2">{tool.name}</h1>
+              <p className="text-base text-gray-500 max-w-2xl">{tool.description}</p>
             </div>
-            <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 px-4 py-2 rounded-full text-sm font-semibold">
-              <CheckSquare className="w-4 h-4" /> 100% Free
+            <div className="flex items-center gap-4">
+              <CloudSyncIndicator />
+              <div className="flex items-center gap-1.5 text-emerald-600 text-xs font-semibold">
+                <CheckSquare className="w-3.5 h-3.5" /> Free
+              </div>
             </div>
-          </div>
-          
-          <div className="flex items-center gap-3 mt-4">
-            <CloudSyncIndicator />
-          </div>
-          
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-6 max-w-3xl">
-            <p className="text-sm text-amber-800">
-              <strong>Quick Summary:</strong> {tool.description} Sign in to sync your data to the cloud.
-            </p>
           </div>
         </div>
       </div>
       
-      <div className="container mx-auto px-4 max-w-6xl">
-        <div className="bg-card border rounded-2xl p-6 md:p-10 shadow-sm" id={`tool-${tool.slug}`}>
-          <Suspense fallback={<div className="h-64 flex items-center justify-center">Loading tool...</div>}>
+      <div className="container mx-auto px-4 max-w-7xl">
+        <div className="bg-white border border-gray-200 rounded-2xl p-5 md:p-8 shadow-sm" id={`tool-${tool.slug}`}>
+          <Suspense fallback={<div className="h-64 flex items-center justify-center text-gray-400">Loading tool...</div>}>
             <ToolComponent />
           </Suspense>
         </div>
         
         {/* How It Works */}
-        <div className="mt-16">
-          <h2 className="font-serif text-3xl font-bold mb-6">How to Use This Tool</h2>
-          <div className="bg-card border rounded-xl p-6">
-            <ol className="space-y-4">
-              <li className="flex gap-4">
-                <span className="w-8 h-8 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center font-bold flex-shrink-0">1</span>
-                <div>
-                  <strong>Enter your information</strong>
-                  <p className="text-muted-foreground text-sm">Fill in the form fields with your details. Everything auto-saves as you type.</p>
-                </div>
-              </li>
-              <li className="flex gap-4">
-                <span className="w-8 h-8 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center font-bold flex-shrink-0">2</span>
-                <div>
-                  <strong>Review the results</strong>
-                  <p className="text-muted-foreground text-sm">See your results update in real-time as you make changes.</p>
-                </div>
-              </li>
-              <li className="flex gap-4">
-                <span className="w-8 h-8 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center font-bold flex-shrink-0">3</span>
-                <div>
-                  <strong>Download or copy</strong>
-                  <p className="text-muted-foreground text-sm">Export your results as PDF or copy to use elsewhere.</p>
-                </div>
-              </li>
-            </ol>
+        <div className="mt-12">
+          <h2 className="font-serif text-2xl font-bold text-gray-900 mb-4">How to Use This Tool</h2>
+          <div className="flex flex-col md:flex-row gap-4">
+            {[
+              { step: "1", title: "Enter your information", desc: "Fill in the form fields. Everything auto-saves as you type." },
+              { step: "2", title: "Review the results", desc: "See your results update in real-time as you make changes." },
+              { step: "3", title: "Download or copy", desc: "Export your results as PDF or copy to use elsewhere." },
+            ].map(s => (
+              <div key={s.step} className="flex-1 bg-white border border-gray-100 rounded-xl p-5">
+                <span className="w-7 h-7 rounded-full bg-gray-900 text-white flex items-center justify-center text-xs font-bold mb-3">{s.step}</span>
+                <p className="font-semibold text-sm text-gray-800 mb-1">{s.title}</p>
+                <p className="text-xs text-gray-500">{s.desc}</p>
+              </div>
+            ))}
           </div>
         </div>
         
         {/* FAQs */}
         {faqs.length > 0 && (
-          <div className="mt-16">
-            <h2 className="font-serif text-3xl font-bold mb-6">Frequently Asked Questions</h2>
-            <Accordion type="single" collapsible className="bg-card border rounded-xl px-6">
+          <div className="mt-12">
+            <h2 className="font-serif text-2xl font-bold text-gray-900 mb-4">Frequently Asked Questions</h2>
+            <Accordion type="single" collapsible className="bg-white border border-gray-100 rounded-xl px-5">
               {faqs.map((faq, i) => (
                 <AccordionItem key={i} value={`faq-${i}`}>
-                  <AccordionTrigger>{faq.q}</AccordionTrigger>
-                  <AccordionContent>{faq.a}</AccordionContent>
+                  <AccordionTrigger className="text-sm">{faq.q}</AccordionTrigger>
+                  <AccordionContent className="text-sm text-gray-500">{faq.a}</AccordionContent>
                 </AccordionItem>
               ))}
             </Accordion>
@@ -218,16 +199,16 @@ export default function CareerToolDetail() {
         
         {/* Related Tools */}
         {related.length > 0 && (
-          <div className="mt-16">
-            <h2 className="font-serif text-3xl font-bold mb-6">Related Career Tools</h2>
+          <div className="mt-12">
+            <h2 className="font-serif text-2xl font-bold text-gray-900 mb-4">Related Career Tools</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {related.map(t => t && (
                 <Link key={t.slug} href={`/career-tools/${t.slug}`} className="group">
-                  <div className="bg-card border rounded-xl p-5 hover:shadow-md hover:border-teal-400 transition-all">
-                    <h3 className="font-bold mb-2 group-hover:text-teal-600">{t.name}</h3>
-                    <p className="text-sm text-muted-foreground mb-3">{t.description}</p>
-                    <span className="text-teal-600 text-sm font-semibold flex items-center">
-                      Try Tool <ArrowRight className="ml-1 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  <div className="bg-white border border-gray-100 rounded-xl p-5 hover:shadow-md hover:border-gray-300 transition-all">
+                    <h3 className="font-semibold text-sm text-gray-800 mb-1.5 group-hover:text-gray-900">{t.name}</h3>
+                    <p className="text-xs text-gray-400 mb-3">{t.description}</p>
+                    <span className="text-gray-500 text-xs font-semibold flex items-center group-hover:text-gray-700">
+                      Try Tool <ArrowRight className="ml-1 w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
                     </span>
                   </div>
                 </Link>
@@ -237,28 +218,28 @@ export default function CareerToolDetail() {
         )}
         
         {/* Related Calculators */}
-        <div className="mt-16">
-          <h2 className="font-serif text-3xl font-bold mb-6">Related Calculators & Guides</h2>
+        <div className="mt-12">
+          <h2 className="font-serif text-2xl font-bold text-gray-900 mb-4">Related Calculators & Guides</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <Link href="/tools/paycheck-calculator" className="group">
-              <div className="bg-card border rounded-xl p-5 hover:shadow-md hover:border-teal-400 transition-all">
-                <DollarSign className="w-6 h-6 text-emerald-600 mb-2" />
-                <h3 className="font-bold mb-1 group-hover:text-teal-600">Paycheck Calculator</h3>
-                <p className="text-sm text-muted-foreground">Estimate take-home pay</p>
+              <div className="bg-white border border-gray-100 rounded-xl p-5 hover:shadow-md hover:border-gray-300 transition-all">
+                <DollarSign className="w-5 h-5 text-gray-400 mb-2" />
+                <h3 className="font-semibold text-sm text-gray-800 mb-1 group-hover:text-gray-900">Paycheck Calculator</h3>
+                <p className="text-xs text-gray-400">Estimate take-home pay</p>
               </div>
             </Link>
             <Link href="/calculators/salary-to-hourly" className="group">
-              <div className="bg-card border rounded-xl p-5 hover:shadow-md hover:border-teal-400 transition-all">
-                <DollarSign className="w-6 h-6 text-blue-600 mb-2" />
-                <h3 className="font-bold mb-1 group-hover:text-teal-600">Salary to Hourly</h3>
-                <p className="text-sm text-muted-foreground">Convert annual to hourly rate</p>
+              <div className="bg-white border border-gray-100 rounded-xl p-5 hover:shadow-md hover:border-gray-300 transition-all">
+                <DollarSign className="w-5 h-5 text-gray-400 mb-2" />
+                <h3 className="font-semibold text-sm text-gray-800 mb-1 group-hover:text-gray-900">Salary to Hourly</h3>
+                <p className="text-xs text-gray-400">Convert annual to hourly rate</p>
               </div>
             </Link>
             <Link href="/guides" className="group">
-              <div className="bg-card border rounded-xl p-5 hover:shadow-md hover:border-teal-400 transition-all">
-                <FileText className="w-6 h-6 text-violet-600 mb-2" />
-                <h3 className="font-bold mb-1 group-hover:text-teal-600">Salary Guides</h3>
-                <p className="text-sm text-muted-foreground">Explore salary data by role</p>
+              <div className="bg-white border border-gray-100 rounded-xl p-5 hover:shadow-md hover:border-gray-300 transition-all">
+                <FileText className="w-5 h-5 text-gray-400 mb-2" />
+                <h3 className="font-semibold text-sm text-gray-800 mb-1 group-hover:text-gray-900">Salary Guides</h3>
+                <p className="text-xs text-gray-400">Explore salary data by role</p>
               </div>
             </Link>
           </div>

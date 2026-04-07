@@ -3,59 +3,120 @@ import React, { useMemo, useState } from "react";
 import type { ResumeScoreResult, ScoreSuggestion } from "@/lib/career-tools/resume/score";
 import { calculateResumeScore } from "@/lib/career-tools/resume/score";
 import type { ResumeData } from "@/lib/career-tools/pdf-export";
-import { ChevronDown, ChevronUp, Zap, ArrowRight, CheckCircle2, AlertTriangle, XCircle, Info } from "lucide-react";
+import { Zap, ArrowRight, ChevronDown, ChevronUp, Shield, Eye, TrendingUp } from "lucide-react";
 
-const CATEGORY_LABELS: Record<string, { label: string; description: string }> = {
-  completeness: { label: "Completeness", description: "All essential sections filled" },
-  presence: { label: "Professional Presence", description: "LinkedIn, portfolio, email" },
-  experience: { label: "Experience Quality", description: "Role details and depth" },
-  impact: { label: "Impact & Metrics", description: "Quantified achievements" },
-  skills: { label: "Skills & Relevance", description: "Keyword coverage" },
-  structure: { label: "Structure & Readability", description: "Clean, scannable format" },
-  ats: { label: "ATS Safety", description: "Machine-readable format" },
-};
+/* ─── Score Groups: 7 raw categories → 3 conceptual pillars ─── */
+const SCORE_GROUPS = [
+  {
+    key: "ats",
+    label: "ATS Readiness",
+    description: "Machine-parseable format",
+    icon: Shield,
+    categories: ["ats", "structure"],
+  },
+  {
+    key: "readability",
+    label: "Recruiter Readability",
+    description: "Clean, complete, professional",
+    icon: Eye,
+    categories: ["completeness", "presence"],
+  },
+  {
+    key: "impact",
+    label: "Impact Strength",
+    description: "Measurable achievements",
+    icon: TrendingUp,
+    categories: ["experience", "impact", "skills"],
+  },
+] as const;
 
-function SeverityIcon({ severity }: { severity: ScoreSuggestion["severity"] }) {
-  switch (severity) {
-    case "critical": return <XCircle className="w-4 h-4 text-red-500 flex-shrink-0" />;
-    case "high": return <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />;
-    case "medium": return <Info className="w-4 h-4 text-blue-500 flex-shrink-0" />;
-    default: return <Info className="w-4 h-4 text-gray-400 flex-shrink-0" />;
-  }
-}
-
-function ScoreRing({ score, color }: { score: number; color: string }) {
-  const radius = 42;
+function ScoreRing({ score, size = "lg" }: { score: number; size?: "lg" | "sm" }) {
+  const radius = size === "lg" ? 44 : 18;
+  const strokeWidth = size === "lg" ? 5 : 3;
+  const viewBox = size === "lg" ? 100 : 44;
+  const center = viewBox / 2;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (score / 100) * circumference;
 
+  const color =
+    score >= 80 ? "#059669" : score >= 60 ? "#0d9488" : score >= 40 ? "#d97706" : "#dc2626";
+
+  if (size === "sm") {
+    return (
+      <svg className="w-11 h-11 -rotate-90 flex-shrink-0" viewBox={`0 0 ${viewBox} ${viewBox}`}>
+        <circle cx={center} cy={center} r={radius} fill="none" stroke="#f3f4f6" strokeWidth={strokeWidth} />
+        <circle cx={center} cy={center} r={radius} fill="none" stroke={color} strokeWidth={strokeWidth} strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" className="transition-all duration-500" />
+      </svg>
+    );
+  }
+
   return (
-    <div className="relative w-28 h-28">
-      <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-        <circle cx="50" cy="50" r={radius} fill="none" stroke="#e5e7eb" strokeWidth="6" />
-        <circle cx="50" cy="50" r={radius} fill="none" stroke={color} strokeWidth="6" strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" className="transition-all duration-700" />
+    <div className="relative w-[120px] h-[120px]">
+      <svg className="w-full h-full -rotate-90" viewBox={`0 0 ${viewBox} ${viewBox}`}>
+        <circle cx={center} cy={center} r={radius} fill="none" stroke="#f3f4f6" strokeWidth={strokeWidth} />
+        <circle cx={center} cy={center} r={radius} fill="none" stroke={color} strokeWidth={strokeWidth} strokeDasharray={circumference} strokeDashoffset={offset} strokeLinecap="round" className="transition-all duration-700" />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-3xl font-bold" style={{ color }}>{score}</span>
-        <span className="text-[10px] text-muted-foreground">/100</span>
+        <span className="text-[32px] font-semibold tracking-tight" style={{ color }}>{score}</span>
+        <span className="text-[10px] text-gray-400 -mt-1">of 100</span>
       </div>
     </div>
   );
 }
 
-function CategoryBar({ name, score, max }: { name: string; score: number; max: number }) {
-  const pct = Math.round((score / max) * 100);
-  const meta = CATEGORY_LABELS[name] || { label: name, description: "" };
-  const barColor = pct >= 80 ? "bg-emerald-500" : pct >= 60 ? "bg-teal-500" : pct >= 40 ? "bg-amber-500" : "bg-red-500";
+function GroupRow({ label, description, Icon, score, max }: {
+  label: string;
+  description: string;
+  Icon: React.ComponentType<{ className?: string }>;
+  score: number;
+  max: number;
+}) {
+  const pct = max > 0 ? Math.round((score / max) * 100) : 0;
+  const barColor =
+    pct >= 80 ? "bg-emerald-500" : pct >= 60 ? "bg-teal-500" : pct >= 40 ? "bg-amber-500" : "bg-red-400";
 
   return (
-    <div className="space-y-1">
-      <div className="flex items-center justify-between text-xs">
-        <span className="font-medium">{meta.label}</span>
-        <span className="text-muted-foreground">{score}/{max}</span>
+    <div className="flex items-center gap-3">
+      <div className="w-8 h-8 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center flex-shrink-0">
+        <Icon className="w-4 h-4 text-gray-500" />
       </div>
-      <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
-        <div className={`h-full rounded-full transition-all duration-500 ${barColor}`} style={{ width: `${pct}%` }} />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-sm font-medium text-gray-800">{label}</span>
+          <span className="text-xs text-gray-400 tabular-nums">{score}/{max}</span>
+        </div>
+        <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+          <div className={`h-full rounded-full transition-all duration-500 ${barColor}`} style={{ width: `${pct}%` }} />
+        </div>
+        <p className="text-[11px] text-gray-400 mt-0.5">{description}</p>
+      </div>
+    </div>
+  );
+}
+
+function QuickFixCard({ suggestion, onFix }: { suggestion: ScoreSuggestion; onFix?: (tab: string) => void }) {
+  const severityStyles =
+    suggestion.severity === "critical" ? "border-l-red-400" :
+    suggestion.severity === "high" ? "border-l-amber-400" :
+    "border-l-blue-300";
+
+  return (
+    <div className={`border-l-[3px] ${severityStyles} bg-white border border-gray-100 rounded-r-lg px-3.5 py-3 flex items-start gap-3 transition-colors hover:bg-gray-50/80`} data-testid="quick-fix-card">
+      <div className="flex-1 min-w-0">
+        <p className="text-sm text-gray-800 font-medium leading-snug">{suggestion.message}</p>
+        {suggestion.fix && <p className="text-xs text-gray-400 mt-0.5">{suggestion.fix}</p>}
+      </div>
+      <div className="flex items-center gap-2 flex-shrink-0">
+        <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">+{suggestion.points}</span>
+        {suggestion.fixAction && onFix && (
+          <button
+            onClick={() => onFix(suggestion.fixAction!.tab || "personal")}
+            className="text-xs font-semibold text-gray-500 hover:text-teal-600 flex items-center gap-0.5 transition-colors"
+            data-testid="quick-fix-btn"
+          >
+            Fix <ArrowRight className="w-3 h-3" />
+          </button>
+        )}
       </div>
     </div>
   );
@@ -68,96 +129,98 @@ interface Props {
 }
 
 export function ResumeScorePanelV2({ resumeData, onFixAll, onTabSwitch }: Props) {
-  const [expanded, setExpanded] = useState(true);
-  const [showAllSuggestions, setShowAllSuggestions] = useState(false);
+  const [showAllFixes, setShowAllFixes] = useState(false);
 
   const result: ResumeScoreResult = useMemo(() => calculateResumeScore(resumeData), [resumeData]);
 
-  const visibleSuggestions = showAllSuggestions ? result.suggestions : result.suggestions.slice(0, 5);
-  const totalPotential = result.suggestions.reduce((sum, s) => sum + s.points, 0);
-  const criticalCount = result.suggestions.filter(s => s.severity === "critical").length;
+  const groups = useMemo(() => {
+    return SCORE_GROUPS.map(g => {
+      let score = 0;
+      let max = 0;
+      g.categories.forEach(cat => {
+        const b = result.breakdown[cat as keyof typeof result.breakdown];
+        if (b) { score += b.score; max += b.max; }
+      });
+      return { ...g, score, max };
+    });
+  }, [result]);
+
+  const criticalAndHigh = result.suggestions.filter(s => s.severity === "critical" || s.severity === "high");
+  const allFixes = result.suggestions;
+  const visibleFixes = showAllFixes ? allFixes : allFixes.slice(0, 4);
+  const hasEasyFixes = criticalAndHigh.length > 0;
+
+  const scoreLabel = result.total >= 80 ? "Strong" : result.total >= 60 ? "Good" : result.total >= 40 ? "Needs Work" : "Weak";
 
   return (
-    <div className="bg-card border rounded-xl" data-testid="resume-score-panel-v2">
-      {/* Header */}
-      <div
-        className="flex items-center justify-between p-4 cursor-pointer select-none"
-        onClick={() => setExpanded(!expanded)}
-      >
-        <div className="flex items-center gap-3">
-          <ScoreRing score={result.total} color={result.color} />
-          <div>
-            <div className="font-bold text-lg" style={{ color: result.color }}>{result.label}</div>
-            <div className="text-xs text-muted-foreground">
-              {result.suggestions.length} improvement{result.suggestions.length !== 1 ? "s" : ""} found
-              {totalPotential > 0 && ` · +${totalPotential} points possible`}
+    <div className="space-y-4" data-testid="resume-score-panel-v2">
+      {/* Score Header */}
+      <div className="bg-white border border-gray-150 rounded-xl p-5">
+        <div className="flex items-center gap-5">
+          <ScoreRing score={result.total} size="lg" />
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-gray-900">{scoreLabel}</h3>
+            <p className="text-sm text-gray-400 mt-0.5">
+              {allFixes.length > 0
+                ? `${allFixes.length} improvement${allFixes.length > 1 ? "s" : ""} found`
+                : "Your resume looks great"}
+            </p>
+            {/* Mini group indicators */}
+            <div className="mt-3 space-y-2.5">
+              {groups.map(g => (
+                <GroupRow
+                  key={g.key}
+                  label={g.label}
+                  description={g.description}
+                  Icon={g.icon}
+                  score={g.score}
+                  max={g.max}
+                />
+              ))}
             </div>
           </div>
         </div>
-        {expanded ? <ChevronUp className="w-5 h-5 text-muted-foreground" /> : <ChevronDown className="w-5 h-5 text-muted-foreground" />}
       </div>
 
-      {expanded && (
-        <div className="border-t px-4 pb-4">
-          {/* Category breakdown */}
-          <div className="py-4 space-y-2.5">
-            {Object.entries(result.breakdown).map(([key, val]) => (
-              <CategoryBar key={key} name={key} score={val.score} max={val.max} />
+      {/* Quick Fixes */}
+      {allFixes.length > 0 && (
+        <div className="bg-white border border-gray-150 rounded-xl p-5">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="text-sm font-semibold text-gray-700">Quick Fixes</h4>
+            {hasEasyFixes && onFixAll && (
+              <button
+                onClick={onFixAll}
+                className="text-xs font-semibold text-teal-600 hover:text-teal-700 inline-flex items-center gap-1 transition-colors"
+                data-testid="fix-all-btn"
+              >
+                <Zap className="w-3.5 h-3.5" /> Fix all easy issues
+              </button>
+            )}
+          </div>
+          <div className="space-y-2">
+            {visibleFixes.map((s, i) => (
+              <QuickFixCard key={i} suggestion={s} onFix={onTabSwitch} />
             ))}
           </div>
-
-          {/* Fix all button */}
-          {criticalCount > 0 && onFixAll && (
+          {allFixes.length > 4 && (
             <button
-              onClick={onFixAll}
-              className="w-full mb-4 bg-teal-600 text-white hover:bg-teal-700 rounded-lg px-4 py-2.5 font-bold text-sm transition-colors inline-flex items-center justify-center gap-2"
-              data-testid="fix-all-btn"
+              onClick={() => setShowAllFixes(!showAllFixes)}
+              className="mt-3 text-xs font-medium text-gray-400 hover:text-gray-600 flex items-center gap-1 transition-colors"
+              data-testid="show-all-fixes-btn"
             >
-              <Zap className="w-4 h-4" /> Fix All Easy Issues
+              {showAllFixes ? (
+                <><ChevronUp className="w-3.5 h-3.5" /> Show fewer</>
+              ) : (
+                <><ChevronDown className="w-3.5 h-3.5" /> Show all {allFixes.length} suggestions</>
+              )}
             </button>
           )}
+        </div>
+      )}
 
-          {/* Suggestions */}
-          {result.suggestions.length > 0 && (
-            <div className="space-y-2">
-              <h4 className="font-bold text-xs text-muted-foreground uppercase tracking-wider">Improvement Suggestions</h4>
-              {visibleSuggestions.map((s, i) => (
-                <div key={i} className="flex items-start gap-2.5 p-2.5 bg-muted/30 rounded-lg border border-transparent hover:border-gray-200 transition-colors">
-                  <SeverityIcon severity={s.severity} />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium">{s.message}</div>
-                    {s.fix && <div className="text-xs text-muted-foreground mt-0.5">{s.fix}</div>}
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="text-xs font-bold text-teal-600">+{s.points}</span>
-                    {s.fixAction && onTabSwitch && (
-                      <button
-                        onClick={() => onTabSwitch(s.fixAction!.tab || "personal")}
-                        className="text-teal-600 hover:text-teal-700 text-xs font-bold flex items-center gap-0.5"
-                      >
-                        Fix <ArrowRight className="w-3 h-3" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-              {result.suggestions.length > 5 && (
-                <button
-                  onClick={() => setShowAllSuggestions(!showAllSuggestions)}
-                  className="text-xs text-teal-600 font-bold hover:underline"
-                >
-                  {showAllSuggestions ? "Show less" : `Show all ${result.suggestions.length} suggestions`}
-                </button>
-              )}
-            </div>
-          )}
-
-          {result.suggestions.length === 0 && (
-            <div className="flex items-center gap-2 text-emerald-600 py-2">
-              <CheckCircle2 className="w-5 h-5" />
-              <span className="text-sm font-medium">Great job! Your resume looks strong.</span>
-            </div>
-          )}
+      {allFixes.length === 0 && (
+        <div className="bg-emerald-50 border border-emerald-100 rounded-xl px-5 py-4 text-center">
+          <p className="text-sm font-medium text-emerald-700">Your resume is in great shape. Ready to export!</p>
         </div>
       )}
     </div>

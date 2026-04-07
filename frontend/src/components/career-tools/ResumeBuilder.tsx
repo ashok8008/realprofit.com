@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RotateCcw, Upload } from "lucide-react";
+import { RotateCcw, Upload, User, Briefcase, GraduationCap, Wrench, Award } from "lucide-react";
 import { saveToStorage, loadFromStorage, clearStorage } from "@/lib/career-tools/storage";
 import { generateResumePDF, type ResumeData } from "@/lib/career-tools/pdf-export";
 import { useToast } from "@/hooks/use-toast";
@@ -39,6 +39,14 @@ const templates = [
   { id: "executive", name: "Executive", desc: "Bold header with accent", premium: true },
   { id: "modern", name: "Modern", desc: "Two-column layout", premium: true },
 ];
+
+const TAB_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  personal: User,
+  experience: Briefcase,
+  education: GraduationCap,
+  skills: Wrench,
+  extras: Award,
+};
 
 type FlowState = "entry" | "processing" | "review" | "editor";
 
@@ -103,7 +111,6 @@ export function ResumeBuilder() {
     setImportSource("text");
     setFlowState("processing");
 
-    // Wrap in setTimeout so the processing UI renders first
     setTimeout(() => {
       try {
         const { parseText } = require("@/lib/career-tools/resume/import/textParser");
@@ -329,122 +336,154 @@ export function ResumeBuilder() {
     );
   }
 
-  // Editor state: full builder
+  // ─── Editor: Premium 2-Column Layout ──────────────────────
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8" data-testid="resume-builder-editor">
-      {/* Form */}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold">Build Your Resume</h2>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={handleNewImport} data-testid="new-import-btn">
-              <Upload className="w-4 h-4 mr-1" /> Import
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleReset} data-testid="resume-reset-btn">
-              <RotateCcw className="w-4 h-4 mr-1" /> Reset
-            </Button>
-          </div>
+    <div data-testid="resume-builder-editor">
+      {/* Top bar: actions */}
+      <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900">Resume Editor</h2>
+          <p className="text-xs text-gray-400 mt-0.5">Auto-saved as you type</p>
         </div>
-
-        {/* Template Selection */}
-        <div className="bg-muted/30 rounded-lg p-4">
-          <Label className="text-sm font-semibold mb-3 block">Choose Template</Label>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-            {templates.map(t => (
-              <button key={t.id} onClick={() => setTemplate(t.id)} className={`p-2.5 rounded-lg border text-left transition-all relative ${template === t.id ? "border-teal-500 bg-teal-50" : "border-gray-200 hover:border-gray-300"}`} data-testid={`template-${t.id}`}>
-                {t.premium && <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-white text-[8px] px-1.5 py-0.5 rounded-full font-bold">PRO</span>}
-                <div className="text-xs font-semibold">{t.name}</div>
-                <div className="text-[10px] text-muted-foreground">{t.desc}</div>
-              </button>
-            ))}
-          </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleNewImport} className="h-8 text-xs text-gray-500 hover:text-gray-700" data-testid="new-import-btn">
+            <Upload className="w-3.5 h-3.5 mr-1.5" /> Import
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleReset} className="h-8 text-xs text-gray-500 hover:text-red-600" data-testid="resume-reset-btn">
+            <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> Reset
+          </Button>
         </div>
-
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full grid grid-cols-5">
-            <TabsTrigger value="personal" className="text-xs">Personal</TabsTrigger>
-            <TabsTrigger value="experience" className="text-xs">Experience</TabsTrigger>
-            <TabsTrigger value="education" className="text-xs">Education</TabsTrigger>
-            <TabsTrigger value="skills" className="text-xs">Skills</TabsTrigger>
-            <TabsTrigger value="extras" className="text-xs">Extras</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="personal">
-            <PersonalTab
-              personalDetails={data.personalDetails}
-              summary={data.summary}
-              summaryWordCount={summaryWordCount}
-              onUpdatePersonal={updatePersonal}
-              onUpdateSummary={v => setData(prev => ({ ...prev, summary: v }))}
-              onSmartImproveSummary={smartImproveSummary}
-              onAiImproveSummary={aiImproveSummary}
-              aiLoading={aiLoading}
-              aiSuggestion={aiSuggestion}
-              aiRemaining={aiRemaining}
-              aiTotal={AI_FREE_TOTAL}
-              onAcceptAi={acceptAiSuggestion}
-              onDismissAi={dismissAiSuggestion}
-              summarySuggestions={summarySuggestions}
-            />
-          </TabsContent>
-
-          <TabsContent value="experience">
-            <ExperienceTab
-              experience={data.experience as Experience[]}
-              onAdd={addExperience}
-              onUpdate={updateExperience}
-              onRemove={removeExperience}
-              onSmartImproveBullet={smartImproveBullet}
-              onAiImproveBullet={aiImproveBullet}
-              aiLoading={aiLoading}
-              aiSuggestion={aiSuggestion}
-              aiRemaining={aiRemaining}
-              aiTotal={AI_FREE_TOTAL}
-              onAcceptAi={acceptAiSuggestion}
-              onDismissAi={dismissAiSuggestion}
-              bulletSuggestions={bulletSuggestions}
-            />
-          </TabsContent>
-
-          <TabsContent value="education">
-            <EducationTab
-              education={data.education as Education[]}
-              onAdd={addEducation}
-              onUpdate={updateEducation}
-              onRemove={removeEducation}
-            />
-          </TabsContent>
-
-          <TabsContent value="skills">
-            <SkillsTab
-              skills={data.skills}
-              skillInput={skillInput}
-              onSkillInputChange={setSkillInput}
-              onAddSkill={addSkill}
-              onRemoveSkill={removeSkill}
-            />
-          </TabsContent>
-
-          <TabsContent value="extras">
-            <ExtrasTab
-              certifications={data.certifications}
-              certInput={certInput}
-              onCertInputChange={setCertInput}
-              onAddCert={addCertification}
-              onRemoveCert={removeCertification}
-            />
-          </TabsContent>
-        </Tabs>
       </div>
 
-      {/* Right Column: Score + Preview */}
-      <div className="space-y-6">
-        <ResumeScorePanelV2
-          resumeData={data}
-          onFixAll={handleFixAll}
-          onTabSwitch={setActiveTab}
-        />
-        <ResumePreview data={data} onPrint={() => window.print()} onDownloadPDF={handleDownloadPDF} />
+      {/* 2-Column Grid */}
+      <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-8">
+        {/* ─── LEFT COLUMN: Editor ─── */}
+        <div className="min-w-0">
+          {/* Template Picker */}
+          <div className="mb-5">
+            <Label className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2.5 block">Template</Label>
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {templates.map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => setTemplate(t.id)}
+                  className={`relative flex-shrink-0 px-4 py-2 rounded-lg border text-left transition-all ${
+                    template === t.id
+                      ? "border-gray-900 bg-gray-900 text-white shadow-sm"
+                      : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+                  }`}
+                  data-testid={`template-${t.id}`}
+                >
+                  {t.premium && (
+                    <span className={`absolute -top-1.5 -right-1.5 text-[9px] px-1.5 py-0.5 rounded-full font-bold ${
+                      template === t.id ? "bg-white text-gray-900" : "bg-gray-900 text-white"
+                    }`}>PRO</span>
+                  )}
+                  <div className="text-xs font-semibold">{t.name}</div>
+                  <div className={`text-[10px] mt-0.5 ${template === t.id ? "text-gray-300" : "text-gray-400"}`}>{t.desc}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="w-full grid grid-cols-5 bg-gray-50 border border-gray-100 rounded-lg p-0.5 h-auto">
+              {(["personal", "experience", "education", "skills", "extras"] as const).map(tab => {
+                const Icon = TAB_ICONS[tab];
+                return (
+                  <TabsTrigger
+                    key={tab}
+                    value={tab}
+                    className="text-xs py-2 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 flex items-center gap-1.5 transition-all"
+                    data-testid={`tab-${tab}`}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline capitalize">{tab}</span>
+                  </TabsTrigger>
+                );
+              })}
+            </TabsList>
+
+            <div className="mt-4">
+              <TabsContent value="personal">
+                <PersonalTab
+                  personalDetails={data.personalDetails}
+                  summary={data.summary}
+                  summaryWordCount={summaryWordCount}
+                  onUpdatePersonal={updatePersonal}
+                  onUpdateSummary={v => setData(prev => ({ ...prev, summary: v }))}
+                  onSmartImproveSummary={smartImproveSummary}
+                  onAiImproveSummary={aiImproveSummary}
+                  aiLoading={aiLoading}
+                  aiSuggestion={aiSuggestion}
+                  aiRemaining={aiRemaining}
+                  aiTotal={AI_FREE_TOTAL}
+                  onAcceptAi={acceptAiSuggestion}
+                  onDismissAi={dismissAiSuggestion}
+                  summarySuggestions={summarySuggestions}
+                />
+              </TabsContent>
+
+              <TabsContent value="experience">
+                <ExperienceTab
+                  experience={data.experience as Experience[]}
+                  onAdd={addExperience}
+                  onUpdate={updateExperience}
+                  onRemove={removeExperience}
+                  onSmartImproveBullet={smartImproveBullet}
+                  onAiImproveBullet={aiImproveBullet}
+                  aiLoading={aiLoading}
+                  aiSuggestion={aiSuggestion}
+                  aiRemaining={aiRemaining}
+                  aiTotal={AI_FREE_TOTAL}
+                  onAcceptAi={acceptAiSuggestion}
+                  onDismissAi={dismissAiSuggestion}
+                  bulletSuggestions={bulletSuggestions}
+                />
+              </TabsContent>
+
+              <TabsContent value="education">
+                <EducationTab
+                  education={data.education as Education[]}
+                  onAdd={addEducation}
+                  onUpdate={updateEducation}
+                  onRemove={removeEducation}
+                />
+              </TabsContent>
+
+              <TabsContent value="skills">
+                <SkillsTab
+                  skills={data.skills}
+                  skillInput={skillInput}
+                  onSkillInputChange={setSkillInput}
+                  onAddSkill={addSkill}
+                  onRemoveSkill={removeSkill}
+                />
+              </TabsContent>
+
+              <TabsContent value="extras">
+                <ExtrasTab
+                  certifications={data.certifications}
+                  certInput={certInput}
+                  onCertInputChange={setCertInput}
+                  onAddCert={addCertification}
+                  onRemoveCert={removeCertification}
+                />
+              </TabsContent>
+            </div>
+          </Tabs>
+        </div>
+
+        {/* ─── RIGHT COLUMN: Sticky Score + Preview + Export ─── */}
+        <div className="xl:sticky xl:top-20 h-fit space-y-5">
+          <ResumeScorePanelV2
+            resumeData={data}
+            onFixAll={handleFixAll}
+            onTabSwitch={setActiveTab}
+          />
+          <ResumePreview data={data} onPrint={() => window.print()} onDownloadPDF={handleDownloadPDF} />
+        </div>
       </div>
     </div>
   );
