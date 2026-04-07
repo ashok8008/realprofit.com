@@ -203,6 +203,29 @@ async def list_email_templates():
 
 
 # ============================================================
+# Tax Tools AI
+# ============================================================
+
+class TaxExplainRequest(BaseModel):
+    prompt: str
+
+class TaxExplainResponse(BaseModel):
+    explanation: str
+
+@app.post("/api/tax-tools/explain", response_model=TaxExplainResponse)
+async def tax_explain(request: TaxExplainRequest):
+    system = (
+        "You are a friendly, plain-English tax educator. The user has just used a tax calculator on RealProfits.com. "
+        "Explain their results in simple language. Highlight key insights and suggest practical improvements. "
+        "Do NOT provide specific tax advice — always recommend consulting a tax professional for complex situations. "
+        "Keep responses under 200 words. Use bullet points for clarity. "
+        "IMPORTANT: This is informational only, not tax filing advice."
+    )
+    response = await get_ai_response(system, request.prompt)
+    return TaxExplainResponse(explanation=response)
+
+
+# ============================================================
 # Sitemap Data & Helpers
 # ============================================================
 
@@ -212,6 +235,7 @@ STATIC_PAGES = [
     ("/tools", "0.9", "weekly"),
     ("/guides", "0.9", "weekly"),
     ("/career-tools", "0.9", "weekly"),
+    ("/tax-tools", "0.9", "weekly"),
     ("/what-if", "0.8", "monthly"),
     ("/search", "0.7", "weekly"),
     ("/about", "0.5", "monthly"),
