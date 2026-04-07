@@ -286,12 +286,22 @@ ARTICLE_SLUGS = [
 ]
 
 CITY_SLUGS = [
-    "new-york", "san-francisco", "los-angeles", "san-jose", "seattle",
-    "boston", "washington-dc", "chicago", "miami", "denver",
-    "austin", "dallas", "houston", "san-antonio", "nashville",
-    "atlanta", "phoenix", "portland", "minneapolis", "philadelphia",
-    "charlotte", "raleigh", "salt-lake-city", "pittsburgh", "tampa",
-    "detroit", "kansas-city", "columbus", "san-diego", "las-vegas",
+    # Very High Cost
+    "new-york", "san-francisco", "san-jose", "los-angeles", "san-diego",
+    "honolulu", "orange-county",
+    # High Cost
+    "seattle", "boston", "washington-dc", "portland", "miami", "denver",
+    "hartford", "sacramento", "stamford", "baltimore",
+    # Moderate Cost
+    "chicago", "atlanta", "minneapolis", "philadelphia", "austin", "dallas",
+    "nashville", "salt-lake-city", "phoenix", "raleigh", "tampa", "las-vegas",
+    "orlando", "jacksonville", "charlotte", "new-orleans", "richmond",
+    "milwaukee", "boise",
+    # Low Cost
+    "houston", "san-antonio", "pittsburgh", "detroit", "kansas-city",
+    "columbus", "cleveland", "cincinnati", "indianapolis", "st-louis",
+    "memphis", "louisville", "oklahoma-city", "tucson", "el-paso",
+    "omaha", "albuquerque", "birmingham", "buffalo", "des-moines",
 ]
 
 
