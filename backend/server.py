@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import Response
 from datetime import date
@@ -5,20 +8,32 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
 import os
-from dotenv import load_dotenv
 
-load_dotenv()
+from db import init_db
+from auth import router as auth_router, seed_admin
+from user_data import router as user_data_router
 
 app = FastAPI(title="RealProfits API")
 
-# Add CORS middleware
+# CORS — explicit origin for credential cookies
+frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:3000")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[frontend_url, "http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include routers
+app.include_router(auth_router)
+app.include_router(user_data_router)
+
+
+@app.on_event("startup")
+async def startup():
+    await init_db()
+    await seed_admin()
 
 # ============================================================
 # Models

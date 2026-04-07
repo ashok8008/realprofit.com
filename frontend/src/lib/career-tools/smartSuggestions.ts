@@ -231,7 +231,9 @@ export function smartRewriteSummary(summary: string, skills: string[]): string {
 // AI USAGE TRACKING (3 total free uses across all features)
 // ============================================================
 
-const AI_USAGE_KEY = 'rp_ai_uses_v2';
+import { saveToStorage, loadFromStorage } from './storage';
+
+const AI_USAGE_KEY = 'ai_usage';
 const AI_FREE_LIMIT = 3;
 
 interface AiUsageData {
@@ -239,15 +241,11 @@ interface AiUsageData {
 }
 
 function getUsageData(): AiUsageData {
-  try {
-    const raw = localStorage.getItem(AI_USAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch (e) { console.error("Failed to load AI usage data:", e); }
-  return { totalUsed: 0 };
+  return loadFromStorage<AiUsageData>(AI_USAGE_KEY, { totalUsed: 0 });
 }
 
 function saveUsageData(data: AiUsageData) {
-  localStorage.setItem(AI_USAGE_KEY, JSON.stringify(data));
+  saveToStorage(AI_USAGE_KEY, data);
 }
 
 export function getAiRemaining(): number {

@@ -5,8 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer } from "recharts";
 import { useToast } from "@/hooks/use-toast";
+import { saveToStorage, loadFromStorage } from "@/lib/career-tools/storage";
 
-const STORAGE_KEY = "rp-tool-paycheck";
+const STORAGE_KEY = "paycheck";
 
 const CHART_COLORS = ["#22c55e", "#ef4444", "#2563eb", "#f59e0b", "#8b5cf6"];
 
@@ -23,24 +24,20 @@ export function PaycheckCalculator() {
   });
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setData({
-          grossPay: String(parsed.grossPay ?? "3000"),
-          frequency: parsed.frequency || "biweekly",
-          taxRate: String(parsed.taxRate ?? "22"),
-          retirement: String(parsed.retirement ?? "150"),
-          insurance: String(parsed.insurance ?? "100"),
-          otherDeductions: String(parsed.otherDeductions ?? "50"),
-        });
-      } catch (e) { console.error("Failed to load paycheck data:", e); }
-    }
+    const saved = loadFromStorage(STORAGE_KEY, data);
+    setData({
+      grossPay: String(saved.grossPay ?? "3000"),
+      frequency: saved.frequency || "biweekly",
+      taxRate: String(saved.taxRate ?? "22"),
+      retirement: String(saved.retirement ?? "150"),
+      insurance: String(saved.insurance ?? "100"),
+      otherDeductions: String(saved.otherDeductions ?? "50"),
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    saveToStorage(STORAGE_KEY, data);
   }, [data]);
 
   const grossPayVal = parseFloat(data.grossPay) || 0;

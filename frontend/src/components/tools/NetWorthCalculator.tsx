@@ -8,8 +8,9 @@ import { RotateCcw, Download } from "lucide-react";
 import { ExportToCSVButton } from "@/components/export/ExportButtons";
 import { jsPDF } from "jspdf";
 import { useToast } from "@/hooks/use-toast";
+import { saveToStorage, loadFromStorage } from "@/lib/career-tools/storage";
 
-const STORAGE_KEY = "rp-tool-net-worth";
+const STORAGE_KEY = "net_worth";
 
 const ASSET_LABELS: Record<string, string> = {
   cash: "Cash & Checking",
@@ -53,18 +54,14 @@ export function NetWorthCalculator() {
   });
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed.assets) setAssets(parsed.assets);
-        if (parsed.liabilities) setLiabilities(parsed.liabilities);
-      } catch (e) { console.error("Failed to load net worth data:", e); }
-    }
+    const saved = loadFromStorage<{ assets: typeof assets; liabilities: typeof liabilities }>(STORAGE_KEY, { assets, liabilities });
+    if (saved.assets) setAssets(saved.assets);
+    if (saved.liabilities) setLiabilities(saved.liabilities);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ assets, liabilities }));
+    saveToStorage(STORAGE_KEY, { assets, liabilities });
   }, [assets, liabilities]);
 
   const handleAssetChange = (key: keyof typeof assets, value: string) => {

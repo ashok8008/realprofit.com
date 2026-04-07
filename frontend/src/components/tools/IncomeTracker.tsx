@@ -8,8 +8,9 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsToolti
 import { Plus, Trash2, RotateCcw, Pencil, Check, X } from "lucide-react";
 import { ExportToCSVButton } from "@/components/export/ExportButtons";
 import { useToast } from "@/hooks/use-toast";
+import { saveToStorage, loadFromStorage } from "@/lib/career-tools/storage";
 
-const STORAGE_KEY = "rp-tool-income-tracker";
+const STORAGE_KEY = "income_tracker";
 
 export function IncomeTracker() {
   const { toast } = useToast();
@@ -26,14 +27,11 @@ export function IncomeTracker() {
   const [editData, setEditData] = useState({ date: "", source: "", category: "", amount: "", notes: "" });
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try { setEntries(JSON.parse(saved)); } catch (e) { console.error("Failed to load income data:", e); }
-    }
+    setEntries(loadFromStorage<any[]>(STORAGE_KEY, []));
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+    saveToStorage(STORAGE_KEY, entries);
   }, [entries]);
 
   const addEntry = () => {

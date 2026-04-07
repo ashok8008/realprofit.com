@@ -2,11 +2,13 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import { Menu, X, UserCircle } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function Navbar() {
   const [isOpen, setIsOpen] = React.useState(false);
   const location = usePathname();
+  const { user, loading } = useAuth();
 
   const links = [
     { name: "FINANCIAL CALCULATORS", href: "/calculators" },
@@ -40,7 +42,27 @@ export function Navbar() {
           </nav>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          {!loading && (
+            user ? (
+              <Link
+                href="/account"
+                className="hidden md:inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm text-white hover:bg-white/25 rounded-full px-4 py-2 text-sm font-bold transition-colors"
+                data-testid="nav-account-link"
+              >
+                <UserCircle className="w-4 h-4" />
+                {user.name.split(" ")[0]}
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                className="hidden md:inline-flex bg-white/15 backdrop-blur-sm text-white hover:bg-white/25 rounded-full px-5 py-2 text-sm font-bold transition-colors"
+                data-testid="nav-login-link"
+              >
+                Sign In
+              </Link>
+            )
+          )}
           <Link
             href="/contact"
             className="hidden md:inline-flex bg-[#f5c542] text-gray-900 hover:bg-[#e5b732] rounded-full px-6 py-2 text-sm font-bold transition-colors"
@@ -69,6 +91,25 @@ export function Navbar() {
               {link.name}
             </Link>
           ))}
+          {!loading && (
+            user ? (
+              <Link
+                href="/account"
+                className="block text-sm font-semibold text-white/80 hover:text-[#f5c542] py-2"
+                onClick={() => setIsOpen(false)}
+              >
+                My Account
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                className="block text-sm font-semibold text-white/80 hover:text-[#f5c542] py-2"
+                onClick={() => setIsOpen(false)}
+              >
+                Sign In
+              </Link>
+            )
+          )}
           <Link
             href="/contact"
             className="block bg-[#f5c542] text-gray-900 rounded-full px-6 py-2 text-sm font-bold text-center mt-4"

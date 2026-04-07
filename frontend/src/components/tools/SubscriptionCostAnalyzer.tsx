@@ -9,8 +9,9 @@ import { Plus, Trash2, RotateCcw, Pencil, Check, X, Download } from "lucide-reac
 import { ExportToCSVButton } from "@/components/export/ExportButtons";
 import { jsPDF } from "jspdf";
 import { useToast } from "@/hooks/use-toast";
+import { saveToStorage, loadFromStorage } from "@/lib/career-tools/storage";
 
-const STORAGE_KEY = "rp-tool-subscription-analyzer";
+const STORAGE_KEY = "subscriptions";
 
 const BAR_COLORS = [
   "#2563eb", "#dc2626", "#16a34a", "#f59e0b", "#8b5cf6",
@@ -30,19 +31,12 @@ export function SubscriptionCostAnalyzer() {
   const [editData, setEditData] = useState({ name: "", cost: "", cycle: "monthly", category: "streaming" });
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setSubs(parsed);
-        }
-      } catch (e) { console.error("Failed to load subscriptions:", e); }
-    }
+    const saved = loadFromStorage<Sub[]>(STORAGE_KEY, []);
+    if (saved.length > 0) setSubs(saved);
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(subs));
+    saveToStorage(STORAGE_KEY, subs);
   }, [subs]);
 
   const isAddDisabled = !newSub.name.trim() || !newSub.cost || parseFloat(newSub.cost) <= 0;

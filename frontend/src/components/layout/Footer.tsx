@@ -2,6 +2,8 @@
 import { useState } from "react";
 import Link from "next/link";
 
+import { saveToStorage, loadFromStorage } from "@/lib/career-tools/storage";
+
 export function Footer() {
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
@@ -10,10 +12,10 @@ export function Footer() {
     e.preventDefault();
     if (!email.trim()) return;
 
-    const existing = JSON.parse(localStorage.getItem("rp-subscribers") || "[]");
+    const existing = loadFromStorage<string[]>("newsletter_subscribers", []);
     if (!existing.includes(email.trim().toLowerCase())) {
       existing.push(email.trim().toLowerCase());
-      localStorage.setItem("rp-subscribers", JSON.stringify(existing));
+      saveToStorage("newsletter_subscribers", existing);
     }
     setSubscribed(true);
     setEmail("");

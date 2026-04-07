@@ -8,8 +8,9 @@ import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer } 
 import { Plus, Trash2, RotateCcw, Pencil, Check, X } from "lucide-react";
 import { ExportToCSVButton } from "@/components/export/ExportButtons";
 import { useToast } from "@/hooks/use-toast";
+import { saveToStorage, loadFromStorage } from "@/lib/career-tools/storage";
 
-const STORAGE_KEY = "rp-tool-expense-tracker";
+const STORAGE_KEY = "expense_tracker";
 
 const COLORS = ["#2563eb", "#dc2626", "#16a34a", "#f59e0b", "#8b5cf6", "#ec4899", "#06b6d4"];
 
@@ -30,14 +31,11 @@ export function ExpenseTracker() {
   const [editData, setEditData] = useState({ date: "", merchant: "", category: "food", amount: "", notes: "" });
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try { setEntries(JSON.parse(saved)); } catch (e) { console.error("Failed to load expense data:", e); }
-    }
+    setEntries(loadFromStorage<Entry[]>(STORAGE_KEY, []));
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+    saveToStorage(STORAGE_KEY, entries);
   }, [entries]);
 
   const addEntry = () => {

@@ -7,8 +7,9 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Printer, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { saveToStorage, loadFromStorage } from "@/lib/career-tools/storage";
 
-const STORAGE_KEY = "rp-tool-bill-split";
+const STORAGE_KEY = "bill_split";
 
 const DEFAULT_STATE = {
   subtotal: "",
@@ -29,28 +30,24 @@ export function BillSplitTool() {
   const [data, setData] = useState(DEFAULT_STATE);
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        setData({
-          subtotal: String(parsed.subtotal ?? ""),
-          taxAmount: String(parsed.taxAmount ?? ""),
-          tipPercent: String(parsed.tipPercent ?? "15"),
-          isEqualSplit: parsed.isEqualSplit ?? true,
-          peopleCount: String(parsed.peopleCount ?? "2"),
-          payerIndex: parsed.payerIndex ?? 0,
-          customPeople: (parsed.customPeople || DEFAULT_STATE.customPeople).map((p: any) => ({
-            ...p,
-            amount: String(p.amount ?? "")
-          }))
-        });
-      } catch (e) { console.error("Failed to load bill split data:", e); }
-    }
+    const parsed = loadFromStorage(STORAGE_KEY, DEFAULT_STATE);
+    setData({
+      subtotal: String(parsed.subtotal ?? ""),
+      taxAmount: String(parsed.taxAmount ?? ""),
+      tipPercent: String(parsed.tipPercent ?? "15"),
+      isEqualSplit: parsed.isEqualSplit ?? true,
+      peopleCount: String(parsed.peopleCount ?? "2"),
+      payerIndex: parsed.payerIndex ?? 0,
+      customPeople: (parsed.customPeople || DEFAULT_STATE.customPeople).map((p: any) => ({
+        ...p,
+        amount: String(p.amount ?? "")
+      }))
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    saveToStorage(STORAGE_KEY, data);
   }, [data]);
 
   const subtotalVal = parseFloat(data.subtotal) || 0;
