@@ -4,6 +4,7 @@ import type { ResumeScoreResult, ScoreSuggestion } from "@/lib/career-tools/resu
 import { calculateResumeScore } from "@/lib/career-tools/resume/score";
 import type { ResumeData } from "@/lib/career-tools/pdf-export";
 import { Zap, ArrowRight, ChevronDown, ChevronUp, Shield, Eye, TrendingUp } from "lucide-react";
+import { ShareScoreButton } from "./ShareScoreCard";
 
 /* ─── Score Groups: 7 raw categories → 3 conceptual pillars ─── */
 const SCORE_GROUPS = [
@@ -159,7 +160,10 @@ export function ResumeScorePanelV2({ resumeData, onFixAll, onTabSwitch }: Props)
         <div className="flex items-center gap-5">
           <ScoreRing score={result.total} size="lg" />
           <div className="flex-1">
-            <h3 className="text-lg font-semibold text-gray-900">{scoreLabel}</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">{scoreLabel}</h3>
+              <ShareScoreButton result={result} groups={groups} scoreLabel={scoreLabel} />
+            </div>
             <p className="text-sm text-gray-400 mt-0.5">
               {allFixes.length > 0
                 ? `${allFixes.length} improvement${allFixes.length > 1 ? "s" : ""} found`
