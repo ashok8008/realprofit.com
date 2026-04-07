@@ -37,7 +37,13 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - Fixed TypeScript strict error in `src/components/tools/IncomeTracker.tsx` (invalid `textTransform` SVG prop on Recharts `YAxis`)
 - Fixed TypeScript strict error in `src/lib/career-tools/storage.ts` (`useRef` missing initial argument)
 - `yarn build` now passes cleanly — 700+ pSEO pages generated successfully
-- Note: Old `index.html` (Vite artifact) still in root with GTM/GA tags not yet migrated to Next.js `layout.tsx`
+
+### Phase 8: Analytics Migration (Feb 2026) — DONE
+- Migrated GTM (GTM-KQ9BHG4B) and GA4 (G-7PX07P6BKF) from old Vite `index.html` to Next.js `layout.tsx`
+- Used `next/script` with `beforeInteractive` (GTM) and `afterInteractive` (GA4) strategies
+- Added GTM noscript iframe fallback in `<body>`
+- Added missing SEO meta tags: geo.region, geo.placename, rating, distribution, enhanced robots directive
+- Deleted dead Vite `index.html` artifact
 
 ## Upcoming Tasks
 - Scale pSEO location pages to 2000+ cities (P1)
