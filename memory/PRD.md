@@ -112,6 +112,7 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - Iteration 24: Backend 100% (9/9), Frontend 100% (21/21) — Resume Builder Complete Wizard Rewrite + Skill Suggestions
 - Iteration 25: Backend 100% (9/9), Frontend 100% (24/24) — Entry Flow Redesign (4 screens matching competitor)
 - Iteration 26: Backend 100% (9/9), Frontend 100% (23/23) — Onboarding + Template Selection Redesign (plant icons, golden underlines, full preview)
+- Iteration 27: Frontend 100% (18/18) — 5 Distinct Templates + Years of Experience Screen
 
 ### Phase 17: Tax Tools SEO Schemas, Canonical URLs, Sitemap & Robots (Apr 2026) -- DONE
 - Added JSON-LD structured data: BreadcrumbList, ItemList, FAQPage on hub; WebApplication, BreadcrumbList, FAQPage on detail pages
@@ -162,6 +163,19 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - **Screen 5 (Analysis)**: Two-column with SVG illustration, "You're off to a great start!" heading, "You got it right" card with green checks, "How we'll help you improve" card with gold stars
 - **All using RealProfits brand colors**: teal (#0d9488), gold (#f5c542), blue (#3b82f6)
 - Testing: Backend 100% (9/9), Frontend 100% (24/24) — iteration_25
+
+### Phase 23c: Resume Builder — 5 Distinct Templates & Years of Experience (Apr 2026) -- DONE
+- **5 Visually Distinct Template Renderers** (new `TemplateRenderer.tsx`):
+  - **Clean**: Centered header, serif font (Georgia), thin rule separators, classic ATS layout
+  - **Professional**: Double-rule header border, bold section headings, italic company names, Cambria font
+  - **Minimal**: Left-aligned, ultra-lightweight section headers (tracking-[0.25em]), generous whitespace, system-ui font
+  - **Executive**: Dark slate-800 header banner, gold accent line, timeline left-borders on experience, skill pills in slate-100 badges
+  - **Modern**: Two-column layout with dark slate-800 sidebar (contact + skills + certifications), teal accent headings, main content area
+- **Years of Experience onboarding step**: New screen between Experience Level and Industry with 5 options (Less than 1 year, 1-3, 3-5, 5-10, 10+), clock SVG icons, blue accent underline
+- **Template Selection page**: Shows sample data (Sarah Johnson) when user has no data, distinct thumbnails for each template with scale="thumb" rendering
+- **Wizard editor preview**: Right panel now renders using the selected template (not a generic preview)
+- **Create flow updated**: Entry → Experience Level → Years of Experience (NEW) → Industry → Template Selection → Wizard Editor
+- Testing: Frontend 100% (18/18) — iteration_27
 
 ## Upcoming Tasks
 - Premium ATS checks for Resume Builder (P2)
