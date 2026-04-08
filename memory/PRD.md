@@ -110,6 +110,7 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - Iteration 16: Backend 100% (8/8), Frontend 100% (25/25) — Tax Tools
 - Iteration 23: Backend 100% (6/6), Frontend 100% (13/13) — Resume Builder UX Overhaul v1
 - Iteration 24: Backend 100% (9/9), Frontend 100% (21/21) — Resume Builder Complete Wizard Rewrite + Skill Suggestions
+- Iteration 25: Backend 100% (9/9), Frontend 100% (24/24) — Entry Flow Redesign (4 screens matching competitor)
 
 ### Phase 17: Tax Tools SEO Schemas, Canonical URLs, Sitemap & Robots (Apr 2026) -- DONE
 - Added JSON-LD structured data: BreadcrumbList, ItemList, FAQPage on hub; WebApplication, BreadcrumbList, FAQPage on detail pages
@@ -151,6 +152,15 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - **Full-screen Tips & Fixes**: Dark overlay with categorized issues, Fix All button, and Fix individual buttons
 - **New backend endpoints**: POST /api/career-tools/generate-summaries, POST /api/career-tools/suggest-skills
 - Testing: Backend 100% (9/9), Frontend 100% (21/21) — iteration_24
+
+### Phase 23b: Resume Builder Entry Flow Redesign — Matching Competitor Screenshots (Apr 2026) -- DONE
+- **Screen 1 (Entry)**: Bold "AI Resume Builder (Fast, Easy, & Free to Use)" heading with teal accent, amber "Import your resume" + blue "Create my resume" pill buttons
+- **Screen 2 (Upload)**: Dedicated upload page with drag-and-drop zone, SVG document icon, amber "Browse your computer" button, file type notice (DOCX, PDF), paste text option, "Create a new resume" blue link, back button
+- **Screen 3 (Processing)**: Animated loading screen with spinning teal/gold rings, rotating tips carousel (6 financial/career tips), progress bar while parsing resumes
+- **Screen 4 (Welcome)**: Two-column layout with SVG illustration on left, "Nice to meet you, {Name}" personalized text with bold highlights of role, company, certifications
+- **Screen 5 (Analysis)**: Two-column with SVG illustration, "You're off to a great start!" heading, "You got it right" card with green checks, "How we'll help you improve" card with gold stars
+- **All using RealProfits brand colors**: teal (#0d9488), gold (#f5c542), blue (#3b82f6)
+- Testing: Backend 100% (9/9), Frontend 100% (24/24) — iteration_25
 
 ## Upcoming Tasks
 - Premium ATS checks for Resume Builder (P2)
