@@ -1,15 +1,13 @@
 "use client";
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RotateCcw, Upload, User, Briefcase, GraduationCap, Wrench, Award, ChevronLeft, Download } from "lucide-react";
+import { RotateCcw, Upload, User, Briefcase, GraduationCap, Wrench, Award, ChevronLeft, ChevronRight, Download, Printer, PanelLeftClose, PanelLeft, X, Shield, Eye, TrendingUp, Zap, ArrowRight } from "lucide-react";
 import { saveToStorage, loadFromStorage, clearStorage } from "@/lib/career-tools/storage";
 import { generateResumePDF, type ResumeData } from "@/lib/career-tools/pdf-export";
 import { useToast } from "@/hooks/use-toast";
 import { analyzeBulletPoints, analyzeSummary, smartRewriteBullets, smartRewriteSummary, canUseAi, recordAiUsage, getAiRemaining, AI_FREE_TOTAL } from "@/lib/career-tools/smartSuggestions";
 import type { Experience, Education, AiSuggestion } from "./resume/types";
-import { ResumeScorePanelV2 } from "./resume/ResumeScorePanel";
 import { ResumePreview } from "./resume/ResumePreview";
 import { PersonalTab } from "./resume/PersonalTab";
 import { ExperienceTab } from "./resume/ExperienceTab";
@@ -19,6 +17,7 @@ import { ImportEntry } from "./resume/ImportEntry";
 import { ImportProcessing } from "./resume/ImportProcessing";
 import { ImportReview } from "./resume/ImportReview";
 import { fixAllEasyIssues } from "@/lib/career-tools/resume/improve";
+import { calculateResumeScore } from "@/lib/career-tools/resume/score";
 import type { SectionConfidence } from "@/lib/career-tools/resume/import/types";
 import Link from "next/link";
 
@@ -34,11 +33,11 @@ const defaultResumeData: ResumeData = {
 };
 
 const templates = [
-  { id: "clean", name: "Clean", desc: "Simple ATS-friendly", premium: false },
-  { id: "professional", name: "Professional", desc: "Traditional business", premium: false },
-  { id: "minimal", name: "Minimal", desc: "Maximum whitespace", premium: false },
-  { id: "executive", name: "Executive", desc: "Bold header", premium: true },
-  { id: "modern", name: "Modern", desc: "Two-column", premium: true },
+  { id: "clean", name: "Clean", premium: false },
+  { id: "professional", name: "Professional", premium: false },
+  { id: "minimal", name: "Minimal", premium: false },
+  { id: "executive", name: "Executive", premium: true },
+  { id: "modern", name: "Modern", premium: true },
 ];
 
 const STEPS = [
@@ -64,6 +63,8 @@ export function ResumeBuilder() {
   const [aiRemaining, setAiRemaining] = useState(getAiRemaining());
   const [importSource, setImportSource] = useState<"docx" | "pdf" | "text">("text");
   const [confidences, setConfidences] = useState<SectionConfidence[]>([]);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [atsBarVisible, setAtsBarVisible] = useState(true);
 
   useEffect(() => {
     const saved = loadFromStorage<ResumeData | null>(STORAGE_KEY, null as unknown as ResumeData);
@@ -80,6 +81,37 @@ export function ResumeBuilder() {
     }
   }, [data, flowState]);
 
+  // Auto-collapse ATS bar after 6 seconds
+  useEffect(() => {
+    if (flowState === "editor" && atsBarVisible) {
+      const timer = setTimeout(() => setAtsBarVisible(false), 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [flowState, atsBarVisible]);
+
+  // Score computation
+  const scoreResult = useMemo(() => calculateResumeScore(data), [data]);
+
+  const scoreGroups = useMemo(() => {
+    const groups = [
+      { key: "ats", label: "ATS Readiness", icon: Shield, cats: ["ats", "structure"] },
+      { key: "readability", label: "Readability", icon: Eye, cats: ["completeness", "presence"] },
+      { key: "impact", label: "Impact", icon: TrendingUp, cats: ["experience", "impact", "skills"] },
+    ];
+    return groups.map(g => {
+      let score = 0, max = 0;
+      g.cats.forEach(cat => {
+        const b = scoreResult.breakdown[cat as keyof typeof scoreResult.breakdown];
+        if (b) { score += b.score; max += b.max; }
+      });
+      return { ...g, score, max, pct: max > 0 ? Math.round((score / max) * 100) : 0 };
+    });
+  }, [scoreResult]);
+
+  const quickFixes = useMemo(() => {
+    return scoreResult.suggestions.filter(s => s.severity === "critical" || s.severity === "high").slice(0, 3);
+  }, [scoreResult]);
+
   // ─── Import handlers ───────────────────────────────────────
   const handleFileImport = useCallback(async (file: File) => {
     const ext = file.name.toLowerCase();
@@ -90,16 +122,13 @@ export function ResumeBuilder() {
       if (source === "docx") {
         const { parseDocx } = await import("@/lib/career-tools/resume/import/docxParser");
         const result = await parseDocx(file);
-        setData(result.data);
-        setConfidences(result.confidences);
+        setData(result.data); setConfidences(result.confidences);
       } else {
         const { parsePdf } = await import("@/lib/career-tools/resume/import/pdfParser");
         const result = await parsePdf(file);
-        setData(result.data);
-        setConfidences(result.confidences);
+        setData(result.data); setConfidences(result.confidences);
       }
-    } catch (err) {
-      console.error("Import failed:", err);
+    } catch {
       toast({ title: "Import failed", description: "Could not parse the file. Try pasting the text instead.", variant: "destructive" });
       setFlowState("entry");
     }
@@ -112,444 +141,414 @@ export function ResumeBuilder() {
       try {
         const { parseText } = require("@/lib/career-tools/resume/import/textParser");
         const result = parseText(text);
-        setData(result.data);
-        setConfidences(result.confidences);
-      } catch (err) {
-        console.error("Text parse failed:", err);
-        toast({ title: "Parse failed", description: "Could not parse the text. Try starting from scratch.", variant: "destructive" });
+        setData(result.data); setConfidences(result.confidences);
+      } catch {
+        toast({ title: "Parse failed", description: "Could not parse the text.", variant: "destructive" });
         setFlowState("entry");
       }
     }, 100);
   }, [toast]);
 
-  const handleStartScratch = useCallback(() => {
-    setData(defaultResumeData);
-    setFlowState("editor");
-  }, []);
-
-  const handleProcessingComplete = useCallback(() => { setFlowState("review"); }, []);
-
-  const handleReviewContinue = useCallback(() => {
-    setFlowState("editor");
-    toast({ title: "Resume imported!", description: "Review and edit each section. Score updates in real-time." });
-  }, [toast]);
-
-  const handleNewImport = useCallback(() => {
-    setFlowState("entry");
-    setConfidences([]);
-  }, []);
+  const handleStartScratch = useCallback(() => { setData(defaultResumeData); setFlowState("editor"); }, []);
+  const handleProcessingComplete = useCallback(() => setFlowState("review"), []);
+  const handleReviewContinue = useCallback(() => { setFlowState("editor"); toast({ title: "Resume imported!", description: "Review each section. Score updates in real-time." }); }, [toast]);
+  const handleNewImport = useCallback(() => { setFlowState("entry"); setConfidences([]); }, []);
 
   // ─── Data updaters ────────────────────────────────────────
   const updatePersonal = (field: keyof ResumeData["personalDetails"], value: string) => {
     setData(prev => ({ ...prev, personalDetails: { ...prev.personalDetails, [field]: value } }));
   };
   const addExperience = () => {
-    const newExp: Experience = { id: Date.now().toString(), title: "", company: "", location: "", startDate: "", endDate: "", current: false, description: "" };
-    setData(prev => ({ ...prev, experience: [...prev.experience, newExp] }));
+    setData(prev => ({ ...prev, experience: [...prev.experience, { id: Date.now().toString(), title: "", company: "", location: "", startDate: "", endDate: "", current: false, description: "" }] }));
   };
   const updateExperience = (id: string, field: keyof Experience, value: string | boolean) => {
     setData(prev => ({ ...prev, experience: prev.experience.map(exp => exp.id === id ? { ...exp, [field]: value } : exp) }));
   };
-  const removeExperience = (id: string) => {
-    setData(prev => ({ ...prev, experience: prev.experience.filter(exp => exp.id !== id) }));
-  };
+  const removeExperience = (id: string) => setData(prev => ({ ...prev, experience: prev.experience.filter(exp => exp.id !== id) }));
   const addEducation = () => {
-    const newEdu: Education = { id: Date.now().toString(), school: "", degree: "", field: "", startDate: "", endDate: "" };
-    setData(prev => ({ ...prev, education: [...prev.education, newEdu] }));
+    setData(prev => ({ ...prev, education: [...prev.education, { id: Date.now().toString(), school: "", degree: "", field: "", startDate: "", endDate: "" }] }));
   };
   const updateEducation = (id: string, field: keyof Education, value: string) => {
     setData(prev => ({ ...prev, education: prev.education.map(edu => edu.id === id ? { ...edu, [field]: value } : edu) }));
   };
-  const removeEducation = (id: string) => {
-    setData(prev => ({ ...prev, education: prev.education.filter(edu => edu.id !== id) }));
-  };
+  const removeEducation = (id: string) => setData(prev => ({ ...prev, education: prev.education.filter(edu => edu.id !== id) }));
   const addSkill = () => {
     if (skillInput.trim() && !data.skills.includes(skillInput.trim())) {
-      setData(prev => ({ ...prev, skills: [...prev.skills, skillInput.trim()] }));
-      setSkillInput("");
+      setData(prev => ({ ...prev, skills: [...prev.skills, skillInput.trim()] })); setSkillInput("");
     }
   };
   const removeSkill = (skill: string) => setData(prev => ({ ...prev, skills: prev.skills.filter(s => s !== skill) }));
   const addCertification = () => {
     if (certInput.trim() && !data.certifications.includes(certInput.trim())) {
-      setData(prev => ({ ...prev, certifications: [...prev.certifications, certInput.trim()] }));
-      setCertInput("");
+      setData(prev => ({ ...prev, certifications: [...prev.certifications, certInput.trim()] })); setCertInput("");
     }
   };
   const removeCertification = (cert: string) => setData(prev => ({ ...prev, certifications: prev.certifications.filter(c => c !== cert) }));
 
   const handleReset = () => {
-    if (confirm("Are you sure you want to clear all resume data?")) {
-      setData(defaultResumeData);
-      clearStorage(STORAGE_KEY);
-      setFlowState("entry");
-      setConfidences([]);
-      toast({ title: "Resume cleared", description: "All data has been reset." });
+    if (confirm("Clear all resume data?")) {
+      setData(defaultResumeData); clearStorage(STORAGE_KEY); setFlowState("entry"); setConfidences([]);
+      toast({ title: "Resume cleared" });
     }
   };
 
   const handleDownloadPDF = () => {
     const pdf = generateResumePDF(data, template);
     pdf.save(`${data.personalDetails.fullName || "resume"}_resume.pdf`.replace(/\s+/g, "_"));
-    toast({ title: "PDF Downloaded", description: "Your resume has been saved." });
+    toast({ title: "PDF Downloaded" });
   };
 
   const handleFixAll = () => {
-    const fixes = fixAllEasyIssues({
-      summary: data.summary,
-      experience: data.experience.map(e => ({ description: e.description })),
-      skills: data.skills,
-    });
-    setData(prev => ({
-      ...prev,
-      summary: fixes.summary,
-      experience: prev.experience.map((e, i) => ({ ...e, description: fixes.experiences[i] || e.description })),
-      skills: fixes.skills,
-    }));
-    toast({ title: "Easy fixes applied!", description: "Action verbs, metrics placeholders, and skill normalization applied." });
+    const fixes = fixAllEasyIssues({ summary: data.summary, experience: data.experience.map(e => ({ description: e.description })), skills: data.skills });
+    setData(prev => ({ ...prev, summary: fixes.summary, experience: prev.experience.map((e, i) => ({ ...e, description: fixes.experiences[i] || e.description })), skills: fixes.skills }));
+    toast({ title: "Easy fixes applied!" });
   };
 
   // ─── AI / Smart Improve ───────────────────────────────────
   const bulletSuggestions = useMemo(() => {
     const map: Record<string, ReturnType<typeof analyzeBulletPoints>> = {};
-    data.experience.forEach(exp => {
-      if (exp.id && exp.description.trim()) map[exp.id] = analyzeBulletPoints(exp.description);
-    });
+    data.experience.forEach(exp => { if (exp.id && exp.description.trim()) map[exp.id] = analyzeBulletPoints(exp.description); });
     return map;
   }, [data.experience]);
-
-  const summarySuggestions = useMemo(() => {
-    return data.summary.trim() ? analyzeSummary(data.summary, data.skills) : [];
-  }, [data.summary, data.skills]);
+  const summarySuggestions = useMemo(() => data.summary.trim() ? analyzeSummary(data.summary, data.skills) : [], [data.summary, data.skills]);
 
   const smartImproveBullet = (expId: string, text: string) => {
     if (!text.trim()) return;
     const improved = smartRewriteBullets(text);
-    if (improved !== text) {
-      updateExperience(expId, "description", improved);
-      toast({ title: "Smart Improve applied!", description: "Text improved using writing rules." });
-    } else {
-      toast({ title: "Already looks good!", description: "No changes needed — try adding more detail." });
-    }
+    if (improved !== text) { updateExperience(expId, "description", improved); toast({ title: "Smart Improve applied!" }); }
+    else toast({ title: "Already looks good!" });
   };
-
   const smartImproveSummary = () => {
     if (!data.summary.trim()) return;
     const improved = smartRewriteSummary(data.summary, data.skills);
-    if (improved !== data.summary) {
-      setData(prev => ({ ...prev, summary: improved }));
-      toast({ title: "Smart Improve applied!", description: "Summary improved using writing rules." });
-    } else {
-      toast({ title: "Already looks good!", description: "No changes needed — try adding more detail." });
-    }
+    if (improved !== data.summary) { setData(prev => ({ ...prev, summary: improved })); toast({ title: "Smart Improve applied!" }); }
+    else toast({ title: "Already looks good!" });
   };
 
   const aiImproveBullet = async (expId: string, bulletText: string, jobTitle: string) => {
-    if (!bulletText.trim()) { toast({ title: "Empty field", description: "Write bullet points first." }); return; }
-    if (!canUseAi()) { toast({ title: "AI limit reached", description: "Use Smart Improve instead — it's free and unlimited!" }); return; }
-    setAiLoading(`bullet-${expId}`);
-    setAiSuggestion(null);
+    if (!bulletText.trim()) { toast({ title: "Empty field" }); return; }
+    if (!canUseAi()) { toast({ title: "AI limit reached", description: "Use Smart Improve instead!" }); return; }
+    setAiLoading(`bullet-${expId}`); setAiSuggestion(null);
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/career-tools/improve-bullet`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bullet_point: bulletText, job_title: jobTitle }) });
-      if (!res.ok) throw new Error("AI service unavailable");
+      if (!res.ok) throw new Error();
       const result = await res.json();
-      recordAiUsage();
-      setAiRemaining(getAiRemaining());
+      recordAiUsage(); setAiRemaining(getAiRemaining());
       setAiSuggestion({ id: `bullet-${expId}`, original: bulletText, improved: result.improved, suggestions: result.suggestions });
-    } catch { toast({ title: "AI Error", description: "Could not reach AI. Try Smart Improve instead.", variant: "destructive" }); }
+    } catch { toast({ title: "AI Error", variant: "destructive" }); }
     finally { setAiLoading(null); }
   };
 
   const aiImproveSummary = async () => {
-    if (!data.summary.trim()) { toast({ title: "Empty summary", description: "Write a summary first." }); return; }
-    if (!canUseAi()) { toast({ title: "AI limit reached", description: "Use Smart Improve instead — it's free and unlimited!" }); return; }
-    setAiLoading("summary");
-    setAiSuggestion(null);
+    if (!data.summary.trim()) { toast({ title: "Empty summary" }); return; }
+    if (!canUseAi()) { toast({ title: "AI limit reached" }); return; }
+    setAiLoading("summary"); setAiSuggestion(null);
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/career-tools/improve-summary`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ current_summary: data.summary, job_title: data.experience[0]?.title || "", skills: data.skills.slice(0, 5) }) });
-      if (!res.ok) throw new Error("AI service unavailable");
+      if (!res.ok) throw new Error();
       const result = await res.json();
-      recordAiUsage();
-      setAiRemaining(getAiRemaining());
+      recordAiUsage(); setAiRemaining(getAiRemaining());
       setAiSuggestion({ id: "summary", original: data.summary, improved: result.improved });
-    } catch { toast({ title: "AI Error", description: "Could not reach AI. Try Smart Improve instead.", variant: "destructive" }); }
+    } catch { toast({ title: "AI Error", variant: "destructive" }); }
     finally { setAiLoading(null); }
   };
 
   const acceptAiSuggestion = () => {
     if (!aiSuggestion) return;
-    if (aiSuggestion.id === "summary") {
-      setData(prev => ({ ...prev, summary: aiSuggestion.improved }));
-    } else {
-      updateExperience(aiSuggestion.id.replace("bullet-", ""), "description", aiSuggestion.improved);
-    }
-    toast({ title: "Applied!", description: "AI suggestion has been applied." });
-    setAiSuggestion(null);
+    if (aiSuggestion.id === "summary") setData(prev => ({ ...prev, summary: aiSuggestion.improved }));
+    else updateExperience(aiSuggestion.id.replace("bullet-", ""), "description", aiSuggestion.improved);
+    toast({ title: "Applied!" }); setAiSuggestion(null);
   };
-
   const dismissAiSuggestion = () => setAiSuggestion(null);
   const summaryWordCount = data.summary.trim().split(/\s+/).filter(Boolean).length;
-
   const currentStepIndex = STEPS.findIndex(s => s.key === activeTab);
 
-  // ─── Render: Entry / Processing / Review ──────────────────
-  if (flowState === "entry") {
-    return <div data-testid="resume-builder-entry"><ImportEntry onFileImport={handleFileImport} onTextImport={handleTextImport} onStartScratch={handleStartScratch} /></div>;
-  }
-  if (flowState === "processing") {
-    return <div className="min-h-[calc(100vh-64px)] flex items-center justify-center" data-testid="resume-builder-processing"><div className="max-w-md w-full"><ImportProcessing source={importSource} onComplete={handleProcessingComplete} /></div></div>;
-  }
-  if (flowState === "review") {
-    return <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-4" data-testid="resume-builder-review"><div className="max-w-4xl w-full"><ImportReview confidences={confidences} source={importSource} onContinue={handleReviewContinue} /></div></div>;
-  }
+  // ─── Pre-editor flows ─────────────────────────────────────
+  if (flowState === "entry") return <div data-testid="resume-builder-entry"><ImportEntry onFileImport={handleFileImport} onTextImport={handleTextImport} onStartScratch={handleStartScratch} /></div>;
+  if (flowState === "processing") return <div className="min-h-[calc(100vh-64px)] flex items-center justify-center" data-testid="resume-builder-processing"><div className="max-w-md w-full"><ImportProcessing source={importSource} onComplete={handleProcessingComplete} /></div></div>;
+  if (flowState === "review") return <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-4" data-testid="resume-builder-review"><div className="max-w-4xl w-full"><ImportReview confidences={confidences} source={importSource} onContinue={handleReviewContinue} /></div></div>;
 
-  // ─── Render: Full-Screen Editor ───────────────────────────
+  // ─── EDITOR LAYOUT ────────────────────────────────────────
+  const scoreColor = scoreResult.total >= 80 ? "text-emerald-600" : scoreResult.total >= 60 ? "text-teal-600" : scoreResult.total >= 40 ? "text-amber-500" : "text-red-500";
+  const scoreBg = scoreResult.total >= 80 ? "bg-emerald-500" : scoreResult.total >= 60 ? "bg-teal-500" : scoreResult.total >= 40 ? "bg-amber-500" : "bg-red-400";
+
   return (
-    <div className="min-h-[calc(100vh-64px)] flex" data-testid="resume-builder-editor">
-      {/* ─── Left Sidebar: Dark Navy ─── */}
-      <aside className="hidden lg:flex flex-col w-[220px] bg-[#1a2b5e] text-white flex-shrink-0">
-        {/* Logo / Back */}
-        <div className="px-5 py-5 border-b border-white/10">
-          <Link href="/career-tools" className="text-xs text-white/50 hover:text-white/80 transition-colors flex items-center gap-1">
-            <ChevronLeft className="w-3.5 h-3.5" /> Career Tools
-          </Link>
-          <h2 className="text-base font-bold mt-2">Resume Builder</h2>
-        </div>
-
-        {/* Step Navigation */}
-        <nav className="flex-1 px-3 py-4">
-          <p className="text-[10px] uppercase tracking-widest text-white/30 px-3 mb-3">Sections</p>
-          {STEPS.map((step, idx) => {
-            const Icon = step.icon;
-            const isActive = activeTab === step.key;
-            const isPast = idx < currentStepIndex;
-            return (
-              <button
-                key={step.key}
-                onClick={() => setActiveTab(step.key)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all mb-1 ${
-                  isActive
-                    ? "bg-white/15 text-white font-semibold"
-                    : isPast
-                    ? "text-white/60 hover:bg-white/5 hover:text-white/80"
-                    : "text-white/35 hover:bg-white/5 hover:text-white/60"
-                }`}
-                data-testid={`sidebar-step-${step.key}`}
-              >
-                <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                  isActive ? "bg-white/20" : isPast ? "bg-white/10" : "bg-white/5"
-                }`}>
-                  <Icon className="w-3.5 h-3.5" />
+    <div className="min-h-[calc(100vh-64px)] flex flex-col" data-testid="resume-builder-editor">
+      {/* ─── ATS Score Bar (auto-collapses) ─── */}
+      {atsBarVisible && (
+        <div className="bg-gray-900 text-white animate-in slide-in-from-top duration-300" data-testid="ats-score-bar">
+          <div className="flex items-center px-5 py-2.5 gap-6">
+            <div className="flex items-center gap-2">
+              <span className={`text-2xl font-bold ${scoreColor}`}>{scoreResult.total}</span>
+              <span className="text-xs text-gray-400">/100</span>
+            </div>
+            <div className="h-6 w-px bg-gray-700" />
+            {scoreGroups.map(g => {
+              const Icon = g.icon;
+              const barColor = g.pct >= 80 ? "bg-emerald-500" : g.pct >= 60 ? "bg-teal-500" : g.pct >= 40 ? "bg-amber-500" : "bg-red-400";
+              return (
+                <div key={g.key} className="flex items-center gap-2 min-w-0" data-testid={`ats-group-${g.key}`}>
+                  <Icon className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                  <span className="text-xs text-gray-300 whitespace-nowrap">{g.label}</span>
+                  <div className="w-16 h-1.5 bg-gray-700 rounded-full overflow-hidden">
+                    <div className={`h-full rounded-full ${barColor} transition-all duration-500`} style={{ width: `${g.pct}%` }} />
+                  </div>
+                  <span className="text-[10px] text-gray-500 tabular-nums">{g.score}/{g.max}</span>
                 </div>
-                {step.label}
+              );
+            })}
+            <div className="flex-1" />
+            {quickFixes.length > 0 && (
+              <button onClick={handleFixAll} className="text-xs text-teal-400 hover:text-teal-300 flex items-center gap-1 transition-colors" data-testid="ats-fix-all">
+                <Zap className="w-3 h-3" /> Fix {quickFixes.length} issues
               </button>
-            );
-          })}
-        </nav>
-
-        {/* Template selector (compact) */}
-        <div className="px-5 py-4 border-t border-white/10">
-          <p className="text-[10px] uppercase tracking-widest text-white/30 mb-2">Template</p>
-          <div className="grid grid-cols-2 gap-1.5">
-            {templates.map(t => (
-              <button
-                key={t.id}
-                onClick={() => setTemplate(t.id)}
-                className={`relative px-2 py-1.5 rounded text-[10px] text-left transition-all ${
-                  template === t.id
-                    ? "bg-white text-[#1a2b5e] font-bold"
-                    : "bg-white/8 text-white/50 hover:bg-white/12 hover:text-white/70"
-                }`}
-                data-testid={`template-${t.id}`}
-              >
-                {t.name}
-                {t.premium && <span className="absolute -top-1 -right-1 bg-amber-400 text-[7px] text-amber-900 px-1 rounded-full font-bold">PRO</span>}
-              </button>
-            ))}
+            )}
+            <button onClick={() => setAtsBarVisible(false)} className="text-gray-500 hover:text-gray-300 transition-colors ml-2" data-testid="ats-bar-close">
+              <X className="w-4 h-4" />
+            </button>
           </div>
         </div>
+      )}
 
-        {/* Bottom actions */}
-        <div className="px-5 py-4 border-t border-white/10 space-y-2">
-          <button onClick={handleNewImport} className="w-full text-xs text-white/40 hover:text-white/70 transition-colors flex items-center gap-2 py-1" data-testid="new-import-btn">
-            <Upload className="w-3.5 h-3.5" /> Import New
-          </button>
-          <button onClick={handleReset} className="w-full text-xs text-white/40 hover:text-red-300 transition-colors flex items-center gap-2 py-1" data-testid="resume-reset-btn">
-            <RotateCcw className="w-3.5 h-3.5" /> Reset All
-          </button>
-        </div>
-      </aside>
-
-      {/* ─── Main Content Area ─── */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Top progress bar */}
-        <div className="bg-[#e8f0fd] border-b border-blue-100">
-          <div className="flex items-center px-6 py-3">
-            {/* Mobile: back button */}
-            <Link href="/career-tools" className="lg:hidden mr-3 text-gray-500 hover:text-gray-700">
-              <ChevronLeft className="w-5 h-5" />
-            </Link>
-            {/* Progress steps (horizontal) */}
-            <div className="flex items-center gap-1 flex-1">
-              {STEPS.map((step, idx) => {
-                const isActive = activeTab === step.key;
-                const isPast = idx < currentStepIndex;
-                return (
-                  <React.Fragment key={step.key}>
-                    {idx > 0 && <div className={`h-px flex-1 max-w-[40px] ${isPast ? "bg-[#1a2b5e]" : "bg-blue-200"}`} />}
-                    <button
-                      onClick={() => setActiveTab(step.key)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                        isActive
-                          ? "bg-[#1a2b5e] text-white shadow-sm"
-                          : isPast
-                          ? "text-[#1a2b5e] font-semibold"
-                          : "text-gray-400"
-                      }`}
-                      data-testid={`tab-${step.key}`}
-                    >
-                      <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                        isActive ? "bg-white/20 text-white" : isPast ? "bg-[#1a2b5e]/10 text-[#1a2b5e]" : "bg-gray-200 text-gray-400"
-                      }`}>
-                        {idx + 1}
-                      </span>
-                      <span className="hidden sm:inline">{step.label}</span>
-                    </button>
-                  </React.Fragment>
-                );
-              })}
-            </div>
-            {/* Download button in top bar */}
-            <Button size="sm" onClick={handleDownloadPDF} className="ml-4 h-8 text-xs px-4 bg-[#1a2b5e] hover:bg-[#15224d] text-white" data-testid="resume-download-btn">
-              <Download className="w-3.5 h-3.5 mr-1.5" /> Download PDF
-            </Button>
+      <div className="flex-1 flex overflow-hidden">
+        {/* ─── Left Sidebar (collapsible) ─── */}
+        <aside className={`hidden lg:flex flex-col bg-gray-900 text-white flex-shrink-0 transition-all duration-300 ${sidebarOpen ? "w-[200px]" : "w-[56px]"}`} data-testid="editor-sidebar">
+          {/* Header */}
+          <div className={`flex items-center border-b border-white/10 ${sidebarOpen ? "px-4 py-4 justify-between" : "px-2 py-4 justify-center"}`}>
+            {sidebarOpen && (
+              <Link href="/career-tools" className="text-xs text-gray-400 hover:text-white transition-colors flex items-center gap-1">
+                <ChevronLeft className="w-3 h-3" /> Back
+              </Link>
+            )}
+            <button onClick={() => setSidebarOpen(!sidebarOpen)} className="text-gray-500 hover:text-white transition-colors" data-testid="sidebar-toggle">
+              {sidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}
+            </button>
           </div>
-        </div>
 
-        {/* Content grid: Form + Right Panel */}
-        <div className="flex-1 grid grid-cols-1 xl:grid-cols-[1fr_380px] overflow-hidden">
-          {/* Form area */}
-          <div className="overflow-y-auto p-6 lg:p-8">
-            {/* Mobile-only template + actions */}
-            <div className="lg:hidden mb-5 flex items-center gap-2 overflow-x-auto pb-2">
-              {templates.map(t => (
+          {/* Section Navigation */}
+          <nav className="flex-1 py-3 px-2">
+            {sidebarOpen && <p className="text-[10px] uppercase tracking-widest text-gray-600 px-2 mb-2">Sections</p>}
+            {STEPS.map((step, idx) => {
+              const Icon = step.icon;
+              const isActive = activeTab === step.key;
+              const isPast = idx < currentStepIndex;
+              return (
                 <button
-                  key={t.id}
-                  onClick={() => setTemplate(t.id)}
-                  className={`relative flex-shrink-0 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
-                    template === t.id ? "border-[#1a2b5e] bg-[#1a2b5e] text-white" : "border-gray-200 text-gray-500"
+                  key={step.key}
+                  onClick={() => setActiveTab(step.key)}
+                  className={`w-full flex items-center gap-2.5 rounded-lg transition-all mb-0.5 ${
+                    sidebarOpen ? "px-3 py-2.5" : "px-0 py-2.5 justify-center"
+                  } ${
+                    isActive ? "bg-teal-600/20 text-teal-400" : isPast ? "text-gray-400 hover:text-white hover:bg-white/5" : "text-gray-600 hover:text-gray-400 hover:bg-white/5"
                   }`}
+                  data-testid={`sidebar-step-${step.key}`}
+                  title={!sidebarOpen ? step.label : undefined}
                 >
-                  {t.name}
+                  <div className={`w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0 ${isActive ? "bg-teal-600/30" : "bg-white/5"}`}>
+                    <Icon className="w-3.5 h-3.5" />
+                  </div>
+                  {sidebarOpen && <span className="text-sm">{step.label}</span>}
                 </button>
-              ))}
-            </div>
+              );
+            })}
+          </nav>
 
+          {/* Template + Actions */}
+          <div className={`border-t border-white/10 py-3 ${sidebarOpen ? "px-3" : "px-2"}`}>
+            {sidebarOpen ? (
+              <>
+                <p className="text-[10px] uppercase tracking-widest text-gray-600 px-1 mb-2">Template</p>
+                <div className="flex flex-wrap gap-1">
+                  {templates.map(t => (
+                    <button key={t.id} onClick={() => setTemplate(t.id)} className={`relative px-2 py-1 rounded text-[10px] transition-all ${template === t.id ? "bg-teal-600 text-white font-semibold" : "bg-white/5 text-gray-500 hover:bg-white/10 hover:text-gray-300"}`} data-testid={`template-${t.id}`}>
+                      {t.name}
+                      {t.premium && <span className="absolute -top-1 -right-1 bg-amber-400 text-amber-900 text-[7px] px-1 rounded-full font-bold">PRO</span>}
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-3 space-y-1">
+                  <button onClick={handleNewImport} className="w-full text-xs text-gray-500 hover:text-gray-300 flex items-center gap-2 py-1 transition-colors" data-testid="new-import-btn"><Upload className="w-3 h-3" /> Import</button>
+                  <button onClick={handleReset} className="w-full text-xs text-gray-500 hover:text-red-400 flex items-center gap-2 py-1 transition-colors" data-testid="resume-reset-btn"><RotateCcw className="w-3 h-3" /> Reset</button>
+                </div>
+              </>
+            ) : (
+              <div className="space-y-1 flex flex-col items-center">
+                <button onClick={handleNewImport} className="text-gray-500 hover:text-gray-300 p-2 transition-colors" title="Import"><Upload className="w-3.5 h-3.5" /></button>
+                <button onClick={handleReset} className="text-gray-500 hover:text-red-400 p-2 transition-colors" title="Reset"><RotateCcw className="w-3.5 h-3.5" /></button>
+              </div>
+            )}
+          </div>
+
+          {/* Score mini widget at bottom */}
+          <div className={`border-t border-white/10 py-3 ${sidebarOpen ? "px-4" : "px-2"}`}>
+            <button onClick={() => setAtsBarVisible(true)} className="w-full group" data-testid="score-widget">
+              <div className={`flex items-center ${sidebarOpen ? "gap-3" : "justify-center"}`}>
+                <div className="relative w-10 h-10 flex-shrink-0">
+                  <svg className="w-10 h-10 -rotate-90" viewBox="0 0 40 40">
+                    <circle cx="20" cy="20" r="16" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="3" />
+                    <circle cx="20" cy="20" r="16" fill="none" stroke={scoreResult.total >= 80 ? "#059669" : scoreResult.total >= 60 ? "#0d9488" : scoreResult.total >= 40 ? "#d97706" : "#dc2626"} strokeWidth="3" strokeDasharray={`${2 * Math.PI * 16}`} strokeDashoffset={`${2 * Math.PI * 16 * (1 - scoreResult.total / 100)}`} strokeLinecap="round" className="transition-all duration-500" />
+                  </svg>
+                  <span className={`absolute inset-0 flex items-center justify-center text-[11px] font-bold ${scoreColor}`}>{scoreResult.total}</span>
+                </div>
+                {sidebarOpen && (
+                  <div className="text-left">
+                    <p className="text-xs text-gray-400">Score</p>
+                    <p className="text-[10px] text-gray-600 group-hover:text-gray-400 transition-colors">Click to expand</p>
+                  </div>
+                )}
+              </div>
+            </button>
+          </div>
+        </aside>
+
+        {/* ─── Center: Form Editor ─── */}
+        <div className="flex-1 overflow-y-auto bg-white" data-testid="editor-form-area">
+          {/* Mobile top bar */}
+          <div className="lg:hidden flex items-center gap-2 px-4 py-3 border-b border-gray-100 bg-gray-50 overflow-x-auto">
+            <Link href="/career-tools" className="text-gray-400 hover:text-gray-600 mr-1"><ChevronLeft className="w-4 h-4" /></Link>
+            {STEPS.map((step, idx) => {
+              const isActive = activeTab === step.key;
+              return (
+                <button key={step.key} onClick={() => setActiveTab(step.key)} className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all ${isActive ? "bg-gray-900 text-white" : "text-gray-400 hover:text-gray-600"}`} data-testid={`tab-${step.key}`}>
+                  {idx + 1}. {step.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="p-6 lg:p-8 max-w-3xl">
+            {/* Quick Fixes (contextual, inline) */}
+            {quickFixes.length > 0 && (
+              <div className="mb-6 space-y-2" data-testid="inline-quick-fixes">
+                {quickFixes.map((fix, i) => {
+                  const borderColor = fix.severity === "critical" ? "border-l-red-400" : "border-l-amber-400";
+                  return (
+                    <div key={i} className={`border-l-[3px] ${borderColor} bg-gray-50 rounded-r-lg px-4 py-2.5 flex items-center gap-3`} data-testid="quick-fix-card">
+                      <p className="text-sm text-gray-700 flex-1">{fix.message}</p>
+                      <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full flex-shrink-0">+{fix.points}</span>
+                      {fix.fixAction && (
+                        <button onClick={() => setActiveTab(fix.fixAction!.tab || "personal")} className="text-xs font-semibold text-gray-500 hover:text-teal-600 flex items-center gap-0.5 transition-colors flex-shrink-0" data-testid="quick-fix-btn">
+                          Fix <ArrowRight className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Tab content */}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              {/* Hidden TabsList — navigation is handled by sidebar & top bar */}
               <TabsList className="sr-only">
                 {STEPS.map(s => <TabsTrigger key={s.key} value={s.key}>{s.label}</TabsTrigger>)}
               </TabsList>
-
               <TabsContent value="personal">
-                <PersonalTab
-                  personalDetails={data.personalDetails}
-                  summary={data.summary}
-                  summaryWordCount={summaryWordCount}
-                  onUpdatePersonal={updatePersonal}
-                  onUpdateSummary={v => setData(prev => ({ ...prev, summary: v }))}
-                  onSmartImproveSummary={smartImproveSummary}
-                  onAiImproveSummary={aiImproveSummary}
-                  aiLoading={aiLoading}
-                  aiSuggestion={aiSuggestion}
-                  aiRemaining={aiRemaining}
-                  aiTotal={AI_FREE_TOTAL}
-                  onAcceptAi={acceptAiSuggestion}
-                  onDismissAi={dismissAiSuggestion}
-                  summarySuggestions={summarySuggestions}
-                />
+                <PersonalTab personalDetails={data.personalDetails} summary={data.summary} summaryWordCount={summaryWordCount} onUpdatePersonal={updatePersonal} onUpdateSummary={v => setData(prev => ({ ...prev, summary: v }))} onSmartImproveSummary={smartImproveSummary} onAiImproveSummary={aiImproveSummary} aiLoading={aiLoading} aiSuggestion={aiSuggestion} aiRemaining={aiRemaining} aiTotal={AI_FREE_TOTAL} onAcceptAi={acceptAiSuggestion} onDismissAi={dismissAiSuggestion} summarySuggestions={summarySuggestions} />
               </TabsContent>
               <TabsContent value="experience">
-                <ExperienceTab
-                  experience={data.experience as Experience[]}
-                  onAdd={addExperience}
-                  onUpdate={updateExperience}
-                  onRemove={removeExperience}
-                  onSmartImproveBullet={smartImproveBullet}
-                  onAiImproveBullet={aiImproveBullet}
-                  aiLoading={aiLoading}
-                  aiSuggestion={aiSuggestion}
-                  aiRemaining={aiRemaining}
-                  aiTotal={AI_FREE_TOTAL}
-                  onAcceptAi={acceptAiSuggestion}
-                  onDismissAi={dismissAiSuggestion}
-                  bulletSuggestions={bulletSuggestions}
-                />
+                <ExperienceTab experience={data.experience as Experience[]} onAdd={addExperience} onUpdate={updateExperience} onRemove={removeExperience} onSmartImproveBullet={smartImproveBullet} onAiImproveBullet={aiImproveBullet} aiLoading={aiLoading} aiSuggestion={aiSuggestion} aiRemaining={aiRemaining} aiTotal={AI_FREE_TOTAL} onAcceptAi={acceptAiSuggestion} onDismissAi={dismissAiSuggestion} bulletSuggestions={bulletSuggestions} />
               </TabsContent>
               <TabsContent value="education">
-                <EducationTab
-                  education={data.education as Education[]}
-                  onAdd={addEducation}
-                  onUpdate={updateEducation}
-                  onRemove={removeEducation}
-                />
+                <EducationTab education={data.education as Education[]} onAdd={addEducation} onUpdate={updateEducation} onRemove={removeEducation} />
               </TabsContent>
               <TabsContent value="skills">
-                <SkillsTab
-                  skills={data.skills}
-                  skillInput={skillInput}
-                  onSkillInputChange={setSkillInput}
-                  onAddSkill={addSkill}
-                  onRemoveSkill={removeSkill}
-                />
+                <SkillsTab skills={data.skills} skillInput={skillInput} onSkillInputChange={setSkillInput} onAddSkill={addSkill} onRemoveSkill={removeSkill} />
               </TabsContent>
               <TabsContent value="extras">
-                <ExtrasTab
-                  certifications={data.certifications}
-                  certInput={certInput}
-                  onCertInputChange={setCertInput}
-                  onAddCert={addCertification}
-                  onRemoveCert={removeCertification}
-                />
+                <ExtrasTab certifications={data.certifications} certInput={certInput} onCertInputChange={setCertInput} onAddCert={addCertification} onRemoveCert={removeCertification} />
               </TabsContent>
             </Tabs>
 
-            {/* Continue / Back navigation */}
+            {/* Continue / Back */}
             <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-100">
-              <button
-                onClick={() => {
-                  const prev = STEPS[currentStepIndex - 1];
-                  if (prev) setActiveTab(prev.key);
-                }}
-                disabled={currentStepIndex === 0}
-                className="text-sm text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
-                data-testid="step-back-btn"
-              >
+              <button onClick={() => { const p = STEPS[currentStepIndex - 1]; if (p) setActiveTab(p.key); }} disabled={currentStepIndex === 0} className="text-sm text-gray-400 hover:text-gray-600 disabled:opacity-30 transition-colors flex items-center gap-1" data-testid="step-back-btn">
                 <ChevronLeft className="w-4 h-4" /> Back
               </button>
-              <button
-                onClick={() => {
-                  const next = STEPS[currentStepIndex + 1];
-                  if (next) setActiveTab(next.key);
-                }}
-                disabled={currentStepIndex === STEPS.length - 1}
-                className="bg-[#1a2b5e] text-white hover:bg-[#15224d] disabled:opacity-40 disabled:cursor-not-allowed rounded-xl px-6 py-2.5 text-sm font-semibold transition-colors inline-flex items-center gap-2"
-                data-testid="step-continue-btn"
-              >
+              <button onClick={() => { const n = STEPS[currentStepIndex + 1]; if (n) setActiveTab(n.key); }} disabled={currentStepIndex === STEPS.length - 1} className="bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-40 rounded-lg px-6 py-2.5 text-sm font-semibold transition-colors inline-flex items-center gap-2" data-testid="step-continue-btn">
                 Continue <span className="text-white/50 text-xs">({currentStepIndex + 1}/{STEPS.length})</span>
               </button>
             </div>
           </div>
+        </div>
 
-          {/* ─── Right Panel: Score + Preview ─── */}
-          <div className="hidden xl:block overflow-y-auto border-l border-gray-100 bg-slate-50/50 p-5">
-            <ResumeScorePanelV2
-              resumeData={data}
-              onFixAll={handleFixAll}
-              onTabSwitch={setActiveTab}
-            />
-            <div className="mt-5">
-              <ResumePreview data={data} onPrint={() => window.print()} onDownloadPDF={handleDownloadPDF} />
+        {/* ─── Right Panel: ALWAYS Resume Preview ─── */}
+        <div className="hidden xl:flex flex-col w-[420px] border-l border-gray-100 bg-gray-50/80 flex-shrink-0 overflow-hidden" data-testid="resume-preview-panel">
+          {/* Preview header */}
+          <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 bg-white">
+            <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+              <Eye className="w-4 h-4 text-gray-400" /> Live Preview
+            </h3>
+            <div className="flex gap-1.5">
+              <Button variant="outline" size="sm" onClick={() => window.print()} className="h-7 text-[11px] px-2.5 text-gray-500" data-testid="resume-print-btn">
+                <Printer className="w-3 h-3 mr-1" /> Print
+              </Button>
+              <Button size="sm" onClick={handleDownloadPDF} className="h-7 text-[11px] px-2.5 bg-gray-900 hover:bg-gray-800 text-white" data-testid="resume-download-btn">
+                <Download className="w-3 h-3 mr-1" /> PDF
+              </Button>
+            </div>
+          </div>
+          {/* Resume document */}
+          <div className="flex-1 overflow-y-auto p-4">
+            <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+              <div className="p-5 text-sm" id="resume-preview">
+                <h1 className="text-lg font-bold text-center text-gray-900 mb-0.5">{data.personalDetails.fullName || "Your Name"}</h1>
+                <div className="text-center text-gray-500 text-[10px] mb-0.5">
+                  {[data.personalDetails.email, data.personalDetails.phone, data.personalDetails.location].filter(Boolean).join("  |  ") || "email@example.com | (555) 123-4567"}
+                </div>
+                {(data.personalDetails.linkedin || data.personalDetails.portfolio) && (
+                  <div className="text-center text-gray-400 text-[10px] mb-3">{[data.personalDetails.linkedin, data.personalDetails.portfolio].filter(Boolean).join("  |  ")}</div>
+                )}
+                {data.summary && (
+                  <div className="mb-3">
+                    <div className="border-b border-gray-200 mb-1 pb-0.5"><h2 className="text-[10px] font-bold uppercase tracking-wider text-gray-600">Professional Summary</h2></div>
+                    <p className="text-gray-600 text-[10px] leading-relaxed whitespace-pre-line">{data.summary}</p>
+                  </div>
+                )}
+                {data.experience.length > 0 && (
+                  <div className="mb-3">
+                    <div className="border-b border-gray-200 mb-1 pb-0.5"><h2 className="text-[10px] font-bold uppercase tracking-wider text-gray-600">Experience</h2></div>
+                    {data.experience.map((exp, i) => (
+                      <div key={exp.id || i} className="mb-2">
+                        <div className="flex justify-between items-baseline">
+                          <span className="font-semibold text-gray-900 text-[11px]">{exp.title || "Job Title"}</span>
+                          <span className="text-gray-400 text-[9px]">{exp.startDate} - {exp.current ? "Present" : exp.endDate}</span>
+                        </div>
+                        <div className="text-gray-500 text-[9px]">{exp.company}{exp.location && `, ${exp.location}`}</div>
+                        {exp.description && <p className="text-gray-600 text-[10px] mt-0.5 whitespace-pre-line leading-relaxed">{exp.description}</p>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {data.education.length > 0 && (
+                  <div className="mb-3">
+                    <div className="border-b border-gray-200 mb-1 pb-0.5"><h2 className="text-[10px] font-bold uppercase tracking-wider text-gray-600">Education</h2></div>
+                    {data.education.map((edu, i) => (
+                      <div key={edu.id || i} className="mb-1">
+                        <div className="flex justify-between items-baseline">
+                          <span className="font-semibold text-gray-900 text-[11px]">{edu.degree}{edu.field && ` in ${edu.field}`}</span>
+                          <span className="text-gray-400 text-[9px]">{edu.startDate} - {edu.endDate}</span>
+                        </div>
+                        <div className="text-gray-500 text-[9px]">{edu.school}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {data.skills.length > 0 && (
+                  <div className="mb-3">
+                    <div className="border-b border-gray-200 mb-1 pb-0.5"><h2 className="text-[10px] font-bold uppercase tracking-wider text-gray-600">Skills</h2></div>
+                    <p className="text-gray-600 text-[10px]">{data.skills.join(" \u2022 ")}</p>
+                  </div>
+                )}
+                {data.certifications.length > 0 && (
+                  <div>
+                    <div className="border-b border-gray-200 mb-1 pb-0.5"><h2 className="text-[10px] font-bold uppercase tracking-wider text-gray-600">Certifications</h2></div>
+                    <ul className="text-gray-600 text-[10px]">{data.certifications.map(c => <li key={c}>&bull; {c}</li>)}</ul>
+                  </div>
+                )}
+                {!data.summary && data.experience.length === 0 && data.skills.length === 0 && (
+                  <div className="text-center text-gray-300 py-12"><p className="text-xs">Fill in your details to see the preview</p></div>
+                )}
+              </div>
             </div>
           </div>
         </div>
