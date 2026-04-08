@@ -113,6 +113,7 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - Iteration 25: Backend 100% (9/9), Frontend 100% (24/24) — Entry Flow Redesign (4 screens matching competitor)
 - Iteration 26: Backend 100% (9/9), Frontend 100% (23/23) — Onboarding + Template Selection Redesign (plant icons, golden underlines, full preview)
 - Iteration 27: Frontend 100% (18/18) — 5 Distinct Templates + Years of Experience Screen
+- Iteration 28: Backend 100% (7/7), Frontend 100% (16/16) — Premium ATS Checks
 
 ### Phase 17: Tax Tools SEO Schemas, Canonical URLs, Sitemap & Robots (Apr 2026) -- DONE
 - Added JSON-LD structured data: BreadcrumbList, ItemList, FAQPage on hub; WebApplication, BreadcrumbList, FAQPage on detail pages
@@ -182,7 +183,16 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - Toolbar shows: score number (color-coded), ATS bar (teal), Readability bar (rose), Impact bar (sky), Tips button with count badge, PDF download button
 - Responsive: bars hidden on small screens, all visible on sm+
 
+### Phase 24: Premium ATS Checks (Apr 2026) -- DONE
+- **Backend**: New POST `/api/career-tools/ats-check` endpoint using GPT-4o-mini for AI-powered ATS analysis
+- **5 ATS Categories**: Keyword Match, Format Safety, Section Completeness, Contact Info, Date Consistency (each 0-20, total 100)
+- **MongoDB Caching**: Results cached in `ats_checks` collection with hash-based lookup and 1-hour TTL
+- **Keyword Analysis**: Found keywords (green pills), missing keywords (red clickable pills that add to skills)
+- **Job Description Matching**: Optional textarea to paste a JD for targeted keyword comparison
+- **Frontend Panel**: Full-screen dark overlay with circular score ring, category breakdown cards with progress bars/issues/fixes, keyword analysis section
+- **Score Toolbar Integration**: New "ATS Check" button between progress bars and Tips button
+- Testing: Backend 100% (7/7), Frontend 100% (16/16) — iteration_28
+
 ## Upcoming Tasks
-- Premium ATS checks for Resume Builder (P2)
 - Stripe integration for monetization (P2)
 - A/B test hero CTAs (P2)
