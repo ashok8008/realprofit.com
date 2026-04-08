@@ -1,110 +1,99 @@
 {
-  "project_context": {
-    "domain": "SaaS Resume Builder",
-    "theme": "light",
-    "archetype": "4 (Swiss & High-Contrast)",
-    "primary_goal": "Transform a crammed form into a spacious, step-by-step wizard with a live right-side preview."
-  },
-  "layout": {
-    "wrapper": "flex h-screen w-full bg-white overflow-hidden text-gray-900",
-    "sidebar_left": {
-      "width_expanded": "w-[200px]",
-      "width_collapsed": "w-[56px]",
-      "bg_color": "bg-gray-900",
-      "text_color": "text-white",
-      "active_state": "bg-teal-600 text-white",
-      "transition": "transition-[width] duration-300 ease-in-out shrink-0 z-20"
+  "theme": "Light",
+  "archetype": "Swiss & High-Contrast",
+  "design_decisions": {
+    "fonts": {
+      "heading": "IBM Plex Sans",
+      "body": "Inter",
+      "mono": "JetBrains Mono"
     },
-    "form_area_center": {
-      "width": "flex-1",
-      "max_width_constraint": "NONE. Remove any max-w-3xl, max-w-2xl, or container classes to eliminate the gap completely.",
-      "padding": "px-8 py-12 md:px-16 lg:px-24 md:py-16",
-      "scroll": "overflow-y-auto h-full"
+    "colors": {
+      "background": "#FFFFFF",
+      "surface": "#F4F4F5",
+      "border": "#E4E4E7",
+      "text_primary": "#09090B",
+      "text_secondary": "#52525B",
+      "accent": "#000000",
+      "warning_bg": "#FAFAFA",
+      "warning_border": "#E4E4E7",
+      "warning_text": "#09090B",
+      "warning_icon": "#EAB308"
     },
-    "preview_panel_right": {
-      "width": "w-[420px] shrink-0",
-      "bg_color": "bg-gray-50",
-      "border": "border-l border-gray-200",
-      "scroll": "overflow-y-auto p-8 h-full"
+    "typography": {
+      "h1": "text-3xl tracking-tight font-bold text-zinc-950",
+      "h2": "text-xl tracking-tight font-semibold text-zinc-900",
+      "h3": "text-base font-medium text-zinc-900",
+      "body": "text-sm text-zinc-600",
+      "overline": "text-xs tracking-[0.15em] uppercase font-bold text-zinc-500"
     },
-    "ats_score_bar": {
-      "position": "fixed top-0 left-0 right-0 z-50 flex items-center justify-center",
-      "height": "h-12",
-      "bg_color": "bg-emerald-500",
-      "text_color": "text-white",
-      "animation": "Slide down on mount, auto-collapse (slide up) after 6 seconds using framer-motion or CSS transition."
-    }
-  },
-  "typography": {
-    "primary_font": "Outfit",
-    "secondary_font": "Manrope",
-    "step_title": "text-4xl tracking-tight font-medium text-gray-900 mb-3",
-    "step_subtitle": "text-lg text-gray-500 mb-12",
-    "field_label": "text-base font-medium text-gray-900 mb-2 block",
-    "button_text": "text-lg font-medium tracking-tight"
-  },
-  "components": {
-    "inputs": {
-      "height": "h-14",
-      "padding": "px-4",
-      "text_size": "text-base",
-      "border_radius": "rounded-lg",
-      "border": "border border-gray-300",
-      "background": "bg-gray-50/50",
-      "focus_state": "focus:bg-white focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all",
-      "shadow": "shadow-sm"
+    "spacing_and_layout": {
+      "entry_page": "Compact view. Centered. max-w-3xl mx-auto pt-24 px-6",
+      "editor_layout": "h-screen w-full flex overflow-hidden bg-white text-zinc-950",
+      "sidebar": "w-64 flex-shrink-0 border-r border-zinc-200 bg-zinc-50/50 flex flex-col",
+      "form_panel": "flex-1 overflow-y-auto relative p-8",
+      "preview_panel": "w-[45%] lg:w-[50%] bg-zinc-100 border-l border-zinc-200 p-8 overflow-y-auto hidden md:flex items-start justify-center"
     },
-    "textarea": {
-      "min_height": "min-h-[160px]",
-      "padding": "p-4",
-      "text_size": "text-base",
-      "border_radius": "rounded-lg",
-      "border": "border border-gray-300",
-      "focus_state": "focus:bg-white focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
-    },
-    "primary_button": {
-      "height": "h-14",
-      "width": "w-full sm:w-auto min-w-[200px]",
-      "bg_color": "bg-gray-900",
-      "text_color": "text-white",
-      "hover_state": "hover:bg-gray-800",
-      "border_radius": "rounded-lg",
-      "padding": "px-8"
-    },
-    "quick_fix_card": {
-      "container": "bg-amber-50 border border-amber-200 rounded-xl p-5 mb-8 flex items-start gap-4 shadow-sm",
-      "title": "text-amber-900 font-medium text-base",
-      "description": "text-amber-700 text-sm mt-1 leading-relaxed",
-      "action_button": "bg-amber-100 text-amber-900 hover:bg-amber-200 px-4 py-2 rounded-md text-sm font-medium transition-colors"
-    },
-    "smart_improve_button": {
-      "style": "bg-teal-50 text-teal-700 border border-teal-200 hover:bg-teal-100 h-12 px-6 rounded-lg font-medium flex items-center gap-2 transition-colors shadow-sm"
-    }
-  },
-  "spacing_and_grids": {
-    "form_grid": "grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-8",
-    "full_width_field": "col-span-1 md:col-span-2",
-    "section_spacing": "mb-16",
-    "bottom_navigation": "mt-12 pt-8 border-t border-gray-200 flex justify-between items-center"
-  },
-  "media": {
-    "image_urls": [
-      {
-        "url": "https://images.unsplash.com/photo-1758613654360-45f1ff78c0cf?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMjh8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBoZWFkc2hvdCUyMG5ldXRyYWwlMjBiYWNrZ3JvdW5kfGVufDB8fHx8MTc3NTY1MDYyMnww&ixlib=rb-4.1.0&q=85",
-        "category": "resume_avatar_placeholder",
-        "description": "Professional headshot for the resume preview if the user has not uploaded a photo."
+    "components": {
+      "quick_fix_card": {
+        "description": "Ultra-compact inline alert. Single row, no description text. Scannable.",
+        "container": "flex flex-col gap-1.5 mb-6",
+        "classes": "w-full h-10 px-3 py-1.5 bg-white border border-zinc-200 rounded-md flex items-center gap-3 shadow-sm",
+        "icon": "size-4 text-amber-500 flex-shrink-0",
+        "text_classes": "text-sm font-medium text-zinc-800 truncate flex-1",
+        "badge": "px-1.5 py-0.5 rounded text-[10px] font-bold bg-zinc-100 text-zinc-600 border border-zinc-200",
+        "button_classes": "h-6 px-2.5 text-xs font-medium bg-black hover:bg-zinc-800 text-white rounded transition-colors"
+      },
+      "entry_option_card": {
+        "description": "Side-by-side cards for Upload vs Create, removing viewport waste. Compact.",
+        "wrapper_classes": "grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto mt-8",
+        "classes": "p-5 border border-zinc-200 rounded-xl hover:border-black hover:shadow-md transition-all cursor-pointer bg-white group text-left",
+        "icon_wrapper": "size-10 rounded-lg bg-zinc-100 flex items-center justify-center mb-4 group-hover:bg-black group-hover:text-white transition-colors"
+      },
+      "template_thumbnail": {
+        "classes": "aspect-[1/1.414] bg-white border border-zinc-200 rounded-lg shadow-sm hover:ring-2 hover:ring-black hover:shadow-md transition-all cursor-pointer overflow-hidden relative"
+      },
+      "tips_toggle_button": {
+        "description": "Toggle button in the form header for Tips & Fixes side panel.",
+        "classes": "h-8 px-3 rounded-md bg-white hover:bg-zinc-50 border border-zinc-200 text-sm font-medium flex items-center gap-2 shadow-sm"
+      },
+      "ai_enhance_button": {
+        "description": "Per-section AI enhance trigger.",
+        "classes": "h-7 px-2.5 rounded-md bg-zinc-900 hover:bg-zinc-800 text-white text-xs font-medium flex items-center gap-1.5 shadow-sm transition-colors",
+        "position": "absolute top-2 right-2 z-10"
       }
+    },
+    "interactions_and_motion": {
+      "hover": "Subtle border darkens, slight lift (-translate-y-[1px]) and shadow-sm on interactive cards.",
+      "panel_slide": "Tips panel slides in from the right edge of the form panel (Sheet/Drawer component from Shadcn)."
+    },
+    "icons": {
+      "library": "lucide-react",
+      "usage": "Use crisp, minimalist icons with stroke-width 1.5 or 2."
+    },
+    "media": {
+      "image_urls": [
+        {
+          "category": "template_thumbnail_1",
+          "url": "https://images.unsplash.com/photo-1605699717537-6bc2b7da5a85?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Njl8MHwxfHNlYXJjaHwzfHxwcm9mZXNzaW9uYWwlMjBkb2N1bWVudCUyMGxheW91dHxlbnwwfHx8fDE3NzU2NTE2NjF8MA&ixlib=rb-4.1.0&q=85",
+          "description": "clean document layout"
+        },
+        {
+          "category": "template_thumbnail_2",
+          "url": "https://images.unsplash.com/photo-1708793699458-0a19b74b8aeb?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Njl8MHwxfHNlYXJjaHwyfHxwcm9mZXNzaW9uYWwlMjBkb2N1bWVudCUyMGxheW91dHxlbnwwfHx8fDE3NzU2NTE2NjF8MA&ixlib=rb-4.1.0&q=85",
+          "description": "professional resume layout"
+        }
+      ]
+    },
+    "instructions_to_main_agent": [
+      "Implement the 3-panel layout: Sidebar (Navigation - w-64), Form Workspace (Editor - flex-1), Live Preview (Document - w-[45%]).",
+      "Redesign the Entry page: Remove the massive hero section. Replace it with a compact, centered view showing 'Create from Scratch' and 'Upload Resume' as two side-by-side cards.",
+      "Insert a 'Template Selection' step immediately after the Entry page. Users must select a template grid before entering the editor.",
+      "Fix the Quick Fix cards: They are currently bloated blocks. Convert them to single-line compact strips (max height 40px). Use flex-row, an icon, single-line truncated text, a points badge, and a right-aligned fix action button. Stack them tightly.",
+      "Remove inline 'Tips & Fixes' blocks. Instead, add a 'Tips & Fixes' button in the form header that triggers a side panel (e.g., Shadcn Sheet) anchored to the right of the Form Workspace.",
+      "Add an 'AI Enhance' button to each editing section (Summary, Experience, Education) - place it top-right of the textarea or section header.",
+      "Add a 'Generate Summary AI' feature button specifically inside the Summary form section.",
+      "Ensure all interactive elements have data-testid attributes.",
+      "Use Shadcn UI components for dropdowns, forms, buttons, and popovers, heavily customized to match the Swiss & High-Contrast style (crisp edges, border-zinc-200, bg-zinc-50, black accents)."
     ]
-  },
-  "instructions_to_main_agent": [
-    "Install custom fonts via next/font/google in layout.js: 'Outfit' for headings and 'Manrope' for body.",
-    "Completely remove any 'max-w-*' classes on the form container. The center form area must strictly use 'flex-1' to span the entire horizontal gap between the left sidebar and the right preview.",
-    "Refactor the single-page form into a step-by-step state machine component mapping (e.g., Personal, Experience, Education, Skills, Extras) showing one form block at a time.",
-    "Implement the left sidebar with a state-driven collapsible toggle. When collapsed (w-[56px]), conditionally hide text labels and display centered icons only.",
-    "Ensure the right preview panel has a fixed width of 420px on desktop and remains always visible. Use 'shrink-0' so it does not collapse.",
-    "Override default Shadcn input sizes with the custom h-14, text-base generous padding styles defined in these guidelines.",
-    "Add the ATS score bar at the top of the viewport. It should auto-hide after 6 seconds using a standard useEffect timeout combined with framer-motion's AnimatePresence for smooth slide up.",
-    "Render Quick fix cards natively inline, directly above the form fields when active.",
-    "Ensure all interactive elements have data-testid attributes (e.g., 'next-step-btn', 'sidebar-nav-item', 'input-first-name')."
-  ]
+  }
 }
