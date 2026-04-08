@@ -125,23 +125,18 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - Fix All Easy Issues bulk action
 - Testing: Frontend 100% — iteration_18
 
-### Phase 19: Resume Builder Premium UI Redesign (Apr 2026) -- DONE
-- Restructured editor into 2-column desktop layout (xl breakpoint):
-  - Left: Template picker (dark selected state) → Icon tab navigation → Form editor
-  - Right (sticky): Score panel → Quick Fixes → Live Preview → Export
-- Score panel redesigned: 3 conceptual groups (ATS Readiness, Recruiter Readability, Impact Strength) from 7 flat bars
-- Quick Fix cards with severity-colored borders, +point badges, and inline Fix buttons
-- CareerToolDetail wrapper cleaned up: removed amber alert, simpler header, max-w-7xl
-- Below-the-fold sections (How It Works, FAQs, Related Tools) refined with cleaner cards
-- Premium aesthetic: monochrome palette, generous whitespace, subtle borders, refined typography
-- Testing: Frontend 100% (31/31) — iteration_19
+### Phase 19-20: Resume Builder UI Redesign & Share Score (Apr 2026) -- SUPERSEDED by Phase 21
 
-### Phase 20: Share Your Score Feature (Apr 2026) -- DONE
-- Canvas-rendered 1200x630 dark scorecard with score ring, 3 category bars, RealProfits branding
-- Share modal with backdrop blur: Download PNG, Twitter, LinkedIn, Copy link
-- Clipboard fallback for restricted environments
-- Privacy note: "Your resume data is never included in the shared image"
-- Testing: Frontend 90% (9/10, 1 minor clipboard env issue fixed) — iteration_20
+### Phase 21: Premium Full-Screen Resume Builder Workspace (Apr 2026) -- DONE
+- Full-screen 3-panel editor: dark sidebar (200px collapsible to 56px), spacious form center (no max-width), live preview right (420px fixed)
+- ATS Score bar at top with 3 category breakdowns (ATS Readiness, Readability, Impact) — auto-collapses after 6s, reopenable via score widget
+- Step-by-step wizard: each section (Personal/Experience/Education/Skills/Extras) gets its own spacious screen
+- Generous field sizing: h-14 inputs, text-base labels, text-3xl section headings, generous padding (px-8 py-10 to px-20)
+- Quick fix cards in amber styling with point badges (+4, +3, +3) and inline Fix buttons
+- Full-screen hero entry page: "Build a resume that gets you hired" with Create/Import paths
+- CareerToolDetail wrapper gives resume-builder zero-chrome full-screen treatment
+- Applied design agent's Swiss & High-Contrast archetype guidelines
+- Testing: Frontend 100% (26/26) — iteration_21
 
 ## Upcoming Tasks
 - Premium ATS checks for Resume Builder (P2)
