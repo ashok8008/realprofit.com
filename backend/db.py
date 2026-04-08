@@ -21,3 +21,5 @@ async def init_db():
     await db.login_attempts.create_index("identifier")
     await db.password_reset_tokens.create_index("expires_at", expireAfterSeconds=0)
     await db.user_data.create_index([("user_id", 1), ("tool_key", 1)], unique=True)
+    await db.ats_checks.create_index("hash", unique=True)
+    await db.ats_checks.create_index("created_at")

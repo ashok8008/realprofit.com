@@ -76,6 +76,30 @@ class SkillSuggestionsRequest(BaseModel):
 class SkillSuggestionsResponse(BaseModel):
     suggestions: List[str]
 
+class ATSCheckRequest(BaseModel):
+    personal_details: dict
+    summary: str = ""
+    experience: List[dict] = []
+    education: List[dict] = []
+    skills: List[str] = []
+    certifications: List[str] = []
+    job_description: Optional[str] = None
+
+class ATSCheckCategory(BaseModel):
+    name: str
+    score: int
+    max_score: int
+    status: str
+    issues: List[str]
+    fixes: List[str]
+
+class ATSCheckResponse(BaseModel):
+    overall_score: int
+    overall_status: str
+    categories: List[ATSCheckCategory]
+    keyword_analysis: dict
+    summary_feedback: str
+
 class ResumeDraftRequest(BaseModel):
     draft_id: str
     data: dict
@@ -225,6 +249,162 @@ async def suggest_skills(request: SkillSuggestionsRequest):
         skills = [s for s in skills if s.lower() not in existing]
     
     return SkillSuggestionsResponse(suggestions=skills[:15])
+
+
+@app.post("/api/career-tools/ats-check", response_model=ATSCheckResponse)
+async def ats_check(request: ATSCheckRequest):
+    """AI-powered ATS compatibility analysis with MongoDB caching"""
+    import json
+    import hashlib
+    from datetime import datetime, timezone
+    from db import get_db
+
+    db = get_db()
+
+    # Build a hash of resume data for cache lookup
+    resume_hash = hashlib.md5(json.dumps({
+        "p": request.personal_details,
+        "s": request.summary,
+        "e": [e.get("title", "") + e.get("company", "") for e in request.experience],
+        "sk": sorted(request.skills),
+        "jd": request.job_description or "",
+    }, sort_keys=True).encode()).hexdigest()
+
+    # Check cache (results valid for 1 hour)
+    cached = await db.ats_checks.find_one({"hash": resume_hash}, {"_id": 0})
+    if cached:
+        from datetime import datetime as dt
+        cached_time = dt.fromisoformat(cached["created_at"])
+        now = datetime.now(timezone.utc)
+        if (now - cached_time).total_seconds() < 3600:
+            return ATSCheckResponse(**cached["result"])
+
+    # Build resume text for AI analysis
+    p = request.personal_details
+    resume_parts = []
+    resume_parts.append(f"Name: {p.get('fullName', '')}")
+    resume_parts.append(f"Email: {p.get('email', '')}")
+    resume_parts.append(f"Phone: {p.get('phone', '')}")
+    resume_parts.append(f"Location: {p.get('location', '')}")
+    resume_parts.append(f"LinkedIn: {p.get('linkedin', '')}")
+    resume_parts.append(f"Portfolio: {p.get('portfolio', '')}")
+    if request.summary:
+        resume_parts.append(f"\nSummary: {request.summary}")
+    for exp in request.experience:
+        resume_parts.append(f"\nExperience: {exp.get('title', '')} at {exp.get('company', '')} ({exp.get('startDate', '')} - {'Present' if exp.get('current') else exp.get('endDate', '')})")
+        if exp.get('description'):
+            resume_parts.append(exp['description'])
+    for edu in request.education:
+        resume_parts.append(f"\nEducation: {edu.get('degree', '')} {edu.get('field', '')} at {edu.get('school', '')} ({edu.get('endDate', '')})")
+    if request.skills:
+        resume_parts.append(f"\nSkills: {', '.join(request.skills)}")
+    if request.certifications:
+        resume_parts.append(f"\nCertifications: {', '.join(request.certifications)}")
+
+    resume_text = "\n".join(resume_parts)
+
+    jd_section = ""
+    if request.job_description:
+        jd_section = f"\n\nJOB DESCRIPTION TO MATCH AGAINST:\n{request.job_description}"
+
+    system_msg = """You are an expert ATS (Applicant Tracking System) analyst. Analyze the resume for ATS compatibility and return a JSON response.
+
+Evaluate these 5 categories (each scored out of 20, total 100):
+1. "Keyword Match" - Are industry-relevant keywords present? If a job description is provided, compare against it.
+2. "Format Safety" - Is the resume format ATS-parseable? (no tables, graphics, special chars, consistent formatting)
+3. "Section Completeness" - Are all standard sections present? (Contact, Summary, Experience, Education, Skills)
+4. "Contact Info" - Is contact information complete and professional? (name, email, phone, location, LinkedIn)
+5. "Date Consistency" - Are dates formatted consistently? Are there unexplained gaps?
+
+Return ONLY valid JSON (no markdown fences):
+{
+  "overall_score": <0-100>,
+  "overall_status": "<Excellent|Strong|Good|Needs Work|Critical>",
+  "categories": [
+    {"name": "<category>", "score": <0-20>, "max_score": 20, "status": "<pass|warning|fail>", "issues": ["<issue1>"], "fixes": ["<fix1>"]}
+  ],
+  "keyword_analysis": {"found": ["<keyword1>"], "missing": ["<keyword1>"], "match_pct": <0-100>},
+  "summary_feedback": "<2-3 sentence overall assessment>"
+}"""
+
+    user_msg = f"Analyze this resume for ATS compatibility:\n\n{resume_text}{jd_section}\n\nReturn ONLY the JSON response."
+
+    response = await get_ai_response(system_msg, user_msg)
+
+    # Parse AI response
+    try:
+        # Strip markdown code fences if present
+        cleaned = response.strip()
+        if cleaned.startswith("```"):
+            cleaned = cleaned.split("\n", 1)[1] if "\n" in cleaned else cleaned[3:]
+        if cleaned.endswith("```"):
+            cleaned = cleaned[:-3]
+        cleaned = cleaned.strip()
+        if cleaned.startswith("json"):
+            cleaned = cleaned[4:].strip()
+
+        result_data = json.loads(cleaned)
+    except json.JSONDecodeError:
+        # Fallback: build a basic result
+        result_data = {
+            "overall_score": 50,
+            "overall_status": "Needs Work",
+            "categories": [
+                {"name": "Keyword Match", "score": 10, "max_score": 20, "status": "warning", "issues": ["Unable to perform detailed analysis"], "fixes": ["Add more industry-specific keywords"]},
+                {"name": "Format Safety", "score": 15, "max_score": 20, "status": "pass", "issues": [], "fixes": []},
+                {"name": "Section Completeness", "score": 10, "max_score": 20, "status": "warning", "issues": ["Some sections may be incomplete"], "fixes": ["Ensure all standard sections are filled"]},
+                {"name": "Contact Info", "score": 10, "max_score": 20, "status": "warning", "issues": ["Review contact information"], "fixes": ["Ensure all contact fields are filled"]},
+                {"name": "Date Consistency", "score": 5, "max_score": 20, "status": "warning", "issues": ["Review date formatting"], "fixes": ["Use consistent date formats"]},
+            ],
+            "keyword_analysis": {"found": request.skills[:5], "missing": [], "match_pct": 40},
+            "summary_feedback": "Your resume needs improvements for better ATS compatibility. Focus on adding relevant keywords and ensuring all sections are complete.",
+        }
+
+    # Normalize categories
+    categories = []
+    for cat in result_data.get("categories", []):
+        categories.append(ATSCheckCategory(
+            name=cat.get("name", "Unknown"),
+            score=min(cat.get("score", 0), cat.get("max_score", 20)),
+            max_score=cat.get("max_score", 20),
+            status=cat.get("status", "warning"),
+            issues=cat.get("issues", [])[:5],
+            fixes=cat.get("fixes", [])[:5],
+        ))
+
+    kw = result_data.get("keyword_analysis", {})
+    keyword_analysis = {
+        "found": kw.get("found", [])[:15],
+        "missing": kw.get("missing", [])[:15],
+        "match_pct": min(kw.get("match_pct", 0), 100),
+    }
+
+    overall_score = min(result_data.get("overall_score", 50), 100)
+    overall_status = result_data.get("overall_status", "Needs Work")
+    summary_feedback = result_data.get("summary_feedback", "Analysis complete.")
+
+    result = {
+        "overall_score": overall_score,
+        "overall_status": overall_status,
+        "categories": [c.dict() for c in categories],
+        "keyword_analysis": keyword_analysis,
+        "summary_feedback": summary_feedback,
+    }
+
+    # Cache to MongoDB
+    await db.ats_checks.update_one(
+        {"hash": resume_hash},
+        {"$set": {"hash": resume_hash, "result": result, "created_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True,
+    )
+
+    return ATSCheckResponse(
+        overall_score=overall_score,
+        overall_status=overall_status,
+        categories=categories,
+        keyword_analysis=keyword_analysis,
+        summary_feedback=summary_feedback,
+    )
 
 
 @app.post("/api/career-tools/resume-draft", response_model=ResumeDraftResponse)
