@@ -8,8 +8,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Upload, FileText, ChevronLeft, ChevronRight, Download, Printer, X,
   Check, Sparkles, Loader2, Lightbulb, AlertTriangle, Star, Trophy,
-  Plus, Trash2, Pencil, ArrowUp, ArrowDown, Briefcase, GraduationCap,
-  User, Wrench, Award, Clipboard, ArrowRight, Wand2, Eye, Zap,
+  Plus, Trash2, Pencil, ArrowUp, Briefcase, GraduationCap,
+  User, Wrench, Award, Clipboard, Wand2, Zap,
   MapPin, Calendar, Search, Info
 } from "lucide-react";
 import { saveToStorage, loadFromStorage, clearStorage } from "@/lib/career-tools/storage";

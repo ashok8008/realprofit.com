@@ -1,6 +1,4 @@
 import type { ResumeData } from "@/lib/career-tools/pdf-export";
-import type { ResumeScore, ScoreSuggestion } from "@/lib/career-tools/resumeScore";
-import type { Suggestion } from "@/lib/career-tools/smartSuggestions";
 
 export interface Experience {
   id: string;
@@ -29,4 +27,4 @@ export interface AiSuggestion {
   suggestions?: string[];
 }
 
-export type { ResumeData, ResumeScore, ScoreSuggestion, Suggestion };
+export type { ResumeData };
