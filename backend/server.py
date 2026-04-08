@@ -60,6 +60,15 @@ class SummaryResponse(BaseModel):
     improved: str
     word_count: int
 
+class GenerateSummariesRequest(BaseModel):
+    job_title: Optional[str] = None
+    years_experience: Optional[int] = None
+    skills: Optional[List[str]] = None
+    industry: Optional[str] = None
+
+class GenerateSummariesResponse(BaseModel):
+    summaries: List[str]
+
 class EmailTemplateRequest(BaseModel):
     template_type: str  # 'thank_you', 'follow_up', 'negotiation', 'decline'
     company_name: str
@@ -152,6 +161,34 @@ async def improve_summary(request: SummaryRequest):
         improved=improved_text,
         word_count=len(improved_text.split())
     )
+
+@app.post("/api/career-tools/generate-summaries", response_model=GenerateSummariesResponse)
+async def generate_summaries(request: GenerateSummariesRequest):
+    """Generate 3 professional summary variations using AI"""
+    
+    system_msg = "Expert resume writer. Generate exactly 3 different professional summary options. Each should be 50-80 words, active voice, no first person 'I'. Separate each with ---."
+    
+    parts = []
+    if request.job_title:
+        parts.append(f"Role: {request.job_title}")
+    if request.years_experience:
+        parts.append(f"Experience: {request.years_experience} years")
+    if request.skills:
+        parts.append(f"Skills: {', '.join(request.skills[:8])}")
+    if request.industry:
+        parts.append(f"Industry: {request.industry}")
+    
+    user_msg = f"Generate 3 professional summary options. {'. '.join(parts)}.\nFormat: summary1\n---\nsummary2\n---\nsummary3"
+    
+    response = await get_ai_response(system_msg, user_msg)
+    raw_summaries = [s.strip().strip('"') for s in response.split('---') if s.strip()]
+    
+    # Ensure we have exactly 3
+    while len(raw_summaries) < 3:
+        raw_summaries.append(raw_summaries[-1] if raw_summaries else "Professional with proven track record of delivering results.")
+    
+    return GenerateSummariesResponse(summaries=raw_summaries[:3])
+
 
 @app.post("/api/career-tools/email-template", response_model=EmailTemplateResponse)
 async def generate_email_template(request: EmailTemplateRequest):

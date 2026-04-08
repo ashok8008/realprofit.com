@@ -2,9 +2,10 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RotateCcw, Upload, User, Briefcase, GraduationCap, Wrench, Award, ChevronLeft, Download, Printer, PanelLeftClose, PanelLeft, X, Shield, Eye, TrendingUp, Zap, ArrowRight, FileText, Clipboard, Lightbulb, AlertTriangle, Check } from "lucide-react";
+import { RotateCcw, Upload, User, Briefcase, GraduationCap, Wrench, Award, ChevronLeft, Download, Printer, PanelLeftClose, PanelLeft, X, Shield, Eye, TrendingUp, Zap, ArrowRight, FileText, Clipboard, Lightbulb, AlertTriangle, Check, Sparkles, Loader2, Maximize2 } from "lucide-react";
 import { saveToStorage, loadFromStorage, clearStorage } from "@/lib/career-tools/storage";
-import { generateResumePDF, type ResumeData } from "@/lib/career-tools/pdf-export";
+import { generateResumePDF } from "@/lib/career-tools/pdf-export";
+import type { ResumeData } from "@/lib/career-tools/pdf-export";
 import { useToast } from "@/hooks/use-toast";
 import { analyzeBulletPoints, analyzeSummary, smartRewriteBullets, smartRewriteSummary, canUseAi, recordAiUsage, getAiRemaining, AI_FREE_TOTAL } from "@/lib/career-tools/smartSuggestions";
 import type { Experience, Education, AiSuggestion } from "./resume/types";
@@ -13,7 +14,8 @@ import { ExperienceTab } from "./resume/ExperienceTab";
 import { EducationTab } from "./resume/EducationTab";
 import { SkillsTab, ExtrasTab } from "./resume/SkillsExtrasTab";
 import { ImportProcessing } from "./resume/ImportProcessing";
-import { ImportReview } from "./resume/ImportReview";
+import { ImportWelcome, ImportAnalysis } from "./resume/ImportWelcome";
+import { CreateOnboarding } from "./resume/CreateOnboarding";
 import { fixAllEasyIssues } from "@/lib/career-tools/resume/improve";
 import { calculateResumeScore } from "@/lib/career-tools/resume/score";
 import type { SectionConfidence } from "@/lib/career-tools/resume/import/types";
@@ -41,7 +43,7 @@ const STEPS = [
   { key: "extras", label: "Extras", icon: Award },
 ] as const;
 
-type FlowState = "entry" | "processing" | "review" | "templates" | "editor";
+type FlowState = "entry" | "processing" | "welcome" | "analysis" | "onboarding" | "templates" | "editor" | "fullTips";
 
 export function ResumeBuilder() {
   const { toast } = useToast();
@@ -60,6 +62,9 @@ export function ResumeBuilder() {
   const [tipsOpen, setTipsOpen] = useState(false);
   const [pasteMode, setPasteMode] = useState(false);
   const [pasteText, setPasteText] = useState("");
+  const [onboardingMeta, setOnboardingMeta] = useState<{ level: string; industries: string[] }>({ level: "", industries: [] });
+  const [summaryGenLoading, setSummaryGenLoading] = useState(false);
+  const [summaryOptions, setSummaryOptions] = useState<string[]>([]);
   const fileRef = React.useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -106,9 +111,14 @@ export function ResumeBuilder() {
     }, 100);
   }, [toast]);
 
-  const handleStartScratch = useCallback(() => { setData(defaultResumeData); setFlowState("templates"); }, []);
-  const handleProcessingComplete = useCallback(() => setFlowState("review"), []);
-  const handleReviewContinue = useCallback(() => { setFlowState("templates"); }, []);
+  const handleStartScratch = useCallback(() => { setData(defaultResumeData); setFlowState("onboarding"); }, []);
+  const handleProcessingComplete = useCallback(() => setFlowState("welcome"), []);
+  const handleWelcomeContinue = useCallback(() => setFlowState("analysis"), []);
+  const handleAnalysisContinue = useCallback(() => setFlowState("templates"), []);
+  const handleOnboardingComplete = useCallback((level: string, industries: string[]) => {
+    setOnboardingMeta({ level, industries });
+    setFlowState("templates");
+  }, []);
   const handleTemplateSelect = useCallback(() => { setFlowState("editor"); toast({ title: "Let's build!", description: "Fill in each section. Score updates live." }); }, [toast]);
   const handleNewImport = useCallback(() => { setFlowState("entry"); setConfidences([]); }, []);
 
@@ -148,6 +158,26 @@ export function ResumeBuilder() {
     try { const r = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/career-tools/improve-summary`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ current_summary: data.summary, job_title: data.experience[0]?.title || "", skills: data.skills.slice(0, 5) }) }); if (!r.ok) throw 0; const d = await r.json(); recordAiUsage(); setAiRemaining(getAiRemaining()); setAiSuggestion({ id: "summary", original: data.summary, improved: d.improved }); }
     catch { toast({ title: "AI Error", variant: "destructive" }); } finally { setAiLoading(null); }
   };
+
+  const generateSummaryOptions = async () => {
+    setSummaryGenLoading(true); setSummaryOptions([]);
+    try {
+      const r = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/career-tools/generate-summaries`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          job_title: data.experience[0]?.title || "",
+          skills: data.skills.slice(0, 8),
+          industry: onboardingMeta.industries[0] || "",
+        }),
+      });
+      if (!r.ok) throw 0;
+      const d = await r.json();
+      setSummaryOptions(d.summaries || []);
+      recordAiUsage(); setAiRemaining(getAiRemaining());
+    } catch { toast({ title: "AI Error", description: "Could not generate summaries.", variant: "destructive" }); }
+    finally { setSummaryGenLoading(false); }
+  };
+
   const acceptAiSuggestion = () => { if (!aiSuggestion) return; if (aiSuggestion.id === "summary") setData(p => ({ ...p, summary: aiSuggestion.improved })); else updateExperience(aiSuggestion.id.replace("bullet-", ""), "description", aiSuggestion.improved); toast({ title: "Applied!" }); setAiSuggestion(null); };
   const dismissAiSuggestion = () => setAiSuggestion(null);
   const summaryWordCount = data.summary.trim().split(/\s+/).filter(Boolean).length;
@@ -155,7 +185,6 @@ export function ResumeBuilder() {
 
   // ─── ENTRY: Compact Upload + Create ───────────────────────
   if (flowState === "entry") {
-
     if (pasteMode) {
       return (
         <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-4" data-testid="resume-builder-entry">
@@ -207,8 +236,17 @@ export function ResumeBuilder() {
     );
   }
 
+  // ─── PROCESSING ─────────────────────────────────────────
   if (flowState === "processing") return <div className="min-h-[calc(100vh-64px)] flex items-center justify-center" data-testid="resume-builder-processing"><div className="max-w-md w-full"><ImportProcessing source={importSource} onComplete={handleProcessingComplete} /></div></div>;
-  if (flowState === "review") return <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-4" data-testid="resume-builder-review"><div className="max-w-4xl w-full"><ImportReview confidences={confidences} source={importSource} onContinue={handleReviewContinue} /></div></div>;
+
+  // ─── WELCOME (Import path) ──────────────────────────────
+  if (flowState === "welcome") return <ImportWelcome data={data} onContinue={handleWelcomeContinue} />;
+
+  // ─── ANALYSIS (Import path) ─────────────────────────────
+  if (flowState === "analysis") return <ImportAnalysis data={data} confidences={confidences} onContinue={handleAnalysisContinue} />;
+
+  // ─── ONBOARDING (Create From Scratch path) ──────────────
+  if (flowState === "onboarding") return <CreateOnboarding onComplete={handleOnboardingComplete} />;
 
   // ─── TEMPLATE SELECTION STEP ──────────────────────────────
   if (flowState === "templates") {
@@ -234,6 +272,109 @@ export function ResumeBuilder() {
               Continue with {TEMPLATES.find(t => t.id === template)?.name || "Clean"}
             </button>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ─── FULL-SCREEN TIPS & FIXES ─────────────────────────────
+  if (flowState === "fullTips") {
+    const criticalFixes = allFixes.filter(f => f.severity === "critical");
+    const normalFixes = allFixes.filter(f => f.severity !== "critical");
+    const scorePct = scoreResult.total;
+    return (
+      <div className="min-h-[calc(100vh-64px)] bg-zinc-50" data-testid="full-tips-view">
+        <div className="max-w-4xl mx-auto px-6 py-10">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-zinc-900 tracking-tight">Tips & Fixes</h1>
+              <p className="text-base text-zinc-500 mt-1">Resolve these issues to boost your resume score.</p>
+            </div>
+            <div className="flex items-center gap-3">
+              {allFixes.length > 0 && (
+                <button onClick={() => { handleFixAll(); }} className="h-10 px-5 rounded-lg bg-zinc-900 text-white text-sm font-medium hover:bg-zinc-800 flex items-center gap-2 transition-colors" data-testid="full-tips-fix-all">
+                  <Zap className="w-4 h-4" /> Fix All Easy Issues
+                </button>
+              )}
+              <button onClick={() => setFlowState("editor")} className="h-10 px-5 rounded-lg border border-zinc-200 bg-white text-sm font-medium text-zinc-600 hover:bg-zinc-50 flex items-center gap-2 transition-colors" data-testid="full-tips-back">
+                <ChevronLeft className="w-4 h-4" /> Back to Editor
+              </button>
+            </div>
+          </div>
+
+          {/* Score overview */}
+          <div className="bg-white border border-zinc-200 rounded-2xl p-6 mb-6">
+            <div className="flex items-center gap-6">
+              <div className="relative w-20 h-20 flex-shrink-0">
+                <svg className="w-20 h-20 -rotate-90" viewBox="0 0 36 36"><circle cx="18" cy="18" r="14" fill="none" stroke="#e4e4e7" strokeWidth="2.5" /><circle cx="18" cy="18" r="14" fill="none" stroke={scorePct >= 80 ? "#059669" : scorePct >= 60 ? "#0d9488" : scorePct >= 40 ? "#d97706" : "#dc2626"} strokeWidth="2.5" strokeDasharray={`${2*Math.PI*14}`} strokeDashoffset={`${2*Math.PI*14*(1-scorePct/100)}`} strokeLinecap="round" /></svg>
+                <span className={`absolute inset-0 flex items-center justify-center text-xl font-bold ${scorePct >= 80 ? "text-emerald-600" : scorePct >= 60 ? "text-teal-600" : scorePct >= 40 ? "text-amber-500" : "text-red-500"}`}>{scorePct}</span>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-zinc-900">Resume Score</h3>
+                <p className="text-sm text-zinc-500 mt-0.5">{allFixes.length} issue{allFixes.length !== 1 ? "s" : ""} found across your resume</p>
+                <div className="flex gap-4 mt-3">
+                  {scoreGroups.map(g => {
+                    const barCol = g.pct >= 80 ? "bg-emerald-500" : g.pct >= 60 ? "bg-teal-500" : g.pct >= 40 ? "bg-amber-500" : "bg-red-400";
+                    return (
+                      <div key={g.key} className="flex-1">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-medium text-zinc-600">{g.label}</span>
+                          <span className="text-xs text-zinc-400">{g.pct}%</span>
+                        </div>
+                        <div className="w-full h-2 bg-zinc-200 rounded-full overflow-hidden"><div className={`h-full rounded-full ${barCol}`} style={{ width: `${g.pct}%` }} /></div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Critical issues */}
+          {criticalFixes.length > 0 && (
+            <div className="mb-4">
+              <h3 className="text-sm font-bold text-red-600 uppercase tracking-wide mb-3">Critical Issues</h3>
+              <div className="space-y-2">
+                {criticalFixes.map((fix, i) => (
+                  <div key={i} className="flex items-center gap-3 px-4 py-3 bg-white border border-red-200 rounded-xl shadow-sm" data-testid={`full-tip-critical-${i}`}>
+                    <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                    <span className="text-sm text-zinc-800 flex-1">{fix.message}</span>
+                    <span className="text-[11px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-200 flex-shrink-0">+{fix.points}</span>
+                    {fix.fixAction && (
+                      <button onClick={() => { setActiveTab(fix.fixAction!.tab || "personal"); setFlowState("editor"); }} className="h-7 px-3 text-xs font-medium bg-zinc-900 text-white rounded-md hover:bg-zinc-800 flex-shrink-0" data-testid={`full-tip-fix-${i}`}>Fix</button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Normal issues */}
+          {normalFixes.length > 0 && (
+            <div>
+              <h3 className="text-sm font-bold text-amber-600 uppercase tracking-wide mb-3">Improvements</h3>
+              <div className="space-y-2">
+                {normalFixes.map((fix, i) => (
+                  <div key={i} className="flex items-center gap-3 px-4 py-3 bg-white border border-zinc-200 rounded-xl shadow-sm" data-testid={`full-tip-normal-${i}`}>
+                    <Lightbulb className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                    <span className="text-sm text-zinc-800 flex-1">{fix.message}</span>
+                    <span className="text-[11px] font-bold text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded border border-zinc-200 flex-shrink-0">+{fix.points}</span>
+                    {fix.fixAction && (
+                      <button onClick={() => { setActiveTab(fix.fixAction!.tab || "personal"); setFlowState("editor"); }} className="h-7 px-3 text-xs font-medium bg-zinc-900 text-white rounded-md hover:bg-zinc-800 flex-shrink-0" data-testid={`full-tip-fix-imp-${i}`}>Fix</button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {allFixes.length === 0 && (
+            <div className="text-center py-16 bg-white border border-zinc-200 rounded-2xl">
+              <Check className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
+              <h3 className="text-lg font-semibold text-zinc-900">Looking great!</h3>
+              <p className="text-sm text-zinc-500 mt-1">No issues found. Your resume is well-optimized.</p>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -308,11 +449,16 @@ export function ResumeBuilder() {
           </div>
           <div className="flex items-center gap-2">
             {allFixes.length > 0 && (
-              <button onClick={() => setTipsOpen(!tipsOpen)} className={`h-8 px-3 rounded-md border text-sm font-medium flex items-center gap-1.5 transition-colors ${tipsOpen ? "bg-zinc-900 text-white border-zinc-900" : "bg-white border-zinc-200 hover:bg-zinc-50 text-zinc-700"}`} data-testid="tips-toggle">
-                <Lightbulb className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Tips</span>
-                <span className="bg-amber-100 text-amber-700 text-[10px] font-bold px-1.5 rounded-full">{allFixes.length}</span>
-              </button>
+              <>
+                <button onClick={() => setTipsOpen(!tipsOpen)} className={`h-8 px-3 rounded-md border text-sm font-medium flex items-center gap-1.5 transition-colors ${tipsOpen ? "bg-zinc-900 text-white border-zinc-900" : "bg-white border-zinc-200 hover:bg-zinc-50 text-zinc-700"}`} data-testid="tips-toggle">
+                  <Lightbulb className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Tips</span>
+                  <span className="bg-amber-100 text-amber-700 text-[10px] font-bold px-1.5 rounded-full">{allFixes.length}</span>
+                </button>
+                <button onClick={() => setFlowState("fullTips")} className="h-8 w-8 rounded-md border border-zinc-200 bg-white hover:bg-zinc-50 text-zinc-500 flex items-center justify-center" data-testid="full-tips-btn" title="Full-screen tips">
+                  <Maximize2 className="w-3.5 h-3.5" />
+                </button>
+              </>
             )}
             <Button size="sm" onClick={handleDownloadPDF} className="h-8 px-3 text-xs bg-zinc-900 hover:bg-zinc-800 text-white" data-testid="resume-download-btn">
               <Download className="w-3.5 h-3.5 mr-1" /> PDF
@@ -326,7 +472,9 @@ export function ResumeBuilder() {
             <div className="p-8">
               <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="sr-only">{STEPS.map(s => <TabsTrigger key={s.key} value={s.key}>{s.label}</TabsTrigger>)}</TabsList>
-                <TabsContent value="personal"><PersonalTab personalDetails={data.personalDetails} summary={data.summary} summaryWordCount={summaryWordCount} onUpdatePersonal={updatePersonal} onUpdateSummary={v => setData(p => ({ ...p, summary: v }))} onSmartImproveSummary={smartImproveSummary} onAiImproveSummary={aiImproveSummary} aiLoading={aiLoading} aiSuggestion={aiSuggestion} aiRemaining={aiRemaining} aiTotal={AI_FREE_TOTAL} onAcceptAi={acceptAiSuggestion} onDismissAi={dismissAiSuggestion} summarySuggestions={summarySuggestions} /></TabsContent>
+                <TabsContent value="personal">
+                  <PersonalTab personalDetails={data.personalDetails} summary={data.summary} summaryWordCount={summaryWordCount} onUpdatePersonal={updatePersonal} onUpdateSummary={v => setData(p => ({ ...p, summary: v }))} onSmartImproveSummary={smartImproveSummary} onAiImproveSummary={aiImproveSummary} aiLoading={aiLoading} aiSuggestion={aiSuggestion} aiRemaining={aiRemaining} aiTotal={AI_FREE_TOTAL} onAcceptAi={acceptAiSuggestion} onDismissAi={dismissAiSuggestion} summarySuggestions={summarySuggestions} onGenerateSummaries={generateSummaryOptions} summaryGenLoading={summaryGenLoading} summaryOptions={summaryOptions} onSelectSummary={(s: string) => { setData(p => ({ ...p, summary: s })); setSummaryOptions([]); toast({ title: "Summary applied!" }); }} />
+                </TabsContent>
                 <TabsContent value="experience"><ExperienceTab experience={data.experience as Experience[]} onAdd={addExperience} onUpdate={updateExperience} onRemove={removeExperience} onSmartImproveBullet={smartImproveBullet} onAiImproveBullet={aiImproveBullet} aiLoading={aiLoading} aiSuggestion={aiSuggestion} aiRemaining={aiRemaining} aiTotal={AI_FREE_TOTAL} onAcceptAi={acceptAiSuggestion} onDismissAi={dismissAiSuggestion} bulletSuggestions={bulletSuggestions} /></TabsContent>
                 <TabsContent value="education"><EducationTab education={data.education as Education[]} onAdd={addEducation} onUpdate={updateEducation} onRemove={removeEducation} /></TabsContent>
                 <TabsContent value="skills"><SkillsTab skills={data.skills} skillInput={skillInput} onSkillInputChange={setSkillInput} onAddSkill={addSkill} onRemoveSkill={removeSkill} /></TabsContent>

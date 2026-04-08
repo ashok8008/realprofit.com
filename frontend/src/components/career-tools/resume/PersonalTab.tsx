@@ -21,6 +21,10 @@ interface Props {
   onAcceptAi: () => void;
   onDismissAi: () => void;
   summarySuggestions: Suggestion[];
+  onGenerateSummaries: () => void;
+  summaryGenLoading: boolean;
+  summaryOptions: string[];
+  onSelectSummary: (s: string) => void;
 }
 
 const inputClass = "h-14 px-4 text-base bg-gray-50/50 border-gray-300 rounded-lg shadow-sm focus:bg-white focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all";
@@ -32,6 +36,7 @@ export function PersonalTab({
   onSmartImproveSummary, onAiImproveSummary,
   aiLoading, aiSuggestion, aiRemaining, aiTotal,
   onAcceptAi, onDismissAi, summarySuggestions,
+  onGenerateSummaries, summaryGenLoading, summaryOptions, onSelectSummary,
 }: Props) {
   return (
     <div>
@@ -75,11 +80,15 @@ export function PersonalTab({
         <Textarea className="min-h-[160px] p-4 text-base bg-gray-50/50 border-gray-300 rounded-lg shadow-sm focus:bg-white focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all" placeholder="Experienced professional with..." value={summary} onChange={e => onUpdateSummary(e.target.value)} data-testid="personal-summary" />
         <div className="flex items-center justify-between mt-3 flex-wrap gap-3">
           <p className="text-sm text-gray-400">A strong summary highlights your key value in 2-3 sentences.</p>
-          <div className="flex items-center gap-3">
-            <Button variant="outline" onClick={onSmartImproveSummary} disabled={!summary.trim()} className="h-11 px-5 text-sm gap-2 bg-teal-50 border-teal-200 text-teal-700 hover:bg-teal-100" data-testid="smart-improve-summary-btn">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button variant="outline" onClick={onGenerateSummaries} disabled={summaryGenLoading || aiRemaining <= 0} className="h-10 px-4 text-sm gap-2 bg-zinc-900 hover:bg-zinc-800 text-white border-zinc-900" data-testid="generate-summary-btn">
+              {summaryGenLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+              Generate Summary
+            </Button>
+            <Button variant="outline" onClick={onSmartImproveSummary} disabled={!summary.trim()} className="h-10 px-4 text-sm gap-2 bg-teal-50 border-teal-200 text-teal-700 hover:bg-teal-100" data-testid="smart-improve-summary-btn">
               <Wand2 className="w-4 h-4" /> Smart Improve
             </Button>
-            <Button variant="outline" onClick={onAiImproveSummary} disabled={aiLoading === "summary" || !summary.trim() || aiRemaining <= 0} className="h-11 px-5 text-sm gap-2 border-violet-200 text-violet-700 hover:bg-violet-50" data-testid="ai-improve-summary-btn">
+            <Button variant="outline" onClick={onAiImproveSummary} disabled={aiLoading === "summary" || !summary.trim() || aiRemaining <= 0} className="h-10 px-4 text-sm gap-2 border-violet-200 text-violet-700 hover:bg-violet-50" data-testid="ai-improve-summary-btn">
               {aiLoading === "summary" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
               AI Improve
             </Button>
@@ -88,6 +97,29 @@ export function PersonalTab({
             </span>
           </div>
         </div>
+
+        {/* AI Summary Options (3 variations picker) */}
+        {summaryOptions.length > 0 && (
+          <div className="mt-4 space-y-3" data-testid="summary-options">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-semibold text-zinc-800 flex items-center gap-1.5">
+                <Sparkles className="w-4 h-4 text-violet-500" /> Pick a summary
+              </h4>
+              <button onClick={() => onSelectSummary("")} className="text-xs text-zinc-400 hover:text-zinc-600">Dismiss</button>
+            </div>
+            {summaryOptions.map((opt, i) => (
+              <button key={i} onClick={() => onSelectSummary(opt)} className="w-full text-left p-4 border border-zinc-200 rounded-xl bg-white hover:border-zinc-900 hover:shadow-md transition-all group" data-testid={`summary-option-${i}`}>
+                <div className="flex items-start gap-3">
+                  <div className="w-7 h-7 rounded-full bg-zinc-100 group-hover:bg-zinc-900 group-hover:text-white flex items-center justify-center text-xs font-bold text-zinc-500 flex-shrink-0 transition-colors">
+                    {i + 1}
+                  </div>
+                  <p className="text-sm text-zinc-700 leading-relaxed">{opt}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+
         {aiRemaining <= 0 && (
           <div className="mt-3 bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-500" data-testid="ai-limit-message-summary">
             AI uses reached — <strong>Smart Improve</strong> is free and unlimited!
