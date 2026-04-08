@@ -26,11 +26,16 @@ function extractPersonalInfo(rawText: string): ResumeData["personalDetails"] {
   }
 
   let fullName = "";
-  for (const line of lines.slice(0, 5)) {
+  const SECTION_HEADINGS = /^(career\s+objective|summary|experience|education|skills|certifications?|work\s+history|professional|academic|technical)/i;
+  for (const line of lines.slice(0, 8)) {
     if (EMAIL_RE.test(line) || PHONE_RE.test(line) || /https?:\/\//.test(line)) continue;
-    if (line.length > 80 || /\d{4}/.test(line)) continue;
-    const words = line.split(/\s+/);
-    if (words.length >= 2 && words.length <= 5 && /^[A-Z]/.test(words[0])) { fullName = line; break; }
+    if (SECTION_HEADINGS.test(line)) continue;
+    if (/^mobile:|^phone:|^email:|^address:/i.test(line)) continue;
+    if (line.length > 100 || /\d{4}/.test(line)) continue;
+    // Strip suffixes like "PMP, CSM, MBA" to get the actual name
+    const cleaned = line.replace(/,?\s*\b(PMP|CSM|MBA|PhD|CPA|PE|CFA|CISSP|AWS|ITIL|CCNA|CCNP|Jr\.|Sr\.|III|II|IV)\b/gi, "").replace(/,\s*$/, "").trim();
+    const words = cleaned.split(/\s+/);
+    if (words.length >= 1 && words.length <= 6 && /^[A-Z]/i.test(words[0]) && cleaned.length > 2) { fullName = line.replace(/,\s*$/, "").trim(); break; }
   }
 
   return { fullName, email, phone, location, linkedin, portfolio };
@@ -65,6 +70,22 @@ function parseExperienceEntries(content: string): RawEntry[] {
     if (!line) continue;
     const dates = line.match(DATE_RE);
     const isBullet = /^[•\-*]\s/.test(line);
+
+    // Pattern: "Working as {Title} in {Company} {Location} since {Date} to {Date}"
+    const workingAsMatch = line.match(/^(?:Working|Worked)\s+(?:as\s+)?(.+?)\s+(?:in|for|at)\s+(.+?)(?:\s+since\s+|\s+from\s+)(.+?)(?:\s+to\s+)(.+?)$/i);
+    if (workingAsMatch) {
+      flushEntry();
+      const title = workingAsMatch[1].replace(/\s*[,/]\s*$/, "").trim();
+      const company = workingAsMatch[2].replace(/\s*,?\s*(?:since|from).*$/i, "").trim();
+      const startDate = workingAsMatch[3].trim();
+      const endDate = workingAsMatch[4].replace(/\.$/, "").trim();
+      currentEntry = {
+        title, company, location: "",
+        startDate, endDate,
+        current: /present|current|now|till\s*date/i.test(endDate),
+      };
+      continue;
+    }
 
     if (!isBullet && dates && dates.length >= 1 && line.length < 120) {
       flushEntry();
@@ -129,7 +150,9 @@ function parseSkills(content: string): string[] {
   const skills: Set<string> = new Set();
   const lines = content.split("\n").map(l => l.trim()).filter(Boolean);
   for (const line of lines) {
-    const cleaned = line.replace(/^[•\-*]\s*/, "").trim();
+    let cleaned = line.replace(/^[•\-*]\s*/, "").trim();
+    // Strip label prefixes like "Cloud Platforms:" or "Database Systems:"
+    cleaned = cleaned.replace(/^[A-Za-z\s/&]+\s*:\s*/, "").trim();
     if (cleaned.includes(",")) {
       cleaned.split(",").forEach(s => { const t = s.trim(); if (t.length > 1 && t.length < 50) skills.add(t); });
     } else if (/[|/]/.test(cleaned)) {

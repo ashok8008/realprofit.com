@@ -7,6 +7,7 @@ const SECTION_PATTERNS: { key: string; patterns: RegExp[] }[] = [
     key: "summary",
     patterns: [
       /^(professional\s+)?summary$/i,
+      /^summary\s+of\s+experience$/i,
       /^(career\s+)?(objective|profile)$/i,
       /^about(\s+me)?$/i,
       /^executive\s+summary$/i,
@@ -23,6 +24,7 @@ const SECTION_PATTERNS: { key: string; patterns: RegExp[] }[] = [
       /^career\s+history$/i,
       /^relevant\s+experience$/i,
       /^professional\s+background$/i,
+      /^professional\s+experience$/i,
     ],
   },
   {
@@ -30,6 +32,7 @@ const SECTION_PATTERNS: { key: string; patterns: RegExp[] }[] = [
     patterns: [
       /^education(al\s+background)?$/i,
       /^academic(\s+background)?$/i,
+      /^academic\s+details$/i,
       /^qualifications$/i,
       /^degrees?$/i,
     ],
@@ -48,6 +51,7 @@ const SECTION_PATTERNS: { key: string; patterns: RegExp[] }[] = [
     key: "certifications",
     patterns: [
       /^certifications?$/i,
+      /^certifications?\s+achieved$/i,
       /^licens(es|ure)$/i,
       /^certifications?\s*(&|and)\s*licens(es|ure)$/i,
       /^professional\s+certifications?$/i,
@@ -97,13 +101,16 @@ function isLikelyHeading(line: string): boolean {
   const trimmed = line.trim();
   if (trimmed.length === 0 || trimmed.length > 60) return false;
   if (/^[•\-*\d]/.test(trimmed)) return false; // bullets / numbered lists
-  if (trimmed.endsWith(".") || trimmed.endsWith(",")) return false;
+  if (trimmed.endsWith(",")) return false;
+
+  // Strip trailing colon for matching
+  const withoutColon = trimmed.replace(/:$/, "").trim();
 
   // ALL CAPS check (min 3 chars)
   if (trimmed.length >= 3 && trimmed === trimmed.toUpperCase() && /[A-Z]/.test(trimmed)) return true;
 
   // Known heading pattern match
-  const cleaned = trimmed.replace(/[:\-—|]/g, "").trim();
+  const cleaned = withoutColon.replace(/[:\-—|]/g, "").trim();
   for (const group of SECTION_PATTERNS) {
     for (const p of group.patterns) {
       if (p.test(cleaned)) return true;
