@@ -2,7 +2,10 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Trash2 } from "lucide-react";
+import { Plus, X } from "lucide-react";
+
+const inputClass = "h-14 px-4 text-base bg-gray-50/50 border-gray-300 rounded-lg shadow-sm focus:bg-white focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all";
+const labelClass = "text-base font-medium text-gray-900 mb-2 block";
 
 interface SkillsProps {
   skills: string[];
@@ -14,42 +17,33 @@ interface SkillsProps {
 
 export function SkillsTab({ skills, skillInput, onSkillInputChange, onAddSkill, onRemoveSkill }: SkillsProps) {
   return (
-    <div className="space-y-4 mt-4">
-      <div>
-        <Label>Add Skills</Label>
-        <div className="flex gap-2">
-          <Input
-            placeholder="JavaScript, React, Project Management..."
-            value={skillInput}
-            onChange={e => onSkillInputChange(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && (e.preventDefault(), onAddSkill())}
-            data-testid="skill-input"
-          />
-          <Button onClick={onAddSkill} data-testid="add-skill-btn">Add</Button>
-        </div>
-        <p className="text-xs text-muted-foreground mt-1">Press Enter or click Add for each skill</p>
+    <div>
+      <h2 className="text-3xl tracking-tight font-semibold text-gray-900 mb-2">Skills</h2>
+      <p className="text-lg text-gray-500 mb-10">Add your professional skills. Include both technical and soft skills.</p>
+
+      <div className="flex gap-3 mb-8">
+        <Input className={`${inputClass} flex-1`} placeholder="e.g. JavaScript, Project Management, Data Analysis" value={skillInput} onChange={e => onSkillInputChange(e.target.value)} onKeyDown={e => e.key === "Enter" && onAddSkill()} data-testid="skill-input" />
+        <Button onClick={onAddSkill} className="h-14 px-6 text-base bg-gray-900 hover:bg-gray-800 text-white rounded-lg" data-testid="add-skill-btn">
+          <Plus className="w-5 h-5 mr-2" /> Add
+        </Button>
       </div>
 
-      {skills.length > 0 && (
-        <div className="flex flex-wrap gap-2" data-testid="skills-list">
+      {skills.length > 0 ? (
+        <div className="flex flex-wrap gap-3">
           {skills.map(skill => (
-            <span key={skill} className="bg-teal-100 text-teal-800 px-3 py-1 rounded-full text-sm flex items-center gap-1">
+            <span key={skill} className="inline-flex items-center gap-2 bg-gray-100 text-gray-700 px-4 py-2.5 rounded-lg text-base" data-testid={`skill-tag-${skill}`}>
               {skill}
-              <button onClick={() => onRemoveSkill(skill)} className="hover:text-teal-600">
-                <Trash2 className="w-3 h-3" />
+              <button onClick={() => onRemoveSkill(skill)} className="text-gray-400 hover:text-red-500 transition-colors" data-testid={`remove-skill-${skill}`}>
+                <X className="w-4 h-4" />
               </button>
             </span>
           ))}
         </div>
+      ) : (
+        <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+          <p className="text-gray-400 text-lg">No skills added yet. Start typing above to add skills.</p>
+        </div>
       )}
-
-      <div className="bg-muted/30 rounded-lg p-4 mt-4">
-        <p className="text-sm font-semibold mb-2">Skill Suggestions</p>
-        <p className="text-xs text-muted-foreground">
-          Include both technical skills (programming languages, tools) and soft skills (leadership, communication).
-          Tailor skills to match the job description.
-        </p>
-      </div>
     </div>
   );
 }
@@ -64,31 +58,34 @@ interface ExtrasProps {
 
 export function ExtrasTab({ certifications, certInput, onCertInputChange, onAddCert, onRemoveCert }: ExtrasProps) {
   return (
-    <div className="space-y-4 mt-4">
+    <div>
+      <h2 className="text-3xl tracking-tight font-semibold text-gray-900 mb-2">Certifications & Extras</h2>
+      <p className="text-lg text-gray-500 mb-10">Add any relevant certifications, licenses, or awards.</p>
+
       <div>
-        <Label>Certifications & Awards</Label>
-        <div className="flex gap-2">
-          <Input
-            placeholder="AWS Certified, PMP, Google Analytics..."
-            value={certInput}
-            onChange={e => onCertInputChange(e.target.value)}
-            onKeyDown={e => e.key === "Enter" && (e.preventDefault(), onAddCert())}
-            data-testid="cert-input"
-          />
-          <Button onClick={onAddCert} data-testid="add-cert-btn">Add</Button>
+        <Label className={labelClass}>Certification / Award</Label>
+        <div className="flex gap-3 mb-8">
+          <Input className={`${inputClass} flex-1`} placeholder="e.g. AWS Solutions Architect, PMP, Google Analytics" value={certInput} onChange={e => onCertInputChange(e.target.value)} onKeyDown={e => e.key === "Enter" && onAddCert()} data-testid="cert-input" />
+          <Button onClick={onAddCert} className="h-14 px-6 text-base bg-gray-900 hover:bg-gray-800 text-white rounded-lg" data-testid="add-cert-btn">
+            <Plus className="w-5 h-5 mr-2" /> Add
+          </Button>
         </div>
       </div>
 
-      {certifications.length > 0 && (
-        <div className="space-y-2" data-testid="certifications-list">
+      {certifications.length > 0 ? (
+        <div className="space-y-3">
           {certifications.map(cert => (
-            <div key={cert} className="bg-muted/30 px-4 py-2 rounded-lg flex items-center justify-between">
-              <span className="text-sm">{cert}</span>
-              <button onClick={() => onRemoveCert(cert)} className="text-muted-foreground hover:text-destructive">
-                <Trash2 className="w-4 h-4" />
+            <div key={cert} className="flex items-center justify-between bg-gray-50 border border-gray-200 rounded-lg px-5 py-4" data-testid={`cert-item-${cert}`}>
+              <span className="text-base text-gray-700">{cert}</span>
+              <button onClick={() => onRemoveCert(cert)} className="text-gray-400 hover:text-red-500 transition-colors" data-testid={`remove-cert-${cert}`}>
+                <X className="w-4 h-4" />
               </button>
             </div>
           ))}
+        </div>
+      ) : (
+        <div className="text-center py-12 bg-gray-50 rounded-xl border border-dashed border-gray-300">
+          <p className="text-gray-400 text-lg">No certifications added yet.</p>
         </div>
       )}
     </div>

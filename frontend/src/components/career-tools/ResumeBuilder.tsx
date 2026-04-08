@@ -416,24 +416,24 @@ export function ResumeBuilder() {
             })}
           </div>
 
-          <div className="p-6 lg:p-8 max-w-3xl">
+          <div className="px-8 py-10 md:px-12 lg:px-16 xl:px-20">
             {/* Quick Fixes (contextual, inline) */}
             {quickFixes.length > 0 && (
-              <div className="mb-6 space-y-2" data-testid="inline-quick-fixes">
-                {quickFixes.map((fix, i) => {
-                  const borderColor = fix.severity === "critical" ? "border-l-red-400" : "border-l-amber-400";
-                  return (
-                    <div key={i} className={`border-l-[3px] ${borderColor} bg-gray-50 rounded-r-lg px-4 py-2.5 flex items-center gap-3`} data-testid="quick-fix-card">
-                      <p className="text-sm text-gray-700 flex-1">{fix.message}</p>
-                      <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full flex-shrink-0">+{fix.points}</span>
-                      {fix.fixAction && (
-                        <button onClick={() => setActiveTab(fix.fixAction!.tab || "personal")} className="text-xs font-semibold text-gray-500 hover:text-teal-600 flex items-center gap-0.5 transition-colors flex-shrink-0" data-testid="quick-fix-btn">
-                          Fix <ArrowRight className="w-3 h-3" />
-                        </button>
-                      )}
+              <div className="mb-10 space-y-3" data-testid="inline-quick-fixes">
+                {quickFixes.map((fix, i) => (
+                  <div key={i} className="bg-amber-50 border border-amber-200 rounded-xl p-5 flex items-start gap-4 shadow-sm" data-testid="quick-fix-card">
+                    <div className="flex-1">
+                      <p className="text-base font-medium text-amber-900">{fix.message}</p>
+                      {fix.fix && <p className="text-sm text-amber-700 mt-1 leading-relaxed">{fix.fix}</p>}
                     </div>
-                  );
-                })}
+                    <span className="text-sm font-bold text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full flex-shrink-0">+{fix.points}</span>
+                    {fix.fixAction && (
+                      <button onClick={() => setActiveTab(fix.fixAction!.tab || "personal")} className="bg-amber-100 text-amber-900 hover:bg-amber-200 px-4 py-2 rounded-md text-sm font-medium transition-colors flex-shrink-0 flex items-center gap-1" data-testid="quick-fix-btn">
+                        Fix <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
 
@@ -460,12 +460,12 @@ export function ResumeBuilder() {
             </Tabs>
 
             {/* Continue / Back */}
-            <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-100">
-              <button onClick={() => { const p = STEPS[currentStepIndex - 1]; if (p) setActiveTab(p.key); }} disabled={currentStepIndex === 0} className="text-sm text-gray-400 hover:text-gray-600 disabled:opacity-30 transition-colors flex items-center gap-1" data-testid="step-back-btn">
-                <ChevronLeft className="w-4 h-4" /> Back
+            <div className="mt-12 pt-8 border-t border-gray-200 flex items-center justify-between">
+              <button onClick={() => { const p = STEPS[currentStepIndex - 1]; if (p) setActiveTab(p.key); }} disabled={currentStepIndex === 0} className="text-base text-gray-400 hover:text-gray-600 disabled:opacity-30 transition-colors flex items-center gap-1.5" data-testid="step-back-btn">
+                <ChevronLeft className="w-5 h-5" /> Back
               </button>
-              <button onClick={() => { const n = STEPS[currentStepIndex + 1]; if (n) setActiveTab(n.key); }} disabled={currentStepIndex === STEPS.length - 1} className="bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-40 rounded-lg px-6 py-2.5 text-sm font-semibold transition-colors inline-flex items-center gap-2" data-testid="step-continue-btn">
-                Continue <span className="text-white/50 text-xs">({currentStepIndex + 1}/{STEPS.length})</span>
+              <button onClick={() => { const n = STEPS[currentStepIndex + 1]; if (n) setActiveTab(n.key); }} disabled={currentStepIndex === STEPS.length - 1} className="bg-gray-900 text-white hover:bg-gray-800 disabled:opacity-40 rounded-lg h-14 px-8 text-lg font-medium transition-colors inline-flex items-center gap-3 min-w-[200px] justify-center" data-testid="step-continue-btn">
+                Continue <span className="text-white/50 text-base">({currentStepIndex + 1}/{STEPS.length})</span>
               </button>
             </div>
           </div>
