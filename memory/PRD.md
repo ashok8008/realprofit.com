@@ -125,18 +125,17 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - Fix All Easy Issues bulk action
 - Testing: Frontend 100% — iteration_18
 
-### Phase 19-20: Resume Builder UI Redesign & Share Score (Apr 2026) -- SUPERSEDED by Phase 21
+### Phase 19-20: Resume Builder UI Redesign & Share Score (Apr 2026) -- SUPERSEDED by Phase 21-22
 
-### Phase 21: Premium Full-Screen Resume Builder Workspace (Apr 2026) -- DONE
-- Full-screen 3-panel editor: dark sidebar (200px collapsible to 56px), spacious form center (no max-width), live preview right (420px fixed)
-- ATS Score bar at top with 3 category breakdowns (ATS Readiness, Readability, Impact) — auto-collapses after 6s, reopenable via score widget
-- Step-by-step wizard: each section (Personal/Experience/Education/Skills/Extras) gets its own spacious screen
-- Generous field sizing: h-14 inputs, text-base labels, text-3xl section headings, generous padding (px-8 py-10 to px-20)
-- Quick fix cards in amber styling with point badges (+4, +3, +3) and inline Fix buttons
-- Full-screen hero entry page: "Build a resume that gets you hired" with Create/Import paths
-- CareerToolDetail wrapper gives resume-builder zero-chrome full-screen treatment
-- Applied design agent's Swiss & High-Contrast archetype guidelines
-- Testing: Frontend 100% (26/26) — iteration_21
+### Phase 21-22: Premium Full-Screen Resume Builder Workspace (Apr 2026) -- DONE
+- Compact entry page: Upload + Create From Scratch side-by-side cards (no bloated hero)
+- New template selection step: 5 templates (Clean, Professional, Minimal, Executive PRO, Modern PRO)
+- 3-panel editor: light sidebar (zinc-50, collapsible 200→56px), spacious form (p-8), live preview (42% width, always visible)
+- Score in toolbar: score number + ATS/Readability/Impact mini bars
+- Tips & Fixes as toggleable slide-out panel (not inline bloated cards) with compact cards (~40px), +points, Fix buttons, Fix All
+- Generous form fields (h-14 inputs, text-base labels, text-3xl headings)
+- Step navigation: Continue (1/5) + Back buttons
+- Testing: Frontend 100% (29/29) — iteration_22
 
 ## Upcoming Tasks
 - Premium ATS checks for Resume Builder (P2)
