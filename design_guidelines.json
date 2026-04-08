@@ -1,139 +1,110 @@
 {
-  "theme": "light",
-  "archetype": "Archetype 5 (Jewel & Luxury) infused with Archetype 1 (Organic & Earthy)",
-  "typography": {
-    "headings": {
-      "family": "Playfair Display, serif",
-      "strategy": "Use tight letter spacing (tracking-tight) for large headers. Do NOT use Inter or generic sans-serif for headings."
+  "project_context": {
+    "domain": "SaaS Resume Builder",
+    "theme": "light",
+    "archetype": "4 (Swiss & High-Contrast)",
+    "primary_goal": "Transform a crammed form into a spacious, step-by-step wizard with a live right-side preview."
+  },
+  "layout": {
+    "wrapper": "flex h-screen w-full bg-white overflow-hidden text-gray-900",
+    "sidebar_left": {
+      "width_expanded": "w-[200px]",
+      "width_collapsed": "w-[56px]",
+      "bg_color": "bg-gray-900",
+      "text_color": "text-white",
+      "active_state": "bg-teal-600 text-white",
+      "transition": "transition-[width] duration-300 ease-in-out shrink-0 z-20"
     },
-    "body": {
-      "family": "Manrope, sans-serif",
-      "strategy": "Clean, legible geometric sans for data, tools, and long-form text. Highly legible at small sizes."
+    "form_area_center": {
+      "width": "flex-1",
+      "max_width_constraint": "NONE. Remove any max-w-3xl, max-w-2xl, or container classes to eliminate the gap completely.",
+      "padding": "px-8 py-12 md:px-16 lg:px-24 md:py-16",
+      "scroll": "overflow-y-auto h-full"
     },
-    "mono": {
-      "family": "JetBrains Mono, monospace",
-      "strategy": "Use for financial numbers, tickers, and calculator inputs."
+    "preview_panel_right": {
+      "width": "w-[420px] shrink-0",
+      "bg_color": "bg-gray-50",
+      "border": "border-l border-gray-200",
+      "scroll": "overflow-y-auto p-8 h-full"
+    },
+    "ats_score_bar": {
+      "position": "fixed top-0 left-0 right-0 z-50 flex items-center justify-center",
+      "height": "h-12",
+      "bg_color": "bg-emerald-500",
+      "text_color": "text-white",
+      "animation": "Slide down on mount, auto-collapse (slide up) after 6 seconds using framer-motion or CSS transition."
     }
   },
-  "colors": {
-    "primary": "#0f766e",
-    "primary_hover": "#115e59",
-    "accent": "#f5c542",
-    "background_light": "#fafaf9",
-    "background_dark": "#020617",
-    "surface_light": "#ffffff",
-    "surface_dark": "#0f172a",
-    "border_light": "#e7e5e4",
-    "border_dark": "#1e293b",
-    "text_primary_light": "#1c1917",
-    "text_secondary_light": "#57534e",
-    "text_primary_dark": "#f8fafc",
-    "text_secondary_dark": "#94a3b8"
-  },
-  "layout_and_spacing": {
-    "section_spacing": "py-24 md:py-32",
-    "container_padding": "px-6 md:px-12 lg:px-24",
-    "grid_strategy": "Use Bento 'Tetris' grid (asymmetric) for marketing sections. Use 'Control Room' dense grid for calculators and tools.",
-    "border_radius": "rounded-2xl for large containers, rounded-xl for cards, rounded-lg for buttons."
+  "typography": {
+    "primary_font": "Outfit",
+    "secondary_font": "Manrope",
+    "step_title": "text-4xl tracking-tight font-medium text-gray-900 mb-3",
+    "step_subtitle": "text-lg text-gray-500 mb-12",
+    "field_label": "text-base font-medium text-gray-900 mb-2 block",
+    "button_text": "text-lg font-medium tracking-tight"
   },
   "components": {
-    "buttons": "Flat solid background for primary CTAs. Always include focus-visible rings and hover states (translate-y-[-1px]). No pill shapes, use rounded-lg.",
-    "cards": "Subtle 1px border with no default shadow. On hover: shadow-xl and -translate-y-1. Do not overuse cards; try flat bento styles.",
-    "glassmorphism": "Strictly for sticky headers and floating tooltips. Requires backdrop-blur-xl and a delicate 1px inner stroke (border-white/20 or border-black/5)."
-  },
-  "sections_architecture": [
-    {
-      "name": "Hero",
-      "theme": "light",
-      "description": "Premium positioning. Large Playfair Display heading communicating 'Financial + Career Platform'. Background uses subtle abstract grain. Features an interactive dashboard/calculator preview."
+    "inputs": {
+      "height": "h-14",
+      "padding": "px-4",
+      "text_size": "text-base",
+      "border_radius": "rounded-lg",
+      "border": "border border-gray-300",
+      "background": "bg-gray-50/50",
+      "focus_state": "focus:bg-white focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all",
+      "shadow": "shadow-sm"
     },
-    {
-      "name": "Start Here",
-      "theme": "light",
-      "description": "Clickable questions driving users to tools. Clean, asymmetric list layout."
+    "textarea": {
+      "min_height": "min-h-[160px]",
+      "padding": "p-4",
+      "text_size": "text-base",
+      "border_radius": "rounded-lg",
+      "border": "border border-gray-300",
+      "focus_state": "focus:bg-white focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all"
     },
-    {
-      "name": "What You Can Do",
-      "theme": "light",
-      "description": "4-pillar section. Bento grid layout with generous padding."
+    "primary_button": {
+      "height": "h-14",
+      "width": "w-full sm:w-auto min-w-[200px]",
+      "bg_color": "bg-gray-900",
+      "text_color": "text-white",
+      "hover_state": "hover:bg-gray-800",
+      "border_radius": "rounded-lg",
+      "padding": "px-8"
     },
-    {
-      "name": "Popular Tools",
-      "theme": "light",
-      "description": "Highlighting top tools with 'The Tracing Beam' border effect on the featured tool."
+    "quick_fix_card": {
+      "container": "bg-amber-50 border border-amber-200 rounded-xl p-5 mb-8 flex items-start gap-4 shadow-sm",
+      "title": "text-amber-900 font-medium text-base",
+      "description": "text-amber-700 text-sm mt-1 leading-relaxed",
+      "action_button": "bg-amber-100 text-amber-900 hover:bg-amber-200 px-4 py-2 rounded-md text-sm font-medium transition-colors"
     },
-    {
-      "name": "Career Tools",
-      "theme": "dark",
-      "description": "Hero-like section with dark slate background (#020617). Uses the office image with a bg-black/50 overlay. High contrast white serif text."
-    },
-    {
-      "name": "What-If Simulator",
-      "theme": "light",
-      "description": "Interactive Recharts line chart showing compound growth. Minimalist card styling."
-    },
-    {
-      "name": "Financial Calculators",
-      "theme": "light",
-      "description": "Dense grid of calculator links/cards. Functional UI."
-    },
-    {
-      "name": "Productive Tools",
-      "theme": "light",
-      "description": "Dense grid, similar to calculators but distinct icon styling."
-    },
-    {
-      "name": "Articles & Guides",
-      "theme": "light",
-      "description": "Editorial layout. Large images, serif titles, ample negative space."
-    },
-    {
-      "name": "Trust",
-      "theme": "light",
-      "description": "Partner logos using Marquee strategy (Editorial Ribbon) - slow drift, low contrast."
-    },
-    {
-      "name": "Email CTA",
-      "theme": "dark",
-      "description": "Dark container in Jewel tone teal (#042f2e). High contrast input field."
-    },
-    {
-      "name": "Footer",
-      "theme": "dark",
-      "description": "Massive py-32 spacing. Brand logo prominent. Clean columns."
+    "smart_improve_button": {
+      "style": "bg-teal-50 text-teal-700 border border-teal-200 hover:bg-teal-100 h-12 px-6 rounded-lg font-medium flex items-center gap-2 transition-colors shadow-sm"
     }
-  ],
+  },
+  "spacing_and_grids": {
+    "form_grid": "grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-8",
+    "full_width_field": "col-span-1 md:col-span-2",
+    "section_spacing": "mb-16",
+    "bottom_navigation": "mt-12 pt-8 border-t border-gray-200 flex justify-between items-center"
+  },
   "media": {
-    "hero_abstract": {
-      "url": "https://images.unsplash.com/photo-1762279389020-eeeb69c25813?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA0MTJ8MHwxfHNlYXJjaHwxfHxhYnN0cmFjdCUyMGZpbmFuY2lhbCUyMGdyb3d0aHxlbnwwfHx8fDE3NzU1MDYwNDd8MA&ixlib=rb-4.1.0&q=85",
-      "alt": "Abstract financial visualization"
-    },
-    "career_office": {
-      "url": "https://images.unsplash.com/photo-1759593218431-6f1585bc14de?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2ODh8MHwxfHNlYXJjaHwyfHxwcm9mZXNzaW9uYWwlMjB3b3JraW5nJTIwbW9kZXJuJTIwb2ZmaWNlfGVufDB8fHx8MTc3NTUwNjA0N3ww&ixlib=rb-4.1.0&q=85",
-      "alt": "Professional modern office working"
-    },
-    "trust_logos": [
+    "image_urls": [
       {
-        "url": "https://images.unsplash.com/photo-1769985090528-5a4da245e9a8?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Nzd8MHwxfHNlYXJjaHwyfHxjb21wYW55JTIwbG9nbyUyMG1pbmltYWxpc3R8ZW58MHx8fHwxNzc1NTA2MDQ2fDA&ixlib=rb-4.1.0&q=85",
-        "alt": "Partner Logo 1"
-      },
-      {
-        "url": "https://images.unsplash.com/photo-1765978856539-b9247f2e0d5f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Nzd8MHwxfHNlYXJjaHwzfHxjb21wYW55JTIwbG9nbyUyMG1pbmltYWxpc3R8ZW58MHx8fHwxNzc1NTA2MDQ2fDA&ixlib=rb-4.1.0&q=85",
-        "alt": "Partner Logo 2"
+        "url": "https://images.unsplash.com/photo-1758613654360-45f1ff78c0cf?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzMjh8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBoZWFkc2hvdCUyMG5ldXRyYWwlMjBiYWNrZ3JvdW5kfGVufDB8fHx8MTc3NTY1MDYyMnww&ixlib=rb-4.1.0&q=85",
+        "category": "resume_avatar_placeholder",
+        "description": "Professional headshot for the resume preview if the user has not uploaded a photo."
       }
     ]
   },
-  "testing": {
-    "strategy": "All interactive elements, forms, and key sections must include 'data-testid' attributes (e.g., 'hero-cta-button', 'what-if-chart')."
-  },
   "instructions_to_main_agent": [
-    "Strictly follow the Old Money Tech typography pairing (Playfair Display for headings, Manrope for body). Do NOT use Inter.",
-    "Implement the 12 sections in the exact order specified in the problem statement.",
-    "Career Tools section MUST use the dark theme (#020617 background) to stand out, with the provided 'career_office' image with an overlay.",
-    "Use Recharts for the 'What-If' simulator chart. Ensure it looks premium (no default axes styling, use monospace font for numbers, custom tooltip).",
-    "Replace generic card styles with 1px borders and subtle hover lifts. No heavy drop shadows.",
-    "Do NOT use transparent headers over images without a backdrop-blur glassmorphism effect.",
-    "Ensure the hero section communicates the financial + career dual-purpose within 5 seconds through clear H1 and layout.",
-    "Write code for React (.jsx/.js files), not TypeScript (.tsx) as specified in the strict instructions."
+    "Install custom fonts via next/font/google in layout.js: 'Outfit' for headings and 'Manrope' for body.",
+    "Completely remove any 'max-w-*' classes on the form container. The center form area must strictly use 'flex-1' to span the entire horizontal gap between the left sidebar and the right preview.",
+    "Refactor the single-page form into a step-by-step state machine component mapping (e.g., Personal, Experience, Education, Skills, Extras) showing one form block at a time.",
+    "Implement the left sidebar with a state-driven collapsible toggle. When collapsed (w-[56px]), conditionally hide text labels and display centered icons only.",
+    "Ensure the right preview panel has a fixed width of 420px on desktop and remains always visible. Use 'shrink-0' so it does not collapse.",
+    "Override default Shadcn input sizes with the custom h-14, text-base generous padding styles defined in these guidelines.",
+    "Add the ATS score bar at the top of the viewport. It should auto-hide after 6 seconds using a standard useEffect timeout combined with framer-motion's AnimatePresence for smooth slide up.",
+    "Render Quick fix cards natively inline, directly above the form fields when active.",
+    "Ensure all interactive elements have data-testid attributes (e.g., 'next-step-btn', 'sidebar-nav-item', 'input-first-name')."
   ]
 }
