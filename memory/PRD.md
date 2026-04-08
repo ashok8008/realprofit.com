@@ -193,6 +193,13 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - **Score Toolbar Integration**: New "ATS Check" button between progress bars and Tips button
 - Testing: Backend 100% (7/7), Frontend 100% (16/16) — iteration_28
 
+### Phase 24a: Database Stitching & Draft Persistence (Apr 2026) -- DONE
+- Added `resume_drafts` collection index (`draft_id`, unique) in `db.py`
+- Frontend now loads drafts from MongoDB as fallback when localStorage is empty (cross-device persistence)
+- Template selection, experience level, years of experience, and industry choices now saved to `resume_meta` localStorage key and persisted across sessions
+- Reset/clear now properly wipes both resume data and meta preferences
+- Auto-save now includes template and onboarding choices in the save cycle
+
 ## Upcoming Tasks
 - Stripe integration for monetization (P2)
 - A/B test hero CTAs (P2)

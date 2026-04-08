@@ -122,13 +122,35 @@ export function ResumeBuilder() {
     return id;
   };
 
-  // ── Load: check localStorage for saved draft, show banner but stay on entry ──
+  // ── Load: check localStorage for saved draft, then try MongoDB ──
   useEffect(() => {
     const saved = loadFromStorage<ResumeData | null>(STORAGE_KEY, null as unknown as ResumeData);
     if (saved && (saved.personalDetails?.fullName || saved.experience?.length > 0 || saved.summary)) {
       setData(saved);
       setHasSavedDraft(true);
-      // Stay on entry page — user decides whether to continue or start fresh
+    }
+    // Also load template/onboarding prefs from localStorage
+    const savedMeta = loadFromStorage<{ template?: string; level?: string; years?: string; industries?: string[] } | null>("resume_meta", null);
+    if (savedMeta) {
+      if (savedMeta.template) setTemplate(savedMeta.template);
+      if (savedMeta.level) setOnboardLevel(savedMeta.level);
+      if (savedMeta.years) setOnboardYears(savedMeta.years);
+      if (savedMeta.industries) setOnboardIndustries(savedMeta.industries);
+    }
+    // Try loading from MongoDB as fallback (in case localStorage was cleared)
+    const draftId = typeof window !== "undefined" ? localStorage.getItem("resume_draft_id") : null;
+    if (draftId && !saved) {
+      fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/career-tools/resume-draft/${draftId}`)
+        .then(r => r.json())
+        .then(doc => {
+          if (doc?.data && (doc.data.personalDetails?.fullName || doc.data.experience?.length > 0 || doc.data.summary)) {
+            setData(doc.data);
+            setHasSavedDraft(true);
+            // Also update localStorage with the DB data
+            saveToStorage(STORAGE_KEY, doc.data);
+          }
+        })
+        .catch(() => {});
     }
   }, []);
 
@@ -137,6 +159,7 @@ export function ResumeBuilder() {
     if (flowState === "wizard") {
       const t = setTimeout(() => {
         saveToStorage(STORAGE_KEY, data);
+        saveToStorage("resume_meta", { template, level: onboardLevel, years: onboardYears, industries: onboardIndustries });
         // Also save to MongoDB
         fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/career-tools/resume-draft`, {
           method: "POST", headers: { "Content-Type": "application/json" },
@@ -145,7 +168,7 @@ export function ResumeBuilder() {
       }, 1000);
       return () => clearTimeout(t);
     }
-  }, [data, flowState]);
+  }, [data, flowState, template, onboardLevel, onboardYears, onboardIndustries]);
 
   // ── Processing tips rotation ──
   useEffect(() => {
@@ -198,7 +221,7 @@ export function ResumeBuilder() {
   }, [toast]);
 
   const handleProcessingComplete = useCallback(() => { setFlowState("welcome"); }, []);
-  const handleReset = () => { if (confirm("Clear all resume data?")) { setData(defaultResumeData); clearStorage(STORAGE_KEY); setHasSavedDraft(false); setFlowState("entry"); setConfidences([]); toast({ title: "Cleared" }); } };
+  const handleReset = () => { if (confirm("Clear all resume data?")) { setData(defaultResumeData); clearStorage(STORAGE_KEY); clearStorage("resume_meta"); setHasSavedDraft(false); setFlowState("entry"); setConfidences([]); setTemplate("clean"); setOnboardLevel(""); setOnboardYears(""); setOnboardIndustries([]); setAtsResult(null); toast({ title: "Cleared" }); } };
   const handleDownloadPDF = () => { const pdf = generateResumePDF(data, template); pdf.save(`${data.personalDetails.fullName || "resume"}_resume.pdf`.replace(/\s+/g, "_")); toast({ title: "PDF Downloaded" }); };
 
   // ── ATS Check ──
@@ -783,7 +806,7 @@ export function ResumeBuilder() {
                 <div key={i} className="flex items-center gap-2 text-base text-zinc-800"><Check className="w-5 h-5 text-zinc-900" /> {f}</div>
               ))}
             </div>
-            <button onClick={() => { setFlowState("wizard"); setWizardStep("header"); toast({ title: "Let's build!", description: "Fill in each section — your score updates live." }); }} className="w-full h-14 rounded-full bg-[#3b82f6] hover:bg-[#2563eb] text-white text-lg font-bold transition-colors mb-6" data-testid="template-continue-btn">
+            <button onClick={() => { setFlowState("wizard"); setWizardStep("header"); saveToStorage("resume_meta", { template, level: onboardLevel, years: onboardYears, industries: onboardIndustries }); toast({ title: "Let's build!", description: "Fill in each section — your score updates live." }); }} className="w-full h-14 rounded-full bg-[#3b82f6] hover:bg-[#2563eb] text-white text-lg font-bold transition-colors mb-6" data-testid="template-continue-btn">
               Use this template
             </button>
             <div className="border-t border-zinc-200 pt-5">
