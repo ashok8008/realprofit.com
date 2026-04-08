@@ -25,6 +25,7 @@ import { ImportProcessing } from "./resume/ImportProcessing";
 import { fixAllEasyIssues } from "@/lib/career-tools/resume/improve";
 import { calculateResumeScore } from "@/lib/career-tools/resume/score";
 import type { SectionConfidence } from "@/lib/career-tools/resume/import/types";
+import { TemplateRenderer, EmptyPreview } from "./resume/TemplateRenderer";
 import Link from "next/link";
 
 const STORAGE_KEY = "resume_builder";
@@ -52,7 +53,7 @@ const WIZARD_STEPS = [
 ] as const;
 
 type WizardStep = typeof WIZARD_STEPS[number]["key"];
-type FlowState = "entry" | "upload" | "processing" | "welcome" | "analysis" | "onboarding-level" | "onboarding-industry" | "templates" | "wizard" | "tips";
+type FlowState = "entry" | "upload" | "processing" | "welcome" | "analysis" | "onboarding-level" | "onboarding-years" | "onboarding-industry" | "templates" | "wizard" | "tips";
 
 const EXPERIENCE_LEVELS = [
   { id: "none", label: "No Experience", desc: "Less than 6 months" },
@@ -82,6 +83,7 @@ export function ResumeBuilder() {
 
   // ── Onboarding state ──
   const [onboardLevel, setOnboardLevel] = useState("");
+  const [onboardYears, setOnboardYears] = useState("");
   const [onboardIndustries, setOnboardIndustries] = useState<string[]>([]);
 
   // ── Editor state ──
@@ -596,9 +598,51 @@ export function ResumeBuilder() {
               </button>
             ))}
           </div>
-          <button onClick={() => { if (onboardLevel) setFlowState("onboarding-industry"); }} disabled={!onboardLevel} className="mt-8 h-14 px-12 rounded-full bg-zinc-200 text-zinc-600 text-lg font-bold disabled:opacity-50 enabled:bg-[#3b82f6] enabled:text-white enabled:hover:bg-[#2563eb] transition-colors" data-testid="level-continue">
+          <button onClick={() => { if (onboardLevel) setFlowState("onboarding-years"); }} disabled={!onboardLevel} className="mt-8 h-14 px-12 rounded-full bg-zinc-200 text-zinc-600 text-lg font-bold disabled:opacity-50 enabled:bg-[#3b82f6] enabled:text-white enabled:hover:bg-[#2563eb] transition-colors" data-testid="level-continue">
             Continue
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // ONBOARDING — Years of Experience
+  // ════════════════════════════════════════════════════════════
+  if (flowState === "onboarding-years") {
+    const YEARS_OPTIONS = [
+      { id: "less-1", label: "Less than 1 year", icon: <svg viewBox="0 0 40 40" fill="none" className="w-7 h-7"><circle cx="20" cy="28" r="9" fill="none" stroke="#1e293b" strokeWidth="2"/><path d="M20 22V28L24 30" stroke="#1e293b" strokeWidth="2" strokeLinecap="round"/></svg> },
+      { id: "1-3", label: "1 - 3 years", icon: <svg viewBox="0 0 40 40" fill="none" className="w-7 h-7"><circle cx="20" cy="28" r="9" fill="none" stroke="#1e293b" strokeWidth="2"/><path d="M20 22V28L24 30" stroke="#1e293b" strokeWidth="2" strokeLinecap="round"/><circle cx="12" cy="14" r="3" fill="#f5c542" opacity="0.6"/></svg> },
+      { id: "3-5", label: "3 - 5 years", icon: <svg viewBox="0 0 40 40" fill="none" className="w-7 h-7"><circle cx="20" cy="28" r="9" fill="none" stroke="#1e293b" strokeWidth="2"/><path d="M20 22V28L24 30" stroke="#1e293b" strokeWidth="2" strokeLinecap="round"/><circle cx="12" cy="14" r="3" fill="#f5c542" opacity="0.6"/><circle cx="28" cy="14" r="3" fill="#0d9488" opacity="0.6"/></svg> },
+      { id: "5-10", label: "5 - 10 years", icon: <svg viewBox="0 0 40 40" fill="none" className="w-7 h-7"><circle cx="20" cy="28" r="9" fill="none" stroke="#1e293b" strokeWidth="2"/><path d="M20 22V28L24 30" stroke="#1e293b" strokeWidth="2" strokeLinecap="round"/><circle cx="10" cy="14" r="3" fill="#f5c542" opacity="0.6"/><circle cx="20" cy="10" r="3" fill="#3b82f6" opacity="0.6"/><circle cx="30" cy="14" r="3" fill="#0d9488" opacity="0.6"/></svg> },
+      { id: "10-plus", label: "10+ years", icon: <svg viewBox="0 0 40 40" fill="none" className="w-7 h-7"><circle cx="20" cy="28" r="9" fill="#0d9488" opacity="0.12" stroke="#1e293b" strokeWidth="2"/><path d="M20 22V28L24 30" stroke="#1e293b" strokeWidth="2" strokeLinecap="round"/><path d="M14 8l6 6 6-6" stroke="#f5c542" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg> },
+    ];
+    return (
+      <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-6" data-testid="onboarding-years">
+        <div className="w-full max-w-lg text-center">
+          <div className="w-14 h-14 mx-auto mb-5 rounded-full bg-[#e0f2fe] flex items-center justify-center">
+            <Calendar className="w-7 h-7 text-[#0369a1]" />
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-black text-zinc-900 tracking-tight mb-2 leading-tight">
+            How many <span className="underline decoration-[#3b82f6] decoration-4 underline-offset-4">years</span> of experience<br />do you have?
+          </h1>
+          <p className="text-base text-zinc-500 mb-8">This helps us tailor your resume to your career stage.</p>
+          <div className="space-y-3 max-w-md mx-auto">
+            {YEARS_OPTIONS.map(opt => (
+              <button key={opt.id} onClick={() => setOnboardYears(opt.id)} className={`w-full flex items-center gap-4 px-5 py-4 rounded-full border-2 text-left transition-all hover:shadow-md ${onboardYears === opt.id ? "border-zinc-900 bg-zinc-50 shadow-sm" : "border-zinc-200 bg-white hover:border-zinc-400"}`} data-testid={`years-${opt.id}`}>
+                <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">{opt.icon}</div>
+                <span className="text-base font-bold text-zinc-900">{opt.label}</span>
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center justify-center gap-4 mt-8">
+            <button onClick={() => setFlowState("onboarding-level")} className="h-12 px-8 rounded-full border-2 border-zinc-900 text-zinc-900 font-bold text-sm hover:bg-zinc-50 bg-white" data-testid="years-back">
+              Back
+            </button>
+            <button onClick={() => { if (onboardYears) setFlowState("onboarding-industry"); }} disabled={!onboardYears} className="h-12 px-8 rounded-full bg-[#3b82f6] text-white font-bold text-sm hover:bg-[#2563eb] disabled:opacity-40" data-testid="years-continue">
+              Continue
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -630,7 +674,7 @@ export function ResumeBuilder() {
             <Plus className="w-4 h-4" /> Add Industry
           </button>
           <div className="flex items-center justify-center gap-4">
-            <button onClick={() => setFlowState("onboarding-level")} className="h-12 px-8 rounded-full border-2 border-zinc-900 text-zinc-900 font-bold text-sm hover:bg-zinc-50 bg-white" data-testid="onboarding-back">
+            <button onClick={() => setFlowState("onboarding-years")} className="h-12 px-8 rounded-full border-2 border-zinc-900 text-zinc-900 font-bold text-sm hover:bg-zinc-50 bg-white" data-testid="onboarding-back">
               Back
             </button>
             <button onClick={() => setFlowState("templates")} disabled={onboardIndustries.length === 0} className="h-12 px-8 rounded-full bg-[#3b82f6] text-white font-bold text-sm hover:bg-[#2563eb] disabled:opacity-40" data-testid="onboarding-continue">
@@ -656,6 +700,20 @@ export function ResumeBuilder() {
     const sel = TEMPLATES.find(t => t.id === template) || TEMPLATES[0];
     const details = TEMPLATE_DETAILS[template] || TEMPLATE_DETAILS.clean;
 
+    // Sample data for preview when user has no real data yet
+    const hasData = data.personalDetails.fullName || data.experience.length > 0 || data.summary;
+    const previewData: ResumeData = hasData ? data : {
+      personalDetails: { fullName: "Sarah Johnson", email: "sarah.johnson@email.com", phone: "(555) 482-9170", location: "San Francisco, CA", linkedin: "linkedin.com/in/sarahjohnson", portfolio: "" },
+      summary: "Results-driven product manager with 6+ years of experience leading cross-functional teams to deliver customer-centric solutions. Proven track record in agile environments, data-driven decision making, and driving 30% revenue growth.",
+      experience: [
+        { id: "s1", title: "Senior Product Manager", company: "TechVenture Inc.", location: "San Francisco, CA", startDate: "Mar 2021", endDate: "", current: true, description: "- Led product strategy for flagship SaaS platform serving 50K+ users\n- Increased user retention by 25% through data-driven feature prioritization\n- Managed $2M annual product budget and roadmap" },
+        { id: "s2", title: "Product Manager", company: "DataFlow Systems", location: "Oakland, CA", startDate: "Jun 2018", endDate: "Feb 2021", current: false, description: "- Launched 3 major product features driving $1.2M in new ARR\n- Collaborated with engineering, design, and marketing teams" },
+      ],
+      education: [{ id: "e1", school: "UC Berkeley", degree: "MBA", field: "Technology Management", startDate: "2016", endDate: "2018" }],
+      skills: ["Product Strategy", "Agile/Scrum", "Data Analytics", "User Research", "SQL", "Roadmap Planning", "A/B Testing", "Stakeholder Management"],
+      certifications: ["Certified Scrum Product Owner (CSPO)"],
+    };
+
     return (
       <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-6" data-testid="template-selection">
         <div className="w-full max-w-5xl flex flex-col lg:flex-row gap-8">
@@ -664,53 +722,17 @@ export function ResumeBuilder() {
             {/* Thumbnail strip */}
             <div className="hidden md:flex flex-col gap-2 flex-shrink-0 w-20">
               {TEMPLATES.map(t => (
-                <button key={t.id} onClick={() => setTemplate(t.id)} className={`w-20 aspect-[1/1.414] rounded-lg border-2 flex items-center justify-center transition-all ${template === t.id ? "border-[#3b82f6] shadow-md bg-blue-50" : "border-zinc-200 bg-white hover:border-zinc-400"}`} data-testid={`template-thumb-${t.id}`}>
-                  <div className="w-14 text-[4px] leading-[6px] text-zinc-400 px-1 py-1 overflow-hidden">
-                    <div className={`w-full h-0.5 mb-0.5 ${template === t.id ? "bg-[#3b82f6]" : "bg-zinc-300"}`} />
-                    <div className="w-10 h-0.5 bg-zinc-200 mb-1" />
-                    <div className="w-full h-0.5 bg-zinc-100 mb-0.5" />
-                    <div className="w-12 h-0.5 bg-zinc-100 mb-0.5" />
-                    <div className="w-8 h-0.5 bg-zinc-100" />
+                <button key={t.id} onClick={() => setTemplate(t.id)} className={`w-20 aspect-[1/1.414] rounded-lg border-2 overflow-hidden transition-all ${template === t.id ? "border-[#3b82f6] shadow-md ring-2 ring-blue-200" : "border-zinc-200 bg-white hover:border-zinc-400"}`} data-testid={`template-thumb-${t.id}`}>
+                  <div className="w-full h-full overflow-hidden">
+                    <TemplateRenderer data={previewData} templateId={t.id} scale="thumb" />
                   </div>
                 </button>
               ))}
             </div>
             {/* Full preview */}
             <div className="flex-1 bg-white border border-zinc-200 rounded-xl shadow-lg overflow-hidden">
-              <div className="p-6 text-sm max-h-[70vh] overflow-y-auto">
-                <div className="border-l-4 border-zinc-900 pl-4 mb-4">
-                  <h1 className="text-xl font-bold text-zinc-900">{data.personalDetails.fullName || "Your Name"}</h1>
-                  <p className="text-xs text-zinc-500">{[data.personalDetails.email || "email@example.com", data.personalDetails.phone || "(555) 123-4567", data.personalDetails.location].filter(Boolean).join("  \u2022  ")}</p>
-                </div>
-                {(data.summary || true) && (
-                  <div className="mb-3">
-                    <h2 className="text-xs font-bold text-zinc-500 italic mb-1">Summary</h2>
-                    <p className="text-[11px] text-zinc-600 leading-relaxed">{data.summary || "Customer-focused professional with solid understanding of industry dynamics. Offering quality solutions to meet needs and exceed expectations."}</p>
-                  </div>
-                )}
-                <div className="mb-3">
-                  <h2 className="text-xs font-bold text-zinc-500 italic mb-1">Skills</h2>
-                  <div className="grid grid-cols-2 gap-x-4 text-[11px] text-zinc-600">
-                    {(data.skills.length > 0 ? data.skills.slice(0, 8) : ["Project Management", "Communication", "Leadership", "Data Analysis", "Problem Solving", "Teamwork"]).map((s, i) => (
-                      <div key={i} className="flex items-center gap-1 py-0.5"><span className="w-1 h-1 rounded-full bg-zinc-400" />{s}</div>
-                    ))}
-                  </div>
-                </div>
-                <div className="mb-3">
-                  <h2 className="text-xs font-bold text-zinc-500 italic mb-1">Experience</h2>
-                  {(data.experience.length > 0 ? data.experience.slice(0, 2) : [{ title: "Project Manager", company: "Acme Corp", startDate: "01/2020", endDate: "Current", description: "- Led cross-functional teams\n- Delivered projects on time and budget" }]).map((exp: any, i: number) => (
-                    <div key={i} className="mb-2">
-                      <div className="flex justify-between text-[11px]"><span className="font-semibold text-zinc-900">{exp.title}, <strong>{exp.company}</strong></span><span className="text-zinc-400">{exp.startDate} - {exp.current ? "Current" : exp.endDate}</span></div>
-                      {exp.description && <p className="text-[10px] text-zinc-500 whitespace-pre-line mt-0.5">{exp.description?.substring(0, 150)}</p>}
-                    </div>
-                  ))}
-                </div>
-                <div className="mb-3">
-                  <h2 className="text-xs font-bold text-zinc-500 italic mb-1">Education And Training</h2>
-                  {(data.education.length > 0 ? data.education.slice(0, 2) : [{ degree: "Bachelor of Science", field: "Computer Science", school: "State University", endDate: "2018" }]).map((edu: any, i: number) => (
-                    <div key={i} className="text-[11px] mb-1"><span className="font-semibold text-zinc-900">{edu.degree}{edu.field && ` in ${edu.field}`}</span><br /><span className="text-zinc-500">{edu.school}</span></div>
-                  ))}
-                </div>
+              <div className="max-h-[70vh] overflow-y-auto">
+                <TemplateRenderer data={previewData} templateId={template} scale="full" />
               </div>
             </div>
           </div>
@@ -1177,16 +1199,9 @@ export function ResumeBuilder() {
             </div>
             <div className="flex-1 overflow-y-auto p-5 flex justify-center">
               <div className="bg-white border border-zinc-200 rounded-lg shadow-md w-full max-w-[400px] overflow-hidden">
-                <div className="p-6 text-sm" id="resume-preview">
-                  <h1 className="text-lg font-bold text-center text-zinc-900 mb-0.5">{data.personalDetails.fullName || "Your Name"}</h1>
-                  <div className="text-center text-zinc-500 text-[10px] mb-0.5">{[data.personalDetails.email, data.personalDetails.phone, data.personalDetails.location].filter(Boolean).join("  |  ") || "email@example.com | (555) 123-4567"}</div>
-                  {(data.personalDetails.linkedin || data.personalDetails.portfolio) && <div className="text-center text-zinc-400 text-[10px] mb-3">{[data.personalDetails.linkedin, data.personalDetails.portfolio].filter(Boolean).join("  |  ")}</div>}
-                  {data.summary && <div className="mb-3"><div className="border-b border-zinc-200 mb-1 pb-0.5"><h2 className="text-[10px] font-bold uppercase tracking-wider text-zinc-600">Professional Summary</h2></div><p className="text-zinc-600 text-[10px] leading-relaxed whitespace-pre-line">{data.summary}</p></div>}
-                  {data.experience.length > 0 && <div className="mb-3"><div className="border-b border-zinc-200 mb-1 pb-0.5"><h2 className="text-[10px] font-bold uppercase tracking-wider text-zinc-600">Experience</h2></div>{data.experience.map((exp, i) => <div key={exp.id||i} className="mb-2"><div className="flex justify-between items-baseline"><span className="font-semibold text-zinc-900 text-[11px]">{exp.title||"Job Title"}</span><span className="text-zinc-400 text-[9px]">{exp.startDate} - {exp.current?"Present":exp.endDate}</span></div><div className="text-zinc-500 text-[9px]">{exp.company}{exp.location&&`, ${exp.location}`}</div>{exp.description&&<p className="text-zinc-600 text-[10px] mt-0.5 whitespace-pre-line leading-relaxed">{exp.description}</p>}</div>)}</div>}
-                  {data.education.length > 0 && <div className="mb-3"><div className="border-b border-zinc-200 mb-1 pb-0.5"><h2 className="text-[10px] font-bold uppercase tracking-wider text-zinc-600">Education</h2></div>{data.education.map((edu, i) => <div key={edu.id||i} className="mb-1"><div className="flex justify-between items-baseline"><span className="font-semibold text-zinc-900 text-[11px]">{edu.degree}{edu.field&&` in ${edu.field}`}</span><span className="text-zinc-400 text-[9px]">{edu.startDate} - {edu.endDate}</span></div><div className="text-zinc-500 text-[9px]">{edu.school}</div></div>)}</div>}
-                  {data.skills.length > 0 && <div className="mb-3"><div className="border-b border-zinc-200 mb-1 pb-0.5"><h2 className="text-[10px] font-bold uppercase tracking-wider text-zinc-600">Skills</h2></div><p className="text-zinc-600 text-[10px]">{data.skills.join(" \u2022 ")}</p></div>}
-                  {data.certifications.length > 0 && <div><div className="border-b border-zinc-200 mb-1 pb-0.5"><h2 className="text-[10px] font-bold uppercase tracking-wider text-zinc-600">Certifications</h2></div><ul className="text-zinc-600 text-[10px]">{data.certifications.map(c => <li key={c}>&bull; {c}</li>)}</ul></div>}
-                  {!data.summary && data.experience.length === 0 && data.skills.length === 0 && <div className="text-center text-zinc-300 py-12"><p className="text-xs">Fill in your details to see the preview</p></div>}
+                <div id="resume-preview">
+                  <TemplateRenderer data={data} templateId={template} scale="full" />
+                  {!data.summary && data.experience.length === 0 && data.skills.length === 0 && <EmptyPreview />}
                 </div>
               </div>
             </div>
