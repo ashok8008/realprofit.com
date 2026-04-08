@@ -104,20 +104,38 @@ export function ResumeBuilder() {
   const [dragActive, setDragActive] = useState(false);
   const [processingStep, setProcessingStep] = useState(0);
 
+  const [hasSavedDraft, setHasSavedDraft] = useState(false);
+
   const fileRef = React.useRef<HTMLInputElement>(null);
 
-  // ── Load saved data ──
+  // ── Generate a stable draft ID (per browser) ──
+  const getDraftId = () => {
+    let id = typeof window !== "undefined" ? localStorage.getItem("resume_draft_id") : null;
+    if (!id) { id = Math.random().toString(36).substring(2, 15); if (typeof window !== "undefined") localStorage.setItem("resume_draft_id", id); }
+    return id;
+  };
+
+  // ── Load: check localStorage for saved draft, show banner but stay on entry ──
   useEffect(() => {
     const saved = loadFromStorage<ResumeData | null>(STORAGE_KEY, null as unknown as ResumeData);
     if (saved && (saved.personalDetails?.fullName || saved.experience?.length > 0 || saved.summary)) {
-      setData(saved); setFlowState("wizard");
+      setData(saved);
+      setHasSavedDraft(true);
+      // Stay on entry page — user decides whether to continue or start fresh
     }
   }, []);
 
-  // ── Auto-save ──
+  // ── Auto-save to localStorage + MongoDB ──
   useEffect(() => {
     if (flowState === "wizard") {
-      const t = setTimeout(() => saveToStorage(STORAGE_KEY, data), 500);
+      const t = setTimeout(() => {
+        saveToStorage(STORAGE_KEY, data);
+        // Also save to MongoDB
+        fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/career-tools/resume-draft`, {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ draft_id: getDraftId(), data }),
+        }).catch(() => {});
+      }, 1000);
       return () => clearTimeout(t);
     }
   }, [data, flowState]);
@@ -173,7 +191,7 @@ export function ResumeBuilder() {
   }, [toast]);
 
   const handleProcessingComplete = useCallback(() => { setFlowState("welcome"); }, []);
-  const handleReset = () => { if (confirm("Clear all resume data?")) { setData(defaultResumeData); clearStorage(STORAGE_KEY); setFlowState("entry"); setConfidences([]); toast({ title: "Cleared" }); } };
+  const handleReset = () => { if (confirm("Clear all resume data?")) { setData(defaultResumeData); clearStorage(STORAGE_KEY); setHasSavedDraft(false); setFlowState("entry"); setConfidences([]); toast({ title: "Cleared" }); } };
   const handleDownloadPDF = () => { const pdf = generateResumePDF(data, template); pdf.save(`${data.personalDetails.fullName || "resume"}_resume.pdf`.replace(/\s+/g, "_")); toast({ title: "PDF Downloaded" }); };
 
   // ── Data update helpers ──
@@ -254,6 +272,30 @@ export function ResumeBuilder() {
           <p className="text-lg text-zinc-600 leading-relaxed mb-10 max-w-2xl">
             Land your next job with one of the best AI resume builders online. Work from your computer or phone with recruiter-approved templates and add ready-to-use skills and phrases in one click.
           </p>
+
+          {/* Continue saved draft banner */}
+          {hasSavedDraft && (
+            <div className="mb-8 max-w-xl bg-white border-2 border-[#0d9488] rounded-2xl p-5 flex items-center justify-between shadow-sm" data-testid="continue-draft-banner">
+              <div className="flex items-center gap-4">
+                <div className="w-11 h-11 rounded-full bg-teal-50 flex items-center justify-center flex-shrink-0">
+                  <FileText className="w-5 h-5 text-[#0d9488]" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-zinc-900">{data.personalDetails.fullName ? `Continue ${data.personalDetails.fullName}'s resume` : "Continue where you left off"}</h3>
+                  <p className="text-sm text-zinc-500">Your saved draft is ready to edit.</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <button onClick={() => setFlowState("wizard")} className="h-10 px-5 rounded-full bg-[#0d9488] text-white text-sm font-bold hover:bg-[#0b8578] transition-colors" data-testid="continue-draft-btn">
+                  Continue
+                </button>
+                <button onClick={() => { setData(defaultResumeData); clearStorage(STORAGE_KEY); setHasSavedDraft(false); }} className="h-10 px-4 rounded-full border border-zinc-200 text-sm text-zinc-500 hover:text-red-500 hover:border-red-200 transition-colors" data-testid="discard-draft-btn">
+                  Discard
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-col sm:flex-row gap-4">
             <button onClick={() => setFlowState("upload")} className="h-14 px-10 rounded-full bg-[#f5c542] hover:bg-[#e5b732] text-zinc-900 text-lg font-bold transition-colors" data-testid="import-resume-btn">
               Import your resume

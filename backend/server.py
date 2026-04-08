@@ -76,6 +76,15 @@ class SkillSuggestionsRequest(BaseModel):
 class SkillSuggestionsResponse(BaseModel):
     suggestions: List[str]
 
+class ResumeDraftRequest(BaseModel):
+    draft_id: str
+    data: dict
+
+class ResumeDraftResponse(BaseModel):
+    draft_id: str
+    data: dict
+    updated_at: str
+
 class EmailTemplateRequest(BaseModel):
     template_type: str  # 'thank_you', 'follow_up', 'negotiation', 'decline'
     company_name: str
@@ -216,6 +225,32 @@ async def suggest_skills(request: SkillSuggestionsRequest):
         skills = [s for s in skills if s.lower() not in existing]
     
     return SkillSuggestionsResponse(suggestions=skills[:15])
+
+
+@app.post("/api/career-tools/resume-draft", response_model=ResumeDraftResponse)
+async def save_resume_draft(request: ResumeDraftRequest):
+    """Save resume draft to MongoDB"""
+    from datetime import datetime, timezone
+    from db import get_db
+    db = get_db()
+    now = datetime.now(timezone.utc).isoformat()
+    await db.resume_drafts.update_one(
+        {"draft_id": request.draft_id},
+        {"$set": {"data": request.data, "updated_at": now}},
+        upsert=True
+    )
+    return ResumeDraftResponse(draft_id=request.draft_id, data=request.data, updated_at=now)
+
+
+@app.get("/api/career-tools/resume-draft/{draft_id}")
+async def get_resume_draft(draft_id: str):
+    """Get resume draft from MongoDB"""
+    from db import get_db
+    db = get_db()
+    doc = await db.resume_drafts.find_one({"draft_id": draft_id}, {"_id": 0})
+    if not doc:
+        return {"draft_id": draft_id, "data": None}
+    return {"draft_id": doc["draft_id"], "data": doc["data"], "updated_at": doc.get("updated_at", "")}
 
 
 @app.post("/api/career-tools/email-template", response_model=EmailTemplateResponse)
