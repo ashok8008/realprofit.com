@@ -177,6 +177,11 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - **Create flow updated**: Entry → Experience Level → Years of Experience (NEW) → Industry → Template Selection → Wizard Editor
 - Testing: Frontend 100% (18/18) — iteration_27
 
+### Phase 23d: Restore Score Toolbar (Apr 2026) -- DONE
+- Restored ATS/Readability/Impact score mini-bars in the wizard editor toolbar
+- Toolbar shows: score number (color-coded), ATS bar (teal), Readability bar (rose), Impact bar (sky), Tips button with count badge, PDF download button
+- Responsive: bars hidden on small screens, all visible on sm+
+
 ## Upcoming Tasks
 - Premium ATS checks for Resume Builder (P2)
 - Stripe integration for monetization (P2)

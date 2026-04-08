@@ -1168,12 +1168,46 @@ export function ResumeBuilder() {
           {/* Form area */}
           <div className="flex-1 overflow-y-auto" data-testid="editor-form-area">
             <div className="max-w-2xl mx-auto px-6 lg:px-10 py-8">
-              {/* Tips & Fixes bar */}
-              <div className="flex items-center justify-between mb-6">
-                <div />
-                <button onClick={() => setFlowState("tips")} className="h-9 px-4 rounded-lg border border-zinc-200 bg-white text-sm font-medium text-zinc-700 hover:bg-zinc-50 flex items-center gap-2 shadow-sm" data-testid="tips-toggle">
-                  <Star className="w-4 h-4 text-amber-400" /> Tips & fixes {allFixes.length > 0 && <span className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold">{allFixes.length}</span>}
-                </button>
+              {/* Score Toolbar */}
+              <div className="flex items-center justify-between mb-6 bg-white border border-zinc-200 rounded-xl px-4 py-2.5 shadow-sm" data-testid="score-toolbar">
+                <div className="flex items-center gap-4">
+                  {/* Score number */}
+                  <div className="flex items-baseline gap-0.5">
+                    <span className={`text-xl font-black ${scorePct >= 80 ? "text-emerald-500" : scorePct >= 60 ? "text-sky-500" : scorePct >= 40 ? "text-amber-500" : "text-red-500"}`} data-testid="score-number">{scorePct}</span>
+                    <span className="text-[10px] text-zinc-400 font-medium">/100</span>
+                  </div>
+
+                  {/* ATS bar */}
+                  <div className="hidden sm:flex items-center gap-1.5">
+                    <span className="text-[10px] font-semibold text-zinc-500">ATS</span>
+                    <div className="w-12 h-1.5 bg-zinc-200 rounded-full overflow-hidden">
+                      <div className="h-full bg-teal-500 rounded-full transition-all" style={{ width: `${Math.min(100, (scoreResult.breakdown.ats.score / scoreResult.breakdown.ats.max) * 100)}%` }} data-testid="ats-bar" />
+                    </div>
+                  </div>
+
+                  {/* Readability bar */}
+                  <div className="hidden sm:flex items-center gap-1.5">
+                    <span className="text-[10px] font-semibold text-zinc-500">Readability</span>
+                    <div className="w-12 h-1.5 bg-zinc-200 rounded-full overflow-hidden">
+                      <div className="h-full bg-rose-500 rounded-full transition-all" style={{ width: `${Math.min(100, (scoreResult.breakdown.structure.score / scoreResult.breakdown.structure.max) * 100)}%` }} data-testid="readability-bar" />
+                    </div>
+                  </div>
+
+                  {/* Impact bar */}
+                  <div className="hidden sm:flex items-center gap-1.5">
+                    <span className="text-[10px] font-semibold text-zinc-500">Impact</span>
+                    <div className="w-12 h-1.5 bg-zinc-200 rounded-full overflow-hidden">
+                      <div className="h-full bg-sky-500 rounded-full transition-all" style={{ width: `${Math.min(100, (scoreResult.breakdown.impact.score / scoreResult.breakdown.impact.max) * 100)}%` }} data-testid="impact-bar" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <button onClick={() => setFlowState("tips")} className="h-8 px-3 rounded-lg border border-zinc-200 bg-white text-xs font-semibold text-zinc-600 hover:bg-zinc-50 inline-flex items-center gap-1.5 shadow-sm" data-testid="tips-toggle">
+                    <Star className="w-3.5 h-3.5 text-amber-400" /> Tips {allFixes.length > 0 && <span className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold leading-none">{allFixes.length}</span>}
+                  </button>
+                  <Button size="sm" onClick={handleDownloadPDF} className="h-8 text-xs px-3 bg-zinc-900 text-white hover:bg-zinc-800" data-testid="toolbar-pdf-btn"><Download className="w-3.5 h-3.5 mr-1" /> PDF</Button>
+                </div>
               </div>
 
               {renderStepContent()}
