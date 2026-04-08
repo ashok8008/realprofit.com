@@ -108,7 +108,8 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - Iteration 14: Backend 95%, Frontend 100%
 - Iteration 15: Frontend 100% (17/17)
 - Iteration 16: Backend 100% (8/8), Frontend 100% (25/25) — Tax Tools
-- Iteration 23: Backend 100% (6/6), Frontend 100% (13/13) — Resume Builder UX Overhaul
+- Iteration 23: Backend 100% (6/6), Frontend 100% (13/13) — Resume Builder UX Overhaul v1
+- Iteration 24: Backend 100% (9/9), Frontend 100% (21/21) — Resume Builder Complete Wizard Rewrite + Skill Suggestions
 
 ### Phase 17: Tax Tools SEO Schemas, Canonical URLs, Sitemap & Robots (Apr 2026) -- DONE
 - Added JSON-LD structured data: BreadcrumbList, ItemList, FAQPage on hub; WebApplication, BreadcrumbList, FAQPage on detail pages
@@ -138,14 +139,18 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - Step navigation: Continue (1/5) + Back buttons
 - Testing: Frontend 100% (29/29) — iteration_22
 
-### Phase 23: Resume Builder UX Overhaul — Multi-Step Onboarding & Review Cards (Apr 2026) -- DONE
-- **Create From Scratch flow**: Entry → Onboarding (experience level → industry selection) → Template Selection → Editor
-- **Import flow**: Entry → Processing → Welcome ("Nice to meet you, {name}") → Analysis (strengths/fixes) → Template Selection → Editor
-- **Experience & Education tabs refactored to Review Card pattern**: entries shown as compact cards with Edit/Delete, expanding to full form inline
-- **AI Summary Generation**: "Generate Summary" button calls `/api/career-tools/generate-summaries`, shows 3 AI-written options to pick from
-- **Full-screen Tips & Fixes view**: dedicated full-page categorized issues view with score overview, Fix buttons, and Fix All
-- **New backend endpoint**: POST `/api/career-tools/generate-summaries` — returns 3 GPT-4o-mini generated summary variations
-- Testing: Backend 100% (6/6), Frontend 100% (13/13) — iteration_23
+### Phase 23: Resume Builder UX Overhaul — Multi-Step Wizard & Review Cards (Apr 2026) -- DONE
+- **COMPLETE REWRITE** of the Resume Builder to match competitor (Resume Now) premium UX patterns
+- **Entry page**: "Import Your Resume" and "Create From Scratch" dual-card layout with gradient background
+- **Create From Scratch flow**: Entry → Experience Level → Industry Selection → Template Selection → Guided Wizard Editor
+- **Import flow**: Entry → Processing → Welcome ("Nice to meet you, {name}") → Analysis (strengths/fixes) → Template Selection → Guided Wizard Editor
+- **Guided Wizard Editor**: Dark navy sidebar with 7 steps (Header, Experience, Education, Skills, Summary, Additional Details, Finalize) + score completion ring + resume preview on right
+- **Review Card Pattern**: Experience & Education entries show as collapsed cards with Edit/Delete/Move buttons, expanding inline for editing
+- **AI Summary Generation**: "Generate My Summary" button with 3 AI-written options labeled "Refined for clarity", "Optimized for impact", "Focused on expertise"
+- **Job-Title Skill Suggestions**: "Get Suggestions" button in Skills step calls POST /api/career-tools/suggest-skills for AI-powered skill recommendations
+- **Full-screen Tips & Fixes**: Dark overlay with categorized issues, Fix All button, and Fix individual buttons
+- **New backend endpoints**: POST /api/career-tools/generate-summaries, POST /api/career-tools/suggest-skills
+- Testing: Backend 100% (9/9), Frontend 100% (21/21) — iteration_24
 
 ## Upcoming Tasks
 - Premium ATS checks for Resume Builder (P2)
