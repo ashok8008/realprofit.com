@@ -96,6 +96,7 @@ export function ResumeBuilder() {
   const [summaryOptions, setSummaryOptions] = useState<string[]>([]);
   const [skillSuggestions, setSkillSuggestions] = useState<string[]>([]);
   const [skillSugLoading, setSkillSugLoading] = useState(false);
+  const [templateColor, setTemplateColor] = useState("#ffffff");
 
   // ── Paste mode ──
   const [pasteMode, setPasteMode] = useState(false);
@@ -526,52 +527,72 @@ export function ResumeBuilder() {
   }
 
   // ════════════════════════════════════════════════════════════
-  // ONBOARDING — Experience Level
+  // ONBOARDING — Experience Level (matching competitor exactly)
   // ════════════════════════════════════════════════════════════
   if (flowState === "onboarding-level") {
+    const PLANT_ICONS = [
+      <svg key="0" viewBox="0 0 40 40" fill="none" className="w-8 h-8"><path d="M20 35V22" stroke="#1e293b" strokeWidth="2" strokeLinecap="round"/><path d="M20 28c-6-2-8-8-8-12 4 0 7 3 8 6" stroke="#1e293b" strokeWidth="1.8" fill="none"/></svg>,
+      <svg key="1" viewBox="0 0 40 40" fill="none" className="w-8 h-8"><path d="M20 35V18" stroke="#1e293b" strokeWidth="2" strokeLinecap="round"/><path d="M20 25c-7-2-9-9-9-14 5 0 8 4 9 7" stroke="#1e293b" strokeWidth="1.8" fill="none"/><path d="M20 20c5-3 6-8 6-12-4 0-6 3-6 6" stroke="#1e293b" strokeWidth="1.8" fill="none"/></svg>,
+      <svg key="2" viewBox="0 0 40 40" fill="none" className="w-8 h-8"><path d="M20 35V14" stroke="#1e293b" strokeWidth="2" strokeLinecap="round"/><path d="M20 24c-8-2-10-10-10-15 5 0 9 5 10 8" stroke="#1e293b" strokeWidth="1.8" fill="none"/><path d="M20 18c6-3 8-9 8-14-5 0-7 4-8 7" stroke="#1e293b" strokeWidth="1.8" fill="none"/><path d="M20 28c4-1 6-5 6-9-3 0-5 3-6 5" stroke="#1e293b" strokeWidth="1.8" fill="none"/></svg>,
+      <svg key="3" viewBox="0 0 40 40" fill="none" className="w-8 h-8"><path d="M20 35V10" stroke="#1e293b" strokeWidth="2" strokeLinecap="round"/><path d="M20 22c-9-2-11-10-11-16 6 0 10 5 11 9" stroke="#1e293b" strokeWidth="1.8" fill="none"/><path d="M20 16c7-3 9-10 9-15-5 0-8 5-9 8" stroke="#1e293b" strokeWidth="1.8" fill="none"/><path d="M20 27c5-1 7-6 7-10-4 0-6 3-7 6" stroke="#1e293b" strokeWidth="1.8" fill="none"/><path d="M20 30c-4-1-6-4-6-8 3 0 5 2 6 4" stroke="#1e293b" strokeWidth="1.8" fill="none"/></svg>,
+    ];
     return (
-      <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-4 bg-gradient-to-br from-slate-50 to-blue-50" data-testid="onboarding-level">
+      <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-6" data-testid="onboarding-level">
         <div className="w-full max-w-lg text-center">
-          <Briefcase className="w-12 h-12 text-amber-500 mx-auto mb-4" />
-          <h1 className="text-3xl font-bold text-zinc-900 tracking-tight mb-2">How much work experience<br />do you have?</h1>
+          <div className="w-14 h-14 mx-auto mb-5 rounded-full bg-[#fef3c7] flex items-center justify-center">
+            <Briefcase className="w-7 h-7 text-[#b45309]" />
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-black text-zinc-900 tracking-tight mb-2 leading-tight">
+            How much <span className="underline decoration-[#f5c542] decoration-4 underline-offset-4">work experience</span> do<br />you have?
+          </h1>
           <p className="text-base text-zinc-500 mb-8">Select the one that best describes you.</p>
-          <div className="space-y-3 max-w-sm mx-auto">
-            {EXPERIENCE_LEVELS.map(l => (
-              <button key={l.id} onClick={() => { setOnboardLevel(l.id); setFlowState("onboarding-industry"); }} className="w-full flex items-center gap-4 px-5 py-4 rounded-2xl border-2 text-left transition-all hover:shadow-md hover:border-blue-400 border-zinc-200 bg-white" data-testid={`level-${l.id}`}>
-                <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0 text-blue-600"><Briefcase className="w-5 h-5" /></div>
-                <div><div className="text-base font-semibold text-zinc-900">{l.label}</div><div className="text-sm text-zinc-500">{l.desc}</div></div>
+          <div className="space-y-3 max-w-md mx-auto">
+            {EXPERIENCE_LEVELS.map((l, idx) => (
+              <button key={l.id} onClick={() => { setOnboardLevel(l.id); }} className={`w-full flex items-center gap-4 px-5 py-4 rounded-full border-2 text-left transition-all hover:shadow-md ${onboardLevel === l.id ? "border-zinc-900 bg-zinc-50 shadow-sm" : "border-zinc-200 bg-white hover:border-zinc-400"}`} data-testid={`level-${l.id}`}>
+                <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">{PLANT_ICONS[idx]}</div>
+                <div><div className="text-base font-bold text-zinc-900">{l.label}</div><div className="text-sm text-zinc-500">{l.desc}</div></div>
               </button>
             ))}
           </div>
+          <button onClick={() => { if (onboardLevel) setFlowState("onboarding-industry"); }} disabled={!onboardLevel} className="mt-8 h-14 px-12 rounded-full bg-zinc-200 text-zinc-600 text-lg font-bold disabled:opacity-50 enabled:bg-[#3b82f6] enabled:text-white enabled:hover:bg-[#2563eb] transition-colors" data-testid="level-continue">
+            Continue
+          </button>
         </div>
       </div>
     );
   }
 
   // ════════════════════════════════════════════════════════════
-  // ONBOARDING — Industry
+  // ONBOARDING — Industry (matching competitor)
   // ════════════════════════════════════════════════════════════
   if (flowState === "onboarding-industry") {
     const toggleInd = (ind: string) => setOnboardIndustries(prev => prev.includes(ind) ? prev.filter(x => x !== ind) : prev.length < 3 ? [...prev, ind] : prev);
     return (
-      <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-4 bg-gradient-to-br from-slate-50 to-blue-50" data-testid="onboarding-industry">
+      <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-6" data-testid="onboarding-industry">
         <div className="w-full max-w-xl text-center">
-          <Wrench className="w-12 h-12 text-amber-500 mx-auto mb-4" />
-          <h1 className="text-3xl font-bold text-zinc-900 tracking-tight mb-2">What industry are you<br />making this resume for?</h1>
+          <div className="w-14 h-14 mx-auto mb-5 rounded-full bg-[#fef3c7] flex items-center justify-center">
+            <Wrench className="w-7 h-7 text-[#b45309]" />
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-black text-zinc-900 tracking-tight mb-2 leading-tight">
+            What <span className="underline decoration-[#f5c542] decoration-4 underline-offset-4">industry</span> are you making<br />this resume for?
+          </h1>
           <p className="text-base text-zinc-500 mb-8">You can select up to 3 industries.</p>
-          <div className="flex flex-wrap justify-center gap-3 mb-8">
+          <div className="flex flex-wrap justify-center gap-3 mb-4">
             {INDUSTRIES.map(ind => (
-              <button key={ind} onClick={() => toggleInd(ind)} className={`px-5 py-2.5 rounded-full border-2 text-sm font-medium transition-all ${onboardIndustries.includes(ind) ? "border-blue-600 bg-blue-600 text-white" : "border-zinc-200 text-zinc-700 bg-white hover:border-blue-300"}`} data-testid={`industry-${ind.replace(/\s+/g, "-").toLowerCase()}`}>
+              <button key={ind} onClick={() => toggleInd(ind)} className={`px-5 py-2.5 rounded-full border-2 text-sm font-medium transition-all ${onboardIndustries.includes(ind) ? "border-slate-800 bg-slate-800 text-white" : "border-zinc-200 text-zinc-700 bg-white hover:border-zinc-400"}`} data-testid={`industry-${ind.replace(/\s+/g, "-").toLowerCase()}`}>
                 {ind}
               </button>
             ))}
           </div>
+          <button className="text-[#3b82f6] text-sm font-bold hover:underline mb-8 inline-flex items-center gap-1" data-testid="add-industry-link">
+            <Plus className="w-4 h-4" /> Add Industry
+          </button>
           <div className="flex items-center justify-center gap-4">
-            <button onClick={() => setFlowState("onboarding-level")} className="h-12 px-6 rounded-full border-2 border-zinc-200 text-zinc-600 font-medium text-sm hover:bg-zinc-50 bg-white flex items-center gap-2" data-testid="onboarding-back">
-              <ChevronLeft className="w-4 h-4" /> Back
+            <button onClick={() => setFlowState("onboarding-level")} className="h-12 px-8 rounded-full border-2 border-zinc-900 text-zinc-900 font-bold text-sm hover:bg-zinc-50 bg-white" data-testid="onboarding-back">
+              Back
             </button>
-            <button onClick={() => setFlowState("templates")} disabled={onboardIndustries.length === 0} className="h-12 px-8 rounded-full bg-blue-600 text-white font-medium text-sm hover:bg-blue-700 disabled:opacity-40 flex items-center gap-2" data-testid="onboarding-continue">
-              Continue <ArrowRight className="w-4 h-4" />
+            <button onClick={() => setFlowState("templates")} disabled={onboardIndustries.length === 0} className="h-12 px-8 rounded-full bg-[#3b82f6] text-white font-bold text-sm hover:bg-[#2563eb] disabled:opacity-40" data-testid="onboarding-continue">
+              Continue
             </button>
           </div>
         </div>
@@ -580,30 +601,113 @@ export function ResumeBuilder() {
   }
 
   // ════════════════════════════════════════════════════════════
-  // TEMPLATE SELECTION
+  // TEMPLATE SELECTION (Two-pane: preview left, details right)
   // ════════════════════════════════════════════════════════════
   if (flowState === "templates") {
+    const TEMPLATE_DETAILS: Record<string, { tags: string[]; features: string[]; popularity: string; colors: string[] }> = {
+      clean: { tags: ["Recommended", "Classic"], features: ["ATS-optimized", "1-column layout", "Editable sample content", "Download as PDF"], popularity: "2.1K+ people picked this template", colors: ["#ffffff", "#1e293b", "#64748b", "#3b82f6", "#0ea5e9", "#0d9488", "#16a34a", "#f5c542", "#ef4444"] },
+      professional: { tags: ["Popular", "Traditional"], features: ["ATS-optimized", "Professional format", "Clean typography", "Download as PDF"], popularity: "1.8K+ people picked this template", colors: ["#ffffff", "#1e293b", "#374151", "#1d4ed8", "#0d9488", "#b45309", "#7c3aed", "#dc2626", "#059669"] },
+      minimal: { tags: ["Trending", "Simple"], features: ["ATS-optimized", "Maximum whitespace", "Modern feel", "Download as PDF"], popularity: "1.5K+ people picked this template", colors: ["#ffffff", "#0f172a", "#475569", "#2563eb", "#0891b2", "#65a30d", "#9333ea", "#e11d48", "#ca8a04"] },
+      executive: { tags: ["Premium", "Bold"], features: ["ATS-optimized", "Bold header section", "Executive presence", "Download as PDF"], popularity: "980+ people picked this template", colors: ["#ffffff", "#0f172a", "#334155", "#1e40af", "#0d9488", "#b91c1c", "#7e22ce", "#c2410c", "#15803d"] },
+      modern: { tags: ["Premium", "Modern"], features: ["ATS-optimized", "Two-column layout", "Color accents", "Download as PDF"], popularity: "1.2K+ people picked this template", colors: ["#ffffff", "#1e293b", "#6b7280", "#2563eb", "#0ea5e9", "#059669", "#d97706", "#dc2626", "#8b5cf6"] },
+    };
+    const sel = TEMPLATES.find(t => t.id === template) || TEMPLATES[0];
+    const details = TEMPLATE_DETAILS[template] || TEMPLATE_DETAILS.clean;
+
     return (
-      <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-4 bg-gradient-to-br from-slate-50 to-blue-50" data-testid="template-selection">
-        <div className="w-full max-w-3xl">
-          <h2 className="text-3xl font-bold text-zinc-900 mb-1 text-center">Choose a Template</h2>
-          <p className="text-base text-zinc-500 mb-8 text-center">Pick a layout for your resume. You can change it later.</p>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {TEMPLATES.map(t => (
-              <button key={t.id} onClick={() => setTemplate(t.id)} className={`relative rounded-2xl border-2 p-4 text-left transition-all hover:shadow-lg ${template === t.id ? "border-blue-600 bg-blue-50 shadow-md" : "border-zinc-200 bg-white hover:border-zinc-400"}`} data-testid={`template-${t.id}`}>
-                {t.premium && <span className="absolute top-2 right-2 bg-amber-400 text-amber-900 text-[9px] px-1.5 py-0.5 rounded-full font-bold">PRO</span>}
-                <div className="w-full aspect-[1/1.414] bg-zinc-100 rounded-lg mb-3 flex items-center justify-center">
-                  <FileText className={`w-8 h-8 ${template === t.id ? "text-blue-600" : "text-zinc-300"}`} />
+      <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-6" data-testid="template-selection">
+        <div className="w-full max-w-5xl flex flex-col lg:flex-row gap-8">
+          {/* Left: Template thumbnails + full preview */}
+          <div className="flex gap-4 flex-1">
+            {/* Thumbnail strip */}
+            <div className="hidden md:flex flex-col gap-2 flex-shrink-0 w-20">
+              {TEMPLATES.map(t => (
+                <button key={t.id} onClick={() => setTemplate(t.id)} className={`w-20 aspect-[1/1.414] rounded-lg border-2 flex items-center justify-center transition-all ${template === t.id ? "border-[#3b82f6] shadow-md bg-blue-50" : "border-zinc-200 bg-white hover:border-zinc-400"}`} data-testid={`template-thumb-${t.id}`}>
+                  <div className="w-14 text-[4px] leading-[6px] text-zinc-400 px-1 py-1 overflow-hidden">
+                    <div className={`w-full h-0.5 mb-0.5 ${template === t.id ? "bg-[#3b82f6]" : "bg-zinc-300"}`} />
+                    <div className="w-10 h-0.5 bg-zinc-200 mb-1" />
+                    <div className="w-full h-0.5 bg-zinc-100 mb-0.5" />
+                    <div className="w-12 h-0.5 bg-zinc-100 mb-0.5" />
+                    <div className="w-8 h-0.5 bg-zinc-100" />
+                  </div>
+                </button>
+              ))}
+            </div>
+            {/* Full preview */}
+            <div className="flex-1 bg-white border border-zinc-200 rounded-xl shadow-lg overflow-hidden">
+              <div className="p-6 text-sm max-h-[70vh] overflow-y-auto">
+                <div className="border-l-4 border-zinc-900 pl-4 mb-4">
+                  <h1 className="text-xl font-bold text-zinc-900">{data.personalDetails.fullName || "Your Name"}</h1>
+                  <p className="text-xs text-zinc-500">{[data.personalDetails.email || "email@example.com", data.personalDetails.phone || "(555) 123-4567", data.personalDetails.location].filter(Boolean).join("  \u2022  ")}</p>
                 </div>
-                <p className="text-sm font-semibold text-zinc-800">{t.name}</p>
-                <p className="text-xs text-zinc-400">{t.desc}</p>
-              </button>
-            ))}
+                {(data.summary || true) && (
+                  <div className="mb-3">
+                    <h2 className="text-xs font-bold text-zinc-500 italic mb-1">Summary</h2>
+                    <p className="text-[11px] text-zinc-600 leading-relaxed">{data.summary || "Customer-focused professional with solid understanding of industry dynamics. Offering quality solutions to meet needs and exceed expectations."}</p>
+                  </div>
+                )}
+                <div className="mb-3">
+                  <h2 className="text-xs font-bold text-zinc-500 italic mb-1">Skills</h2>
+                  <div className="grid grid-cols-2 gap-x-4 text-[11px] text-zinc-600">
+                    {(data.skills.length > 0 ? data.skills.slice(0, 8) : ["Project Management", "Communication", "Leadership", "Data Analysis", "Problem Solving", "Teamwork"]).map((s, i) => (
+                      <div key={i} className="flex items-center gap-1 py-0.5"><span className="w-1 h-1 rounded-full bg-zinc-400" />{s}</div>
+                    ))}
+                  </div>
+                </div>
+                <div className="mb-3">
+                  <h2 className="text-xs font-bold text-zinc-500 italic mb-1">Experience</h2>
+                  {(data.experience.length > 0 ? data.experience.slice(0, 2) : [{ title: "Project Manager", company: "Acme Corp", startDate: "01/2020", endDate: "Current", description: "- Led cross-functional teams\n- Delivered projects on time and budget" }]).map((exp: any, i: number) => (
+                    <div key={i} className="mb-2">
+                      <div className="flex justify-between text-[11px]"><span className="font-semibold text-zinc-900">{exp.title}, <strong>{exp.company}</strong></span><span className="text-zinc-400">{exp.startDate} - {exp.current ? "Current" : exp.endDate}</span></div>
+                      {exp.description && <p className="text-[10px] text-zinc-500 whitespace-pre-line mt-0.5">{exp.description?.substring(0, 150)}</p>}
+                    </div>
+                  ))}
+                </div>
+                <div className="mb-3">
+                  <h2 className="text-xs font-bold text-zinc-500 italic mb-1">Education And Training</h2>
+                  {(data.education.length > 0 ? data.education.slice(0, 2) : [{ degree: "Bachelor of Science", field: "Computer Science", school: "State University", endDate: "2018" }]).map((edu: any, i: number) => (
+                    <div key={i} className="text-[11px] mb-1"><span className="font-semibold text-zinc-900">{edu.degree}{edu.field && ` in ${edu.field}`}</span><br /><span className="text-zinc-500">{edu.school}</span></div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="mt-8 flex justify-center">
-            <button onClick={() => { setFlowState("wizard"); setWizardStep("header"); toast({ title: "Let's build!", description: "Fill in each section — your score updates live." }); }} className="bg-blue-600 text-white hover:bg-blue-700 rounded-full h-14 px-10 text-lg font-medium transition-colors inline-flex items-center gap-2" data-testid="template-continue-btn">
-              Continue <ArrowRight className="w-5 h-5" />
+
+          {/* Right: Template info + Use button */}
+          <div className="lg:w-[340px] flex-shrink-0">
+            <div className="flex gap-2 mb-2">
+              {details.tags.map(tag => (
+                <span key={tag} className={`text-xs font-bold px-3 py-1 rounded-full border ${tag === "Recommended" ? "bg-[#eef7ee] text-emerald-700 border-emerald-200" : tag === "Premium" ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-zinc-100 text-zinc-700 border-zinc-200"}`}>{tag}</span>
+              ))}
+            </div>
+            <h2 className="text-4xl font-black text-zinc-900 mb-2">{sel.name}</h2>
+            <p className="text-sm text-zinc-500 mb-4 flex items-center gap-1.5"><User className="w-4 h-4" /> {details.popularity}</p>
+            <div className="space-y-2.5 mb-6">
+              {details.features.map((f, i) => (
+                <div key={i} className="flex items-center gap-2 text-base text-zinc-800"><Check className="w-5 h-5 text-zinc-900" /> {f}</div>
+              ))}
+            </div>
+            <button onClick={() => { setFlowState("wizard"); setWizardStep("header"); toast({ title: "Let's build!", description: "Fill in each section — your score updates live." }); }} className="w-full h-14 rounded-full bg-[#3b82f6] hover:bg-[#2563eb] text-white text-lg font-bold transition-colors mb-6" data-testid="template-continue-btn">
+              Use this template
             </button>
+            <div className="border-t border-zinc-200 pt-5">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div><div className="flex items-center gap-1.5 font-bold text-zinc-900 mb-1"><Wand2 className="w-4 h-4" /> Customize your design</div><p className="text-xs text-zinc-500">Match the resume to your professional style.</p></div>
+                <div><div className="flex items-center gap-1.5 font-bold text-zinc-900 mb-1"><Sparkles className="w-4 h-4" /> AI suggestions</div><p className="text-xs text-zinc-500">Use AI-generated content personalized to roles.</p></div>
+                <div><div className="flex items-center gap-1.5 font-bold text-zinc-900 mb-1"><Lightbulb className="w-4 h-4" /> Writing help</div><p className="text-xs text-zinc-500">Beat ATS by using suggested keywords.</p></div>
+                <div><div className="flex items-center gap-1.5 font-bold text-zinc-900 mb-1"><Download className="w-4 h-4" /> Multiple formats</div><p className="text-xs text-zinc-500">Download as PDF, Word, or TXT file.</p></div>
+              </div>
+            </div>
+            <div className="mt-5 pt-4 border-t border-zinc-200">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm font-medium text-zinc-600">Color</span>
+                {details.colors.map((c, i) => (
+                  <button key={i} onClick={() => setTemplateColor(c)} className={`w-7 h-7 rounded-full border-2 transition-all ${templateColor === c ? "border-zinc-900 scale-110" : "border-zinc-200 hover:border-zinc-400"}`} style={{ backgroundColor: c }} data-testid={`color-${i}`}>
+                    {templateColor === c && <Check className="w-3 h-3 mx-auto text-zinc-400" />}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>
