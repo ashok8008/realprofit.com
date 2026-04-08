@@ -108,6 +108,7 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - Iteration 14: Backend 95%, Frontend 100%
 - Iteration 15: Frontend 100% (17/17)
 - Iteration 16: Backend 100% (8/8), Frontend 100% (25/25) — Tax Tools
+- Iteration 23: Backend 100% (6/6), Frontend 100% (13/13) — Resume Builder UX Overhaul
 
 ### Phase 17: Tax Tools SEO Schemas, Canonical URLs, Sitemap & Robots (Apr 2026) -- DONE
 - Added JSON-LD structured data: BreadcrumbList, ItemList, FAQPage on hub; WebApplication, BreadcrumbList, FAQPage on detail pages
@@ -136,6 +137,15 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - Generous form fields (h-14 inputs, text-base labels, text-3xl headings)
 - Step navigation: Continue (1/5) + Back buttons
 - Testing: Frontend 100% (29/29) — iteration_22
+
+### Phase 23: Resume Builder UX Overhaul — Multi-Step Onboarding & Review Cards (Apr 2026) -- DONE
+- **Create From Scratch flow**: Entry → Onboarding (experience level → industry selection) → Template Selection → Editor
+- **Import flow**: Entry → Processing → Welcome ("Nice to meet you, {name}") → Analysis (strengths/fixes) → Template Selection → Editor
+- **Experience & Education tabs refactored to Review Card pattern**: entries shown as compact cards with Edit/Delete, expanding to full form inline
+- **AI Summary Generation**: "Generate Summary" button calls `/api/career-tools/generate-summaries`, shows 3 AI-written options to pick from
+- **Full-screen Tips & Fixes view**: dedicated full-page categorized issues view with score overview, Fix buttons, and Fix All
+- **New backend endpoint**: POST `/api/career-tools/generate-summaries` — returns 3 GPT-4o-mini generated summary variations
+- Testing: Backend 100% (6/6), Frontend 100% (13/13) — iteration_23
 
 ## Upcoming Tasks
 - Premium ATS checks for Resume Builder (P2)
