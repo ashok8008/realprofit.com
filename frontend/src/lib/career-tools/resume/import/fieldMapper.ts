@@ -8,7 +8,7 @@ const EMAIL_RE = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/;
 const PHONE_RE = /(?:\+?1[\s\-.]?)?\(?\d{3}\)?[\s\-.]?\d{3}[\s\-.]?\d{4}/;
 const LINKEDIN_RE = /(?:https?:\/\/)?(?:www\.)?linkedin\.com\/in\/[\w\-]+/i;
 const PORTFOLIO_RE = /(?:https?:\/\/)?(?:www\.)?(?:github\.com|behance\.net|dribbble\.com|[\w\-]+\.(?:com|io|dev|me|co))(?:\/[\w\-]*)?/i;
-const LOCATION_RE = /\b[A-Z][a-z]+(?:\s[A-Z][a-z]+)*,\s*[A-Z]{2}\b/;
+const LOCATION_RE = /\b[A-Z][a-z]+(?:\s[A-Z][a-z]+)*,\s*(?:[A-Z]{2}|[A-Z][a-z]+)\b/;
 const DATE_RE = /(?:(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:t(?:ember)?)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+\d{4}|\d{1,2}\/\d{4}|\d{4})/gi;
 const DEGREE_RE = /\b(B\.?S\.?|B\.?A\.?|M\.?S\.?|M\.?A\.?|M\.?B\.?A\.?|Ph\.?D\.?|Bachelor|Master|Associate|Doctor|Diploma|Certificate)\b/i;
 
@@ -26,16 +26,29 @@ function extractPersonalInfo(rawText: string): ResumeData["personalDetails"] {
   }
 
   let fullName = "";
-  const SECTION_HEADINGS = /^(career\s+objective|summary|experience|education|skills|certifications?|work\s+history|professional|academic|technical)/i;
-  for (const line of lines.slice(0, 8)) {
+  const SECTION_HEADINGS = /^(career\s+objective|summary|experience|education|skills|certifications?|work\s+history|professional\s+(?:summary|experience|profile)|academic|technical)/i;
+  for (const line of lines.slice(0, 10)) {
+    // Skip lines that are clearly not names
     if (EMAIL_RE.test(line) || PHONE_RE.test(line) || /https?:\/\//.test(line)) continue;
     if (SECTION_HEADINGS.test(line)) continue;
-    if (/^mobile:|^phone:|^email:|^address:/i.test(line)) continue;
-    if (line.length > 100 || /\d{4}/.test(line)) continue;
+    if (/^mobile:|^phone:|^email:|^address:|^contact/i.test(line)) continue;
+    if (line.length > 80 || /\d{4}/.test(line)) continue;
+    // Skip lines that look like a date range or bullet
+    if (/^[•\-*]/.test(line)) continue;
+    if (/^\d/.test(line) && !/^\d+\s+[A-Z]/i.test(line)) continue;
     // Strip suffixes like "PMP, CSM, MBA" to get the actual name
-    const cleaned = line.replace(/,?\s*\b(PMP|CSM|MBA|PhD|CPA|PE|CFA|CISSP|AWS|ITIL|CCNA|CCNP|Jr\.|Sr\.|III|II|IV)\b/gi, "").replace(/,\s*$/, "").trim();
+    const cleaned = line
+      .replace(/,?\s*\b(PMP|CSM|MBA|PhD|CPA|PE|CFA|CISSP|AWS|ITIL|CCNA|CCNP|Jr\.|Sr\.|III|II|IV)\b/gi, "")
+      .replace(/,\s*$/, "")
+      .replace(/\|.*/g, "") // Strip everything after pipe
+      .trim();
     const words = cleaned.split(/\s+/);
-    if (words.length >= 1 && words.length <= 6 && /^[A-Z]/i.test(words[0]) && cleaned.length > 2) { fullName = line.replace(/,\s*$/, "").trim(); break; }
+    // Accept 1-6 word names, must start with a letter, and be at least 3 chars
+    if (words.length >= 1 && words.length <= 6 && /^[A-Za-z]/.test(words[0]) && cleaned.length > 2) {
+      // Preserve original casing from the line (handles "ASHOK KUMAR" or "Ashok Kumar")
+      fullName = cleaned;
+      break;
+    }
   }
 
   return { fullName, email, phone, location, linkedin, portfolio };
@@ -215,6 +228,16 @@ export function mapSectionsToResumeData(sections: ParsedSection[], rawText: stri
     parseExperienceEntries(rawText).forEach((e, i) => {
       experiences.push({ id: `imp-exp-${Date.now()}-${i}`, ...e });
     });
+  }
+
+  // Fallback: if no location was found in personal details, pull from the most recent experience
+  if (!personal.location && experiences.length > 0) {
+    for (const exp of experiences) {
+      if (exp.location && exp.location.trim()) {
+        personal.location = exp.location.trim();
+        break;
+      }
+    }
   }
 
   return { personalDetails: personal, summary, experience: experiences, education: educations, skills, certifications };

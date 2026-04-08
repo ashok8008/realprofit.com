@@ -1394,7 +1394,6 @@ export function ResumeBuilder() {
                   <button onClick={() => setFlowState("tips")} className="h-8 px-3 rounded-lg border border-zinc-200 bg-white text-xs font-semibold text-zinc-600 hover:bg-zinc-50 inline-flex items-center gap-1.5 shadow-sm" data-testid="tips-toggle">
                     <Star className="w-3.5 h-3.5 text-amber-400" /> Tips {allFixes.length > 0 && <span className="bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold leading-none">{allFixes.length}</span>}
                   </button>
-                  <Button size="sm" onClick={handleDownloadPDF} className="h-8 text-xs px-3 bg-zinc-900 text-white hover:bg-zinc-800" data-testid="toolbar-pdf-btn"><Download className="w-3.5 h-3.5 mr-1" /> PDF</Button>
                 </div>
               </div>
 
