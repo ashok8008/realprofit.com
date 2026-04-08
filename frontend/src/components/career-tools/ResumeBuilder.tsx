@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { RotateCcw, Upload, User, Briefcase, GraduationCap, Wrench, Award } from "lucide-react";
+import { RotateCcw, Upload, User, Briefcase, GraduationCap, Wrench, Award, ChevronLeft, Download } from "lucide-react";
 import { saveToStorage, loadFromStorage, clearStorage } from "@/lib/career-tools/storage";
 import { generateResumePDF, type ResumeData } from "@/lib/career-tools/pdf-export";
 import { useToast } from "@/hooks/use-toast";
@@ -20,6 +20,7 @@ import { ImportProcessing } from "./resume/ImportProcessing";
 import { ImportReview } from "./resume/ImportReview";
 import { fixAllEasyIssues } from "@/lib/career-tools/resume/improve";
 import type { SectionConfidence } from "@/lib/career-tools/resume/import/types";
+import Link from "next/link";
 
 const STORAGE_KEY = "resume_builder";
 
@@ -36,17 +37,17 @@ const templates = [
   { id: "clean", name: "Clean", desc: "Simple ATS-friendly", premium: false },
   { id: "professional", name: "Professional", desc: "Traditional business", premium: false },
   { id: "minimal", name: "Minimal", desc: "Maximum whitespace", premium: false },
-  { id: "executive", name: "Executive", desc: "Bold header with accent", premium: true },
-  { id: "modern", name: "Modern", desc: "Two-column layout", premium: true },
+  { id: "executive", name: "Executive", desc: "Bold header", premium: true },
+  { id: "modern", name: "Modern", desc: "Two-column", premium: true },
 ];
 
-const TAB_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
-  personal: User,
-  experience: Briefcase,
-  education: GraduationCap,
-  skills: Wrench,
-  extras: Award,
-};
+const STEPS = [
+  { key: "personal", label: "Personal", icon: User },
+  { key: "experience", label: "Experience", icon: Briefcase },
+  { key: "education", label: "Education", icon: GraduationCap },
+  { key: "skills", label: "Skills", icon: Wrench },
+  { key: "extras", label: "Extras", icon: Award },
+] as const;
 
 type FlowState = "entry" | "processing" | "review" | "editor";
 
@@ -64,7 +65,6 @@ export function ResumeBuilder() {
   const [importSource, setImportSource] = useState<"docx" | "pdf" | "text">("text");
   const [confidences, setConfidences] = useState<SectionConfidence[]>([]);
 
-  // Load saved data on mount — if data exists, skip to editor
   useEffect(() => {
     const saved = loadFromStorage<ResumeData | null>(STORAGE_KEY, null as unknown as ResumeData);
     if (saved && (saved.personalDetails?.fullName || saved.experience?.length > 0 || saved.summary)) {
@@ -73,7 +73,6 @@ export function ResumeBuilder() {
     }
   }, []);
 
-  // Auto-save when in editor mode
   useEffect(() => {
     if (flowState === "editor") {
       const timeout = setTimeout(() => saveToStorage(STORAGE_KEY, data), 500);
@@ -87,7 +86,6 @@ export function ResumeBuilder() {
     const source = ext.endsWith(".docx") ? "docx" as const : "pdf" as const;
     setImportSource(source);
     setFlowState("processing");
-
     try {
       if (source === "docx") {
         const { parseDocx } = await import("@/lib/career-tools/resume/import/docxParser");
@@ -110,7 +108,6 @@ export function ResumeBuilder() {
   const handleTextImport = useCallback((text: string) => {
     setImportSource("text");
     setFlowState("processing");
-
     setTimeout(() => {
       try {
         const { parseText } = require("@/lib/career-tools/resume/import/textParser");
@@ -130,9 +127,7 @@ export function ResumeBuilder() {
     setFlowState("editor");
   }, []);
 
-  const handleProcessingComplete = useCallback(() => {
-    setFlowState("review");
-  }, []);
+  const handleProcessingComplete = useCallback(() => { setFlowState("review"); }, []);
 
   const handleReviewContinue = useCallback(() => {
     setFlowState("editor");
@@ -148,49 +143,39 @@ export function ResumeBuilder() {
   const updatePersonal = (field: keyof ResumeData["personalDetails"], value: string) => {
     setData(prev => ({ ...prev, personalDetails: { ...prev.personalDetails, [field]: value } }));
   };
-
   const addExperience = () => {
     const newExp: Experience = { id: Date.now().toString(), title: "", company: "", location: "", startDate: "", endDate: "", current: false, description: "" };
     setData(prev => ({ ...prev, experience: [...prev.experience, newExp] }));
   };
-
   const updateExperience = (id: string, field: keyof Experience, value: string | boolean) => {
     setData(prev => ({ ...prev, experience: prev.experience.map(exp => exp.id === id ? { ...exp, [field]: value } : exp) }));
   };
-
   const removeExperience = (id: string) => {
     setData(prev => ({ ...prev, experience: prev.experience.filter(exp => exp.id !== id) }));
   };
-
   const addEducation = () => {
     const newEdu: Education = { id: Date.now().toString(), school: "", degree: "", field: "", startDate: "", endDate: "" };
     setData(prev => ({ ...prev, education: [...prev.education, newEdu] }));
   };
-
   const updateEducation = (id: string, field: keyof Education, value: string) => {
     setData(prev => ({ ...prev, education: prev.education.map(edu => edu.id === id ? { ...edu, [field]: value } : edu) }));
   };
-
   const removeEducation = (id: string) => {
     setData(prev => ({ ...prev, education: prev.education.filter(edu => edu.id !== id) }));
   };
-
   const addSkill = () => {
     if (skillInput.trim() && !data.skills.includes(skillInput.trim())) {
       setData(prev => ({ ...prev, skills: [...prev.skills, skillInput.trim()] }));
       setSkillInput("");
     }
   };
-
   const removeSkill = (skill: string) => setData(prev => ({ ...prev, skills: prev.skills.filter(s => s !== skill) }));
-
   const addCertification = () => {
     if (certInput.trim() && !data.certifications.includes(certInput.trim())) {
       setData(prev => ({ ...prev, certifications: [...prev.certifications, certInput.trim()] }));
       setCertInput("");
     }
   };
-
   const removeCertification = (cert: string) => setData(prev => ({ ...prev, certifications: prev.certifications.filter(c => c !== cert) }));
 
   const handleReset = () => {
@@ -209,7 +194,6 @@ export function ResumeBuilder() {
     toast({ title: "PDF Downloaded", description: "Your resume has been saved." });
   };
 
-  // ─── Fix All Easy Issues ──────────────────────────────────
   const handleFixAll = () => {
     const fixes = fixAllEasyIssues({
       summary: data.summary,
@@ -304,108 +288,169 @@ export function ResumeBuilder() {
   };
 
   const dismissAiSuggestion = () => setAiSuggestion(null);
-
   const summaryWordCount = data.summary.trim().split(/\s+/).filter(Boolean).length;
 
-  // ─── Render ───────────────────────────────────────────────
+  const currentStepIndex = STEPS.findIndex(s => s.key === activeTab);
 
-  // Entry state: show import options
+  // ─── Render: Entry / Processing / Review ──────────────────
   if (flowState === "entry") {
-    return (
-      <div className="max-w-4xl mx-auto" data-testid="resume-builder-entry">
-        <ImportEntry onFileImport={handleFileImport} onTextImport={handleTextImport} onStartScratch={handleStartScratch} />
-      </div>
-    );
+    return <div data-testid="resume-builder-entry"><ImportEntry onFileImport={handleFileImport} onTextImport={handleTextImport} onStartScratch={handleStartScratch} /></div>;
   }
-
-  // Processing state: animated loader
   if (flowState === "processing") {
-    return (
-      <div className="max-w-md mx-auto" data-testid="resume-builder-processing">
-        <ImportProcessing source={importSource} onComplete={handleProcessingComplete} />
-      </div>
-    );
+    return <div className="min-h-[calc(100vh-64px)] flex items-center justify-center" data-testid="resume-builder-processing"><div className="max-w-md w-full"><ImportProcessing source={importSource} onComplete={handleProcessingComplete} /></div></div>;
   }
-
-  // Review state: confidence summary
   if (flowState === "review") {
-    return (
-      <div className="max-w-4xl mx-auto" data-testid="resume-builder-review">
-        <ImportReview confidences={confidences} source={importSource} onContinue={handleReviewContinue} />
-      </div>
-    );
+    return <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-4" data-testid="resume-builder-review"><div className="max-w-4xl w-full"><ImportReview confidences={confidences} source={importSource} onContinue={handleReviewContinue} /></div></div>;
   }
 
-  // ─── Editor: Premium 2-Column Layout ──────────────────────
+  // ─── Render: Full-Screen Editor ───────────────────────────
   return (
-    <div data-testid="resume-builder-editor">
-      {/* Top bar: actions */}
-      <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900">Resume Editor</h2>
-          <p className="text-xs text-gray-400 mt-0.5">Auto-saved as you type</p>
+    <div className="min-h-[calc(100vh-64px)] flex" data-testid="resume-builder-editor">
+      {/* ─── Left Sidebar: Dark Navy ─── */}
+      <aside className="hidden lg:flex flex-col w-[220px] bg-[#1a2b5e] text-white flex-shrink-0">
+        {/* Logo / Back */}
+        <div className="px-5 py-5 border-b border-white/10">
+          <Link href="/career-tools" className="text-xs text-white/50 hover:text-white/80 transition-colors flex items-center gap-1">
+            <ChevronLeft className="w-3.5 h-3.5" /> Career Tools
+          </Link>
+          <h2 className="text-base font-bold mt-2">Resume Builder</h2>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleNewImport} className="h-8 text-xs text-gray-500 hover:text-gray-700" data-testid="new-import-btn">
-            <Upload className="w-3.5 h-3.5 mr-1.5" /> Import
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleReset} className="h-8 text-xs text-gray-500 hover:text-red-600" data-testid="resume-reset-btn">
-            <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> Reset
-          </Button>
-        </div>
-      </div>
 
-      {/* 2-Column Grid */}
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-8">
-        {/* ─── LEFT COLUMN: Editor ─── */}
-        <div className="min-w-0">
-          {/* Template Picker */}
-          <div className="mb-5">
-            <Label className="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2.5 block">Template</Label>
-            <div className="flex gap-2 overflow-x-auto pb-1">
+        {/* Step Navigation */}
+        <nav className="flex-1 px-3 py-4">
+          <p className="text-[10px] uppercase tracking-widest text-white/30 px-3 mb-3">Sections</p>
+          {STEPS.map((step, idx) => {
+            const Icon = step.icon;
+            const isActive = activeTab === step.key;
+            const isPast = idx < currentStepIndex;
+            return (
+              <button
+                key={step.key}
+                onClick={() => setActiveTab(step.key)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all mb-1 ${
+                  isActive
+                    ? "bg-white/15 text-white font-semibold"
+                    : isPast
+                    ? "text-white/60 hover:bg-white/5 hover:text-white/80"
+                    : "text-white/35 hover:bg-white/5 hover:text-white/60"
+                }`}
+                data-testid={`sidebar-step-${step.key}`}
+              >
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                  isActive ? "bg-white/20" : isPast ? "bg-white/10" : "bg-white/5"
+                }`}>
+                  <Icon className="w-3.5 h-3.5" />
+                </div>
+                {step.label}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Template selector (compact) */}
+        <div className="px-5 py-4 border-t border-white/10">
+          <p className="text-[10px] uppercase tracking-widest text-white/30 mb-2">Template</p>
+          <div className="grid grid-cols-2 gap-1.5">
+            {templates.map(t => (
+              <button
+                key={t.id}
+                onClick={() => setTemplate(t.id)}
+                className={`relative px-2 py-1.5 rounded text-[10px] text-left transition-all ${
+                  template === t.id
+                    ? "bg-white text-[#1a2b5e] font-bold"
+                    : "bg-white/8 text-white/50 hover:bg-white/12 hover:text-white/70"
+                }`}
+                data-testid={`template-${t.id}`}
+              >
+                {t.name}
+                {t.premium && <span className="absolute -top-1 -right-1 bg-amber-400 text-[7px] text-amber-900 px-1 rounded-full font-bold">PRO</span>}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Bottom actions */}
+        <div className="px-5 py-4 border-t border-white/10 space-y-2">
+          <button onClick={handleNewImport} className="w-full text-xs text-white/40 hover:text-white/70 transition-colors flex items-center gap-2 py-1" data-testid="new-import-btn">
+            <Upload className="w-3.5 h-3.5" /> Import New
+          </button>
+          <button onClick={handleReset} className="w-full text-xs text-white/40 hover:text-red-300 transition-colors flex items-center gap-2 py-1" data-testid="resume-reset-btn">
+            <RotateCcw className="w-3.5 h-3.5" /> Reset All
+          </button>
+        </div>
+      </aside>
+
+      {/* ─── Main Content Area ─── */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Top progress bar */}
+        <div className="bg-[#e8f0fd] border-b border-blue-100">
+          <div className="flex items-center px-6 py-3">
+            {/* Mobile: back button */}
+            <Link href="/career-tools" className="lg:hidden mr-3 text-gray-500 hover:text-gray-700">
+              <ChevronLeft className="w-5 h-5" />
+            </Link>
+            {/* Progress steps (horizontal) */}
+            <div className="flex items-center gap-1 flex-1">
+              {STEPS.map((step, idx) => {
+                const isActive = activeTab === step.key;
+                const isPast = idx < currentStepIndex;
+                return (
+                  <React.Fragment key={step.key}>
+                    {idx > 0 && <div className={`h-px flex-1 max-w-[40px] ${isPast ? "bg-[#1a2b5e]" : "bg-blue-200"}`} />}
+                    <button
+                      onClick={() => setActiveTab(step.key)}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                        isActive
+                          ? "bg-[#1a2b5e] text-white shadow-sm"
+                          : isPast
+                          ? "text-[#1a2b5e] font-semibold"
+                          : "text-gray-400"
+                      }`}
+                      data-testid={`tab-${step.key}`}
+                    >
+                      <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                        isActive ? "bg-white/20 text-white" : isPast ? "bg-[#1a2b5e]/10 text-[#1a2b5e]" : "bg-gray-200 text-gray-400"
+                      }`}>
+                        {idx + 1}
+                      </span>
+                      <span className="hidden sm:inline">{step.label}</span>
+                    </button>
+                  </React.Fragment>
+                );
+              })}
+            </div>
+            {/* Download button in top bar */}
+            <Button size="sm" onClick={handleDownloadPDF} className="ml-4 h-8 text-xs px-4 bg-[#1a2b5e] hover:bg-[#15224d] text-white" data-testid="resume-download-btn">
+              <Download className="w-3.5 h-3.5 mr-1.5" /> Download PDF
+            </Button>
+          </div>
+        </div>
+
+        {/* Content grid: Form + Right Panel */}
+        <div className="flex-1 grid grid-cols-1 xl:grid-cols-[1fr_380px] overflow-hidden">
+          {/* Form area */}
+          <div className="overflow-y-auto p-6 lg:p-8">
+            {/* Mobile-only template + actions */}
+            <div className="lg:hidden mb-5 flex items-center gap-2 overflow-x-auto pb-2">
               {templates.map(t => (
                 <button
                   key={t.id}
                   onClick={() => setTemplate(t.id)}
-                  className={`relative flex-shrink-0 px-4 py-2 rounded-lg border text-left transition-all ${
-                    template === t.id
-                      ? "border-gray-900 bg-gray-900 text-white shadow-sm"
-                      : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+                  className={`relative flex-shrink-0 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all ${
+                    template === t.id ? "border-[#1a2b5e] bg-[#1a2b5e] text-white" : "border-gray-200 text-gray-500"
                   }`}
-                  data-testid={`template-${t.id}`}
                 >
-                  {t.premium && (
-                    <span className={`absolute -top-1.5 -right-1.5 text-[9px] px-1.5 py-0.5 rounded-full font-bold ${
-                      template === t.id ? "bg-white text-gray-900" : "bg-gray-900 text-white"
-                    }`}>PRO</span>
-                  )}
-                  <div className="text-xs font-semibold">{t.name}</div>
-                  <div className={`text-[10px] mt-0.5 ${template === t.id ? "text-gray-300" : "text-gray-400"}`}>{t.desc}</div>
+                  {t.name}
                 </button>
               ))}
             </div>
-          </div>
 
-          {/* Tabs */}
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="w-full grid grid-cols-5 bg-gray-50 border border-gray-100 rounded-lg p-0.5 h-auto">
-              {(["personal", "experience", "education", "skills", "extras"] as const).map(tab => {
-                const Icon = TAB_ICONS[tab];
-                return (
-                  <TabsTrigger
-                    key={tab}
-                    value={tab}
-                    className="text-xs py-2 rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 flex items-center gap-1.5 transition-all"
-                    data-testid={`tab-${tab}`}
-                  >
-                    <Icon className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline capitalize">{tab}</span>
-                  </TabsTrigger>
-                );
-              })}
-            </TabsList>
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              {/* Hidden TabsList — navigation is handled by sidebar & top bar */}
+              <TabsList className="sr-only">
+                {STEPS.map(s => <TabsTrigger key={s.key} value={s.key}>{s.label}</TabsTrigger>)}
+              </TabsList>
 
-            <div className="mt-4">
               <TabsContent value="personal">
                 <PersonalTab
                   personalDetails={data.personalDetails}
@@ -424,7 +469,6 @@ export function ResumeBuilder() {
                   summarySuggestions={summarySuggestions}
                 />
               </TabsContent>
-
               <TabsContent value="experience">
                 <ExperienceTab
                   experience={data.experience as Experience[]}
@@ -442,7 +486,6 @@ export function ResumeBuilder() {
                   bulletSuggestions={bulletSuggestions}
                 />
               </TabsContent>
-
               <TabsContent value="education">
                 <EducationTab
                   education={data.education as Education[]}
@@ -451,7 +494,6 @@ export function ResumeBuilder() {
                   onRemove={removeEducation}
                 />
               </TabsContent>
-
               <TabsContent value="skills">
                 <SkillsTab
                   skills={data.skills}
@@ -461,7 +503,6 @@ export function ResumeBuilder() {
                   onRemoveSkill={removeSkill}
                 />
               </TabsContent>
-
               <TabsContent value="extras">
                 <ExtrasTab
                   certifications={data.certifications}
@@ -471,18 +512,46 @@ export function ResumeBuilder() {
                   onRemoveCert={removeCertification}
                 />
               </TabsContent>
-            </div>
-          </Tabs>
-        </div>
+            </Tabs>
 
-        {/* ─── RIGHT COLUMN: Sticky Score + Preview + Export ─── */}
-        <div className="xl:sticky xl:top-20 h-fit space-y-5">
-          <ResumeScorePanelV2
-            resumeData={data}
-            onFixAll={handleFixAll}
-            onTabSwitch={setActiveTab}
-          />
-          <ResumePreview data={data} onPrint={() => window.print()} onDownloadPDF={handleDownloadPDF} />
+            {/* Continue / Back navigation */}
+            <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-100">
+              <button
+                onClick={() => {
+                  const prev = STEPS[currentStepIndex - 1];
+                  if (prev) setActiveTab(prev.key);
+                }}
+                disabled={currentStepIndex === 0}
+                className="text-sm text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+                data-testid="step-back-btn"
+              >
+                <ChevronLeft className="w-4 h-4" /> Back
+              </button>
+              <button
+                onClick={() => {
+                  const next = STEPS[currentStepIndex + 1];
+                  if (next) setActiveTab(next.key);
+                }}
+                disabled={currentStepIndex === STEPS.length - 1}
+                className="bg-[#1a2b5e] text-white hover:bg-[#15224d] disabled:opacity-40 disabled:cursor-not-allowed rounded-xl px-6 py-2.5 text-sm font-semibold transition-colors inline-flex items-center gap-2"
+                data-testid="step-continue-btn"
+              >
+                Continue <span className="text-white/50 text-xs">({currentStepIndex + 1}/{STEPS.length})</span>
+              </button>
+            </div>
+          </div>
+
+          {/* ─── Right Panel: Score + Preview ─── */}
+          <div className="hidden xl:block overflow-y-auto border-l border-gray-100 bg-slate-50/50 p-5">
+            <ResumeScorePanelV2
+              resumeData={data}
+              onFixAll={handleFixAll}
+              onTabSwitch={setActiveTab}
+            />
+            <div className="mt-5">
+              <ResumePreview data={data} onPrint={() => window.print()} onDownloadPDF={handleDownloadPDF} />
+            </div>
+          </div>
         </div>
       </div>
     </div>

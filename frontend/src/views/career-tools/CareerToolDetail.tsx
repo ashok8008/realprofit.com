@@ -126,6 +126,23 @@ export default function CareerToolDetail() {
     .map(s => careerTools.find(t => t.slug === s))
     .filter(Boolean);
 
+  // Resume Builder gets a full-screen immersive layout
+  if (tool.slug === "resume-builder") {
+    return (
+      <div className="w-full min-h-screen bg-white" data-testid="resume-builder-fullscreen">
+        <Seo 
+          title={`${tool.name} - Free Career Tool`}
+          description={tool.description + " Free, no signup required. Your data stays in your browser."}
+          keywords={`${tool.name.toLowerCase()}, ${tool.slug.replace(/-/g, ' ')}, free career tool, job search tool, ${tool.category} tool`}
+          path={`/career-tools/${tool.slug}`}
+        />
+        <Suspense fallback={<div className="h-screen flex items-center justify-center text-gray-400">Loading...</div>}>
+          <ToolComponent />
+        </Suspense>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full min-h-screen bg-gray-50/50 pb-20">
       <Seo 
