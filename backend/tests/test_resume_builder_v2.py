@@ -107,6 +107,74 @@ class TestExistingCareerToolsAPIs:
         assert "word_count" in data
 
 
+class TestSuggestSkillsAPI:
+    """Tests for POST /api/career-tools/suggest-skills endpoint"""
+    
+    def test_suggest_skills_returns_suggestions(self):
+        """Test that suggest-skills returns skill suggestions for a job title"""
+        response = requests.post(
+            f"{BASE_URL}/api/career-tools/suggest-skills",
+            json={
+                "job_title": "Software Engineer",
+                "current_skills": ["Python", "JavaScript"]
+            },
+            headers={"Content-Type": "application/json"}
+        )
+        
+        assert response.status_code == 200, f"Expected 200, got {response.status_code}"
+        
+        data = response.json()
+        assert "suggestions" in data, "Response should contain 'suggestions' key"
+        assert isinstance(data["suggestions"], list), "Suggestions should be a list"
+        assert len(data["suggestions"]) > 0, "Should return at least one suggestion"
+        assert len(data["suggestions"]) <= 15, "Should return at most 15 suggestions"
+        
+        # Verify suggestions don't include current skills
+        for skill in data["suggestions"]:
+            assert skill.lower() not in ["python", "javascript"], f"Should not suggest already-owned skill: {skill}"
+    
+    def test_suggest_skills_without_current_skills(self):
+        """Test suggest-skills without current_skills parameter"""
+        response = requests.post(
+            f"{BASE_URL}/api/career-tools/suggest-skills",
+            json={
+                "job_title": "Data Scientist"
+            },
+            headers={"Content-Type": "application/json"}
+        )
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert "suggestions" in data
+        assert len(data["suggestions"]) > 0
+    
+    def test_suggest_skills_different_job_titles(self):
+        """Test suggest-skills returns different skills for different job titles"""
+        # Get skills for Software Engineer
+        response1 = requests.post(
+            f"{BASE_URL}/api/career-tools/suggest-skills",
+            json={"job_title": "Software Engineer"},
+            headers={"Content-Type": "application/json"}
+        )
+        
+        # Get skills for Marketing Manager
+        response2 = requests.post(
+            f"{BASE_URL}/api/career-tools/suggest-skills",
+            json={"job_title": "Marketing Manager"},
+            headers={"Content-Type": "application/json"}
+        )
+        
+        assert response1.status_code == 200
+        assert response2.status_code == 200
+        
+        skills1 = set(response1.json()["suggestions"])
+        skills2 = set(response2.json()["suggestions"])
+        
+        # Skills should be different for different job titles
+        # At least some skills should be unique to each
+        assert skills1 != skills2, "Different job titles should have different skill suggestions"
+
+
 class TestHealthEndpoint:
     """Test health check endpoint"""
     

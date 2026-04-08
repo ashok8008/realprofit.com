@@ -69,6 +69,13 @@ class GenerateSummariesRequest(BaseModel):
 class GenerateSummariesResponse(BaseModel):
     summaries: List[str]
 
+class SkillSuggestionsRequest(BaseModel):
+    job_title: str
+    current_skills: Optional[List[str]] = None
+
+class SkillSuggestionsResponse(BaseModel):
+    suggestions: List[str]
+
 class EmailTemplateRequest(BaseModel):
     template_type: str  # 'thank_you', 'follow_up', 'negotiation', 'decline'
     company_name: str
@@ -188,6 +195,27 @@ async def generate_summaries(request: GenerateSummariesRequest):
         raw_summaries.append(raw_summaries[-1] if raw_summaries else "Professional with proven track record of delivering results.")
     
     return GenerateSummariesResponse(summaries=raw_summaries[:3])
+
+
+@app.post("/api/career-tools/suggest-skills", response_model=SkillSuggestionsResponse)
+async def suggest_skills(request: SkillSuggestionsRequest):
+    """Suggest skills based on job title"""
+    
+    system_msg = "Return ONLY a comma-separated list of 15 professional skills relevant to the job title. No numbering, no explanation."
+    
+    user_msg = f"Skills for: {request.job_title}"
+    if request.current_skills:
+        user_msg += f". Already has: {', '.join(request.current_skills[:5])}. Suggest different ones."
+    
+    response = await get_ai_response(system_msg, user_msg)
+    skills = [s.strip().strip('"').strip("'") for s in response.split(',') if s.strip()]
+    
+    # Filter out skills they already have
+    if request.current_skills:
+        existing = {s.lower() for s in request.current_skills}
+        skills = [s for s in skills if s.lower() not in existing]
+    
+    return SkillSuggestionsResponse(suggestions=skills[:15])
 
 
 @app.post("/api/career-tools/email-template", response_model=EmailTemplateResponse)
