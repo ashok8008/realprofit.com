@@ -75,15 +75,21 @@ async def delete_user_data(tool_key: str, request: Request):
 
 @router.post("/bulk")
 async def bulk_save(body: BulkSaveBody, request: Request):
-    """Save multiple tool data items at once."""
+    """Save multiple tool data items at once using bulk_write."""
+    from pymongo import UpdateOne
     user = await get_current_user(request)
     uid = str(user["_id"])
     db = get_db()
     now = datetime.now(timezone.utc)
-    for item in body.items:
-        await db.user_data.update_one(
+    if not body.items:
+        return {"message": "Saved 0 items"}
+    ops = [
+        UpdateOne(
             {"user_id": uid, "tool_key": item.tool_key},
             {"$set": {"data": item.data, "updated_at": now}, "$setOnInsert": {"created_at": now}},
             upsert=True,
         )
+        for item in body.items
+    ]
+    await db.user_data.bulk_write(ops, ordered=False)
     return {"message": f"Saved {len(body.items)} items"}

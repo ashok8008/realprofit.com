@@ -48,20 +48,10 @@ Thumbs.db
 # Replit
 .cache/
 .local/
-# Environment files are committed for Emergent deployment
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
--e 
+
+# Test credentials (sensitive)
+/app/memory/test_credentials.md
+
 # Environment files
 *.env
 *.env.*

@@ -15,11 +15,15 @@ from user_data import router as user_data_router
 
 app = FastAPI(title="RealProfits API")
 
-# CORS — explicit origin for credential cookies
+# CORS — explicit origin for credential cookies, supports production via env
 frontend_url = os.environ.get("FRONTEND_URL", "http://localhost:3000")
+cors_origins = [frontend_url, "http://localhost:3000"]
+extra_origins = os.environ.get("CORS_ORIGINS", "")
+if extra_origins:
+    cors_origins.extend([o.strip() for o in extra_origins.split(",") if o.strip()])
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[frontend_url, "http://localhost:3000"],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
