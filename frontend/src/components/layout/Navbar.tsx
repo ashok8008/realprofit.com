@@ -16,8 +16,8 @@ export function Navbar() {
     { name: "PRODUCTIVE TOOLS", href: "/tools" },
     { name: "CAREER TOOLS", href: "/career-tools" },
     { name: "GUIDES", href: "/guides" },
+    { name: "LEARN", href: "/learn" },
     { name: "WHAT IF", href: "/what-if" },
-    { name: "ARTICLES", href: "/search" },
   ];
 
   return (

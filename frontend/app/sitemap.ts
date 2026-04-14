@@ -1,5 +1,5 @@
 import type { MetadataRoute } from "next";
-import { getAllSlugs } from "@/lib/pseo/datasets";
+import { getAllSlugs, getAllResumeCareerSlugs } from "@/lib/pseo/datasets";
 import { calculators } from "@/data/calculators";
 import { tools } from "@/data/tools";
 import { careerTools } from "@/data/career-tools";
@@ -14,6 +14,7 @@ const BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "https://realprofits.com";
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
   const allSlugs = getAllSlugs();
+  const resumeCareerSlugs = getAllResumeCareerSlugs();
 
   const urls: MetadataRoute.Sitemap = [
     // Static pages
@@ -23,6 +24,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${BASE}/career-tools`, lastModified: now, changeFrequency: "weekly", priority: 0.9 },
     { url: `${BASE}/tax-tools`, lastModified: now, changeFrequency: "weekly", priority: 0.9 },
     { url: `${BASE}/guides`, lastModified: now, changeFrequency: "weekly", priority: 0.9 },
+    { url: `${BASE}/learn`, lastModified: now, changeFrequency: "weekly", priority: 0.9 },
     { url: `${BASE}/what-if`, lastModified: now, changeFrequency: "monthly", priority: 0.8 },
     { url: `${BASE}/search`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
     { url: `${BASE}/about`, lastModified: now, changeFrequency: "monthly", priority: 0.4 },
@@ -61,6 +63,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // All pSEO guides (salary, tax, savings, mortgage, debt, freelancer, location-salary)
   for (const slug of allSlugs) {
     urls.push({ url: `${BASE}/guides/${slug}`, lastModified: now, changeFrequency: "monthly", priority: 0.8 });
+  }
+
+  // Resume & Career pSEO pages (role, score, experience, company, problem, decision)
+  for (const slug of resumeCareerSlugs) {
+    urls.push({ url: `${BASE}/learn/${slug}`, lastModified: now, changeFrequency: "monthly", priority: 0.8 });
   }
 
   return urls;

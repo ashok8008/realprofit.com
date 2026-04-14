@@ -214,18 +214,35 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - Auto-save now includes template and onboarding choices in the save cycle
 
 ### Phase 26: Code Quality Report — Component Splitting & Cleanup (Apr 2026) -- DONE
-- **ResumeBuilder.tsx split** from 1458 → 381 lines (orchestrator) + 6 focused sub-components:
-  - `resume/EntryScreens.tsx` (312 lines): Entry, Upload, Processing, Welcome, Analysis screens
-  - `resume/OnboardingScreens.tsx` (131 lines): Experience Level, Years, Industry screens
-  - `resume/TemplateSelection.tsx` (98 lines): Template selection with previews
-  - `resume/ATSCheckPanel.tsx` (169 lines): ATS compatibility check overlay
-  - `resume/TipsPanel.tsx` (70 lines): Tips & fixes overlay
-  - `resume/WizardStepContent.tsx` (362 lines): All 7 wizard form step renderers
-  - `resume/constants.ts` (58 lines): Shared constants, types, sample data
-- **FreelanceInvoiceGenerator.tsx** reduced from 447 → 285 lines by extracting `invoice/InvoicePDFExport.ts` (185 lines)
-- **AmIUnderpaid.tsx** reduced from 366 → 183 lines by extracting `underpaid/UnderpaidResults.tsx` (145 lines)
-- **Earlier code quality fixes** (from previous session): Hardcoded secrets removed, MD5 → SHA-256, `ats_check()` backend refactored into helper functions
+- **ResumeBuilder.tsx split** from 1458 → 381 lines (orchestrator) + 6 focused sub-components
+- **FreelanceInvoiceGenerator.tsx** reduced from 447 → 285 lines by extracting `invoice/InvoicePDFExport.ts`
+- **AmIUnderpaid.tsx** reduced from 366 → 183 lines by extracting `underpaid/UnderpaidResults.tsx`
+- **Earlier code quality fixes**: Hardcoded secrets removed, MD5 → SHA-256, `ats_check()` backend refactored
 - Testing: Backend 100% (2/2), Frontend 100% (14/14) — iteration_30
+
+### Phase 27: Calculator PDF Branding Fix (Apr 2026) -- DONE
+- Fixed `ExportToPDFButton` (used by all 30+ calculators) to use premium `pdf-brand.ts` branding
+- PDFs now have: dark header bar, teal accent stripe, RealProfits gold branding, page numbers, branded footer
+- Fixed TypeScript build errors: `FlowState` type mismatches across 6 sub-components
+- Fixed stale `.next` build cache causing CSS loading failure (updated deployment guide)
+
+### Phase 28: Full-Site pSEO System — Resume & Career Guides (Apr 2026) -- DONE
+- **117 new pSEO pages** at `/learn/[slug]` route, all SSG pre-rendered
+- **6 content categories**:
+  - Resume by Job Role: 50 roles (Software Engineer, Product Manager, Data Scientist, etc.)
+  - Resume Score Explained: 13 score pages (20-95/100)
+  - Resume by Experience: 9 levels (No Experience → 10+ Years, Career Change, Gap)
+  - Resume for Companies: 20 companies (Google, Amazon, Apple, Meta, etc.)
+  - Resume Problems & Fixes: 15 common issues (ATS rejected, too long, gaps, etc.)
+  - Career Decisions: 10 frameworks (Should I change jobs, negotiate salary, etc.)
+- **Variation Engine** (`resumeVariationEngine.ts`): Unique content per page with varied intros, sections, FAQs
+- **GEO/AI Optimization**: Direct-answer paragraphs, Key Takeaways sections, FAQ schema on all pages
+- **Internal Linking**: Every page links to 3-5 related tools/pages, cross-category
+- **Hub Page** at `/learn` with categorized index
+- **Sitemap updated**: 1,320 total URLs (was 1,216)
+- **Navbar**: Added "LEARN" link
+- **robots.txt**: Added `/learn/` to allow list
+- **JSON-LD**: FAQPage + BreadcrumbList on all pages
 
 ## Upcoming Tasks
 - Stripe integration for monetization (P2)
