@@ -4,11 +4,12 @@ import { Upload, FileText, ChevronLeft, Check, Lightbulb, Star, Trophy, Clipboar
 import type { ResumeData } from "./types";
 import { clearStorage } from "@/lib/career-tools/storage";
 import { STORAGE_KEY } from "./constants";
+import type { FlowState } from "./constants";
 
 interface EntryScreenProps {
   data: ResumeData;
   hasSavedDraft: boolean;
-  setFlowState: (s: string) => void;
+  setFlowState: (s: FlowState) => void;
   setData: React.Dispatch<React.SetStateAction<ResumeData>>;
   setHasSavedDraft: (v: boolean) => void;
   defaultResumeData: ResumeData;
@@ -63,7 +64,7 @@ export function EntryScreen({ data, hasSavedDraft, setFlowState, setData, setHas
 }
 
 interface UploadScreenProps {
-  setFlowState: (s: string) => void;
+  setFlowState: (s: FlowState) => void;
   handleFileImport: (file: File) => Promise<void>;
   handleTextImport: (text: string) => void;
 }
@@ -180,7 +181,7 @@ export function ProcessingScreen({ processingStep }: ProcessingScreenProps) {
 
 interface WelcomeScreenProps {
   data: ResumeData;
-  setFlowState: (s: string) => void;
+  setFlowState: (s: FlowState) => void;
 }
 
 export function WelcomeScreen({ data, setFlowState }: WelcomeScreenProps) {
@@ -234,7 +235,7 @@ export function WelcomeScreen({ data, setFlowState }: WelcomeScreenProps) {
 
 interface AnalysisScreenProps {
   data: ResumeData;
-  setFlowState: (s: string) => void;
+  setFlowState: (s: FlowState) => void;
 }
 
 export function AnalysisScreen({ data, setFlowState }: AnalysisScreenProps) {

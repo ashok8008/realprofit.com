@@ -12,8 +12,9 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { inputClass, labelClass } from "./constants";
-import type { WizardStep } from "./constants";
+import type { WizardStep, FlowState } from "./constants";
 import type { ResumeData, Experience, Education, AiSuggestion } from "./types";
+import type { ScoreSuggestion } from "@/lib/career-tools/resume/score";
 import { smartRewriteBullets, smartRewriteSummary, AI_FREE_TOTAL } from "@/lib/career-tools/smartSuggestions";
 
 interface WizardStepContentProps {
@@ -49,8 +50,8 @@ interface WizardStepContentProps {
   setCertInput: (v: string) => void;
   // Score
   scorePct: number;
-  allFixes: { message: string; points: number; severity: string; fixAction?: { tab: string } | null }[];
-  setFlowState: (s: string) => void;
+  allFixes: ScoreSuggestion[];
+  setFlowState: (s: FlowState) => void;
   // Onboarding
   onboardIndustries: string[];
   // PDF

@@ -2,11 +2,12 @@
 import React from "react";
 import { Briefcase, Calendar, Plus, Wrench, ChevronLeft } from "lucide-react";
 import { EXPERIENCE_LEVELS, INDUSTRIES } from "./constants";
+import type { FlowState } from "./constants";
 
 interface OnboardingLevelProps {
   onboardLevel: string;
   setOnboardLevel: (v: string) => void;
-  setFlowState: (s: string) => void;
+  setFlowState: (s: FlowState) => void;
 }
 
 const PLANT_ICONS = [
@@ -46,7 +47,7 @@ export function OnboardingLevel({ onboardLevel, setOnboardLevel, setFlowState }:
 interface OnboardingYearsProps {
   onboardYears: string;
   setOnboardYears: (v: string) => void;
-  setFlowState: (s: string) => void;
+  setFlowState: (s: FlowState) => void;
 }
 
 const YEARS_OPTIONS = [
@@ -92,7 +93,7 @@ export function OnboardingYears({ onboardYears, setOnboardYears, setFlowState }:
 interface OnboardingIndustryProps {
   onboardIndustries: string[];
   setOnboardIndustries: React.Dispatch<React.SetStateAction<string[]>>;
-  setFlowState: (s: string) => void;
+  setFlowState: (s: FlowState) => void;
 }
 
 export function OnboardingIndustry({ onboardIndustries, setOnboardIndustries, setFlowState }: OnboardingIndustryProps) {

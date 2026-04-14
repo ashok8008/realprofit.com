@@ -2,19 +2,13 @@
 import React from "react";
 import { Star, Check, AlertTriangle, Lightbulb, Zap } from "lucide-react";
 import { WIZARD_STEPS } from "./constants";
-import type { WizardStep } from "./constants";
-
-interface Suggestion {
-  message: string;
-  points: number;
-  severity: string;
-  fixAction?: { tab: string } | null;
-}
+import type { WizardStep, FlowState } from "./constants";
+import type { ScoreSuggestion } from "@/lib/career-tools/resume/score";
 
 interface TipsPanelProps {
-  allFixes: Suggestion[];
+  allFixes: ScoreSuggestion[];
   handleFixAll: () => void;
-  setFlowState: (s: string) => void;
+  setFlowState: (s: FlowState) => void;
   setWizardStep: (s: WizardStep) => void;
 }
 

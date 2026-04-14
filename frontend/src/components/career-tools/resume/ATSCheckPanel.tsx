@@ -4,6 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Search, Sparkles, Loader2, Check, X, Lightbulb, AlertTriangle, Info, Plus, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { ResumeData } from "./types";
+import type { FlowState } from "./constants";
 
 interface ATSResult {
   overall_score: number;
@@ -20,7 +21,7 @@ interface ATSCheckPanelProps {
   setAtsJobDesc: (v: string) => void;
   setAtsResult: (v: ATSResult | null) => void;
   runATSCheck: (jobDesc?: string) => void;
-  setFlowState: (s: string) => void;
+  setFlowState: (s: FlowState) => void;
   addSkill: (s: string) => void;
 }
 

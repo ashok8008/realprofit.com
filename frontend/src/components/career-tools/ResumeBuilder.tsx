@@ -29,6 +29,7 @@ export function ResumeBuilder() {
   const { toast } = useToast();
   // ── Core state ──
   const [flowState, setFlowState] = useState<FlowState>("entry");
+  const changeFlow = useCallback((s: FlowState) => setFlowState(s), []);
   const [wizardStep, setWizardStep] = useState<WizardStep>("header");
   const [template, setTemplate] = useState("clean");
   const [data, setData] = useState<ResumeData>(defaultResumeData);
@@ -231,17 +232,17 @@ export function ResumeBuilder() {
   // ════════════════════════════════════════════
   // Flow routing — delegate to split components
   // ════════════════════════════════════════════
-  if (flowState === "entry") return <EntryScreen data={data} hasSavedDraft={hasSavedDraft} setFlowState={setFlowState} setData={setData} setHasSavedDraft={setHasSavedDraft} defaultResumeData={defaultResumeData} />;
-  if (flowState === "upload") return <UploadScreen setFlowState={setFlowState} handleFileImport={handleFileImport} handleTextImport={handleTextImport} />;
+  if (flowState === "entry") return <EntryScreen data={data} hasSavedDraft={hasSavedDraft} setFlowState={changeFlow} setData={setData} setHasSavedDraft={setHasSavedDraft} defaultResumeData={defaultResumeData} />;
+  if (flowState === "upload") return <UploadScreen setFlowState={changeFlow} handleFileImport={handleFileImport} handleTextImport={handleTextImport} />;
   if (flowState === "processing") return <ProcessingScreen processingStep={processingStep} />;
-  if (flowState === "welcome") return <WelcomeScreen data={data} setFlowState={setFlowState} />;
-  if (flowState === "analysis") return <AnalysisScreen data={data} setFlowState={setFlowState} />;
-  if (flowState === "onboarding-level") return <OnboardingLevel onboardLevel={onboardLevel} setOnboardLevel={setOnboardLevel} setFlowState={setFlowState} />;
-  if (flowState === "onboarding-years") return <OnboardingYears onboardYears={onboardYears} setOnboardYears={setOnboardYears} setFlowState={setFlowState} />;
-  if (flowState === "onboarding-industry") return <OnboardingIndustry onboardIndustries={onboardIndustries} setOnboardIndustries={setOnboardIndustries} setFlowState={setFlowState} />;
-  if (flowState === "templates") return <TemplateSelection template={template} setTemplate={setTemplate} data={data} onboardLevel={onboardLevel} onboardYears={onboardYears} onboardIndustries={onboardIndustries} setFlowState={setFlowState} setWizardStep={setWizardStep} />;
-  if (flowState === "ats-check") return <ATSCheckPanel atsResult={atsResult} atsLoading={atsLoading} atsJobDesc={atsJobDesc} setAtsJobDesc={setAtsJobDesc} setAtsResult={setAtsResult} runATSCheck={runATSCheck} setFlowState={setFlowState} addSkill={addSkill} />;
-  if (flowState === "tips") return <TipsPanel allFixes={allFixes} handleFixAll={handleFixAll} setFlowState={setFlowState} setWizardStep={setWizardStep} />;
+  if (flowState === "welcome") return <WelcomeScreen data={data} setFlowState={changeFlow} />;
+  if (flowState === "analysis") return <AnalysisScreen data={data} setFlowState={changeFlow} />;
+  if (flowState === "onboarding-level") return <OnboardingLevel onboardLevel={onboardLevel} setOnboardLevel={setOnboardLevel} setFlowState={changeFlow} />;
+  if (flowState === "onboarding-years") return <OnboardingYears onboardYears={onboardYears} setOnboardYears={setOnboardYears} setFlowState={changeFlow} />;
+  if (flowState === "onboarding-industry") return <OnboardingIndustry onboardIndustries={onboardIndustries} setOnboardIndustries={setOnboardIndustries} setFlowState={changeFlow} />;
+  if (flowState === "templates") return <TemplateSelection template={template} setTemplate={setTemplate} data={data} onboardLevel={onboardLevel} onboardYears={onboardYears} onboardIndustries={onboardIndustries} setFlowState={changeFlow} setWizardStep={setWizardStep} />;
+  if (flowState === "ats-check") return <ATSCheckPanel atsResult={atsResult} atsLoading={atsLoading} atsJobDesc={atsJobDesc} setAtsJobDesc={setAtsJobDesc} setAtsResult={setAtsResult} runATSCheck={runATSCheck} setFlowState={changeFlow} addSkill={addSkill} />;
+  if (flowState === "tips") return <TipsPanel allFixes={allFixes} handleFixAll={handleFixAll} setFlowState={changeFlow} setWizardStep={setWizardStep} />;
 
   // ════════════════════════════════════════════
   // WIZARD (Main guided editor layout)
@@ -342,7 +343,7 @@ export function ResumeBuilder() {
                 fetchSkillSuggestions={fetchSkillSuggestions} setSkillSuggestions={setSkillSuggestions}
                 skillInput={skillInput} setSkillInput={setSkillInput}
                 certInput={certInput} setCertInput={setCertInput}
-                scorePct={scorePct} allFixes={allFixes} setFlowState={setFlowState}
+                scorePct={scorePct} allFixes={allFixes} setFlowState={changeFlow}
                 onboardIndustries={onboardIndustries}
                 handleDownloadPDF={handleDownloadPDF} handleReset={handleReset}
               />

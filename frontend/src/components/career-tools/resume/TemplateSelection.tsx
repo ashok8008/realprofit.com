@@ -6,7 +6,7 @@ import { saveToStorage } from "@/lib/career-tools/storage";
 import { TEMPLATES, SAMPLE_DATA } from "./constants";
 import type { ResumeData } from "./types";
 import { TemplateRenderer } from "./TemplateRenderer";
-import type { WizardStep } from "./constants";
+import type { WizardStep, FlowState } from "./constants";
 
 interface TemplateSelectionProps {
   template: string;
@@ -15,7 +15,7 @@ interface TemplateSelectionProps {
   onboardLevel: string;
   onboardYears: string;
   onboardIndustries: string[];
-  setFlowState: (s: string) => void;
+  setFlowState: (s: FlowState) => void;
   setWizardStep: (s: WizardStep) => void;
 }
 
