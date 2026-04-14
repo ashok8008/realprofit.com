@@ -32,13 +32,13 @@ function buildMortgage(amount: number, rate: number, term: number, variant: "bas
   let title: string;
   if (variant === "base") {
     slug = `mortgage-${amount}`;
-    title = `${fmtAmt} Mortgage: Monthly Payment & Total Cost`;
+    title = `${fmtAmt} Mortgage — What You'll Actually Pay Monthly`;
   } else if (variant === "rate") {
     slug = `mortgage-${amount}-${rate}-percent`;
-    title = `${fmtAmt} Mortgage at ${rate}% Interest Rate`;
+    title = `${fmtAmt} Mortgage at ${rate}% — Monthly Payment & Total Cost`;
   } else {
     slug = `mortgage-${amount}-${term}-year`;
-    title = `${fmtAmt} Mortgage Over ${term} Years`;
+    title = `${fmtAmt} Mortgage Over ${term} Years (Real Numbers)`;
   }
 
   return {

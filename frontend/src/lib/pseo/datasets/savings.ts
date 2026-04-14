@@ -47,7 +47,7 @@ function buildSavings(amount: number): SavingsEntry {
   return {
     value: amount,
     slug: `save-${amount}`,
-    title: `How to Save $${amount.toLocaleString()} (${getContext(amount)})`,
+    title: `How to Save $${amount.toLocaleString()} Fast (Realistic Plan)`,
     type: "savings",
     context: getContext(amount),
     monthlyAt6mo: Math.ceil(amount / 6),

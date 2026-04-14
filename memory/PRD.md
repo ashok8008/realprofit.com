@@ -243,6 +243,18 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - **Sitemap**: 1,325 total URLs, all crawlable
 - **Quality-first approach**: Deep, unique content per page (not thin/repetitive)
 
+### Phase 29: CTR Title Optimization & Homepage Internal Links (Apr 2026) -- DONE
+- **CTR-optimized titles** for ALL guide categories:
+  - Salary: "Is $80,000 a Good Salary? (Full Breakdown)"
+  - Tax: "$100,000 Income — Tax Breakdown & Take-Home Pay"
+  - Savings: "How to Save $10,000 Fast (Realistic Plan)"
+  - Mortgage: "$300,000 Mortgage — What You'll Actually Pay Monthly"
+  - Debt: "How to Pay Off $10,000 in Debt (Fastest Strategy)"
+  - Freelancer: "Self-Employment Tax on $100,000 — The Full Picture"
+  - Location: "$80,000 in New York City — What You Actually Take Home"
+- **Homepage Trending Guides section** with 16 high-priority internal links across salary, tax, resume, savings, career, city, and debt categories
+- Links to `/guides` and `/learn` hub pages for crawl discovery
+
 ## Upcoming Tasks
 - Stripe integration for monetization (P2)
 - A/B test hero CTAs (P2)

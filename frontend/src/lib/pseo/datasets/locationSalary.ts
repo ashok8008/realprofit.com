@@ -128,7 +128,7 @@ function buildEntry(amount: number, city: CityData): LocationSalaryEntry {
   return {
     value: amount,
     slug: `${amount}-salary-in-${city.slug}`,
-    title: `${fmtAmt} Salary in ${city.name}: What It's Really Worth`,
+    title: `${fmtAmt} in ${city.name} — What You Actually Take Home`,
     type: "location-salary",
     cityName: city.name,
     citySlug: city.slug,

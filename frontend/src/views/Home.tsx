@@ -5,6 +5,7 @@ import { StartHereSection, PillarCardsSection, PopularToolsSection } from "@/com
 import { CareerHighlightSection } from "@/components/home/CareerHighlight";
 import { WhatIfPreviewSection, CalculatorsShowcaseSection, ProductiveToolsSection } from "@/components/home/ShowcaseSections";
 import { ArticlesSection, TrustSection } from "@/components/home/ContentSections";
+import { TrendingGuidesSection } from "@/components/home/TrendingGuides";
 
 export default function Home() {
   return (
@@ -24,6 +25,7 @@ export default function Home() {
       <CalculatorsShowcaseSection />
       <ProductiveToolsSection />
       <ArticlesSection />
+      <TrendingGuidesSection />
       <TrustSection />
     </div>
   );

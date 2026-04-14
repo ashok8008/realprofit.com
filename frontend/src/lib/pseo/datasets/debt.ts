@@ -43,8 +43,8 @@ function buildDebt(amount: number, variant: "payoff" | "interest"): DebtEntry {
 
   const slug = variant === "payoff" ? `pay-off-${amount}-debt` : `credit-card-interest-${amount}`;
   const title = variant === "payoff"
-    ? `How to Pay Off ${fmtAmt} in Debt: Timeline & Strategy`
-    : `How Much Interest on ${fmtAmt} Credit Card Balance?`;
+    ? `How to Pay Off ${fmtAmt} in Debt (Fastest Strategy)`
+    : `${fmtAmt} on a Credit Card? Here's What Interest Really Costs`;
 
   return {
     value: amount,

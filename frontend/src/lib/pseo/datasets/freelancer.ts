@@ -63,8 +63,8 @@ function buildFreelancer(income: number, variant: "se-tax" | "set-aside"): Freel
     ? `self-employment-tax-${income}`
     : `how-much-tax-to-set-aside-${income}`;
   const title = variant === "se-tax"
-    ? `Self-Employment Tax on ${fmtIncome}: Complete Breakdown`
-    : `How Much Tax to Set Aside on ${fmtIncome} Freelance Income`;
+    ? `Self-Employment Tax on ${fmtIncome} — The Full Picture`
+    : `Freelancing at ${fmtIncome}? How Much to Set Aside for Taxes`;
 
   return {
     value: income,
