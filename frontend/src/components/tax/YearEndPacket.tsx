@@ -7,7 +7,6 @@ import { calcFederalTax, calcSETax, STANDARD_DEDUCTION_SINGLE, STANDARD_DEDUCTIO
 import { TaxAIExplain } from "@/components/tax/TaxAIExplain";
 import { getRuleBasedIRSPrepExplanation } from "@/lib/tax/useTaxAI";
 import { AlertTriangle, Download } from "lucide-react";
-import { jsPDF } from "jspdf";
 import { useToast } from "@/hooks/use-toast";
 
 export function YearEndPacket() {
@@ -42,132 +41,112 @@ export function YearEndPacket() {
   const marginal = getMarginalBracket(taxableIncome, filing);
 
   const generatePacket = () => {
+    const { jsPDF } = require("jspdf");
+    const { drawHeader, drawFooter, drawSectionHeading, drawKVRow, drawRule, drawStatCard, BRAND, LM, PW, PAGE_W, PAGE_H } = require("@/lib/pdf-brand");
     const doc = new jsPDF();
-    let y = 20;
-    const lm = 20;
-    const pw = 170;
 
-    const addPageIfNeeded = (needed: number) => {
-      if (y + needed > 275) { doc.addPage(); y = 20; }
-    };
-
-    const heading = (text: string) => {
-      addPageIfNeeded(20);
-      doc.setFontSize(13);
-      doc.setFont("helvetica", "bold");
-      doc.text(text, lm, y);
-      y += 7;
-      doc.setDrawColor(0, 150, 136);
-      doc.setLineWidth(0.5);
-      doc.line(lm, y, lm + pw, y);
-      y += 6;
-    };
-
-    const row = (label: string, value: string) => {
-      addPageIfNeeded(8);
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
-      doc.text(label, lm, y);
-      doc.text(value, lm + pw - doc.getTextWidth(value), y);
-      y += 6;
-    };
-
-    // Title page
-    doc.setFontSize(22);
-    doc.setFont("helvetica", "bold");
-    doc.text("Year-End Tax Packet", lm, y);
-    y += 10;
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(100);
-    doc.text(`Prepared for: ${name || "Taxpayer"} | Tax Year 2025`, lm, y);
-    y += 5;
-    doc.text(`Generated: ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}`, lm, y);
-    doc.setTextColor(0);
-    y += 5;
+    let y = drawHeader(doc, "Year-End Tax Packet", `Prepared for: ${name || "Taxpayer"} | Tax Year 2025`);
 
     // Disclaimer bar
     doc.setFillColor(255, 243, 205);
-    doc.rect(lm, y, pw, 12, "F");
-    doc.setFontSize(8);
+    doc.roundedRect(LM, y, PW, 12, 2, 2, "F");
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "italic");
     doc.setTextColor(120, 80, 0);
-    doc.text("PREP DOCUMENT ONLY — NOT for IRS submission. For reference and filing preparation only.", lm + 3, y + 5);
-    doc.text("This is NOT an official tax return. Consult a tax professional before filing.", lm + 3, y + 9);
-    doc.setTextColor(0);
+    doc.text("PREP DOCUMENT ONLY \u2014 NOT for IRS submission. For reference and filing preparation only.", LM + 4, y + 5);
+    doc.text("This is NOT an official tax return. Consult a tax professional before filing.", LM + 4, y + 10);
+    doc.setTextColor(0, 0, 0);
     y += 18;
 
-    // Section 1: Income summary
-    heading("Section 1: Income Summary");
-    row("W-2 Wages", `$${wages.toLocaleString()}`);
-    row("Self-Employment Revenue", `$${freelanceRevenue.toLocaleString()}`);
-    row("Business Expenses", `($${freelanceExpenses.toLocaleString()})`);
-    row("Net Self-Employment", `$${freelanceNet.toLocaleString()}`);
-    row("Other Income", `$${otherIncome.toLocaleString()}`);
-    row("Total Gross Income", `$${totalGross.toLocaleString()}`);
-    y += 4;
+    // Summary stat cards
+    const cw = (PW - 15) / 4;
+    drawStatCard(doc, "Total Gross", `$${totalGross.toLocaleString()}`, LM, y, cw, 22, BRAND.dark);
+    drawStatCard(doc, "Federal Tax", `$${Math.round(federalTax).toLocaleString()}`, LM + cw + 5, y, cw, 22, BRAND.blue);
+    drawStatCard(doc, "SE Tax", `$${Math.round(se.seTax).toLocaleString()}`, LM + (cw + 5) * 2, y, cw, 22, BRAND.amber);
+    drawStatCard(doc, balance >= 0 ? "Owed" : "Refund", `$${Math.abs(Math.round(balance)).toLocaleString()}`, LM + (cw + 5) * 3, y, cw, 22, balance >= 0 ? BRAND.red : BRAND.green);
+    y += 30;
 
-    // Section 2: Schedule C summary
-    heading("Section 2: Schedule C Summary");
-    row("Gross Revenue", `$${freelanceRevenue.toLocaleString()}`);
-    row("Total Business Expenses", `($${freelanceExpenses.toLocaleString()})`);
-    row("Net Profit (Line 31)", `$${freelanceNet.toLocaleString()}`);
-    row("SE Tax", `$${Math.round(se.seTax).toLocaleString()}`);
-    row("Deductible Half of SE Tax", `$${Math.round(se.deductibleHalf).toLocaleString()}`);
-    y += 4;
+    const checkPage = (needed: number) => { if (y + needed > PAGE_H - 25) { doc.addPage(); y = 15; } };
+
+    // Section 1: Income Summary
+    checkPage(50);
+    y = drawSectionHeading(doc, "Section 1: Income Summary", y);
+    y = drawKVRow(doc, "W-2 Wages", `$${wages.toLocaleString()}`, y);
+    y = drawKVRow(doc, "Self-Employment Revenue", `$${freelanceRevenue.toLocaleString()}`, y);
+    y = drawKVRow(doc, "Business Expenses", `($${freelanceExpenses.toLocaleString()})`, y);
+    y = drawKVRow(doc, "Net Self-Employment", `$${freelanceNet.toLocaleString()}`, y, { bold: true, color: BRAND.accent });
+    y = drawKVRow(doc, "Other Income", `$${otherIncome.toLocaleString()}`, y);
+    y = drawKVRow(doc, "Total Gross Income", `$${totalGross.toLocaleString()}`, y, { bold: true, color: BRAND.dark, size: 11 });
+    y = drawRule(doc, y);
+
+    // Section 2: Schedule C
+    checkPage(40);
+    y = drawSectionHeading(doc, "Section 2: Schedule C Summary", y);
+    y = drawKVRow(doc, "Gross Revenue", `$${freelanceRevenue.toLocaleString()}`, y);
+    y = drawKVRow(doc, "Total Business Expenses", `($${freelanceExpenses.toLocaleString()})`, y);
+    y = drawKVRow(doc, "Net Profit (Line 31)", `$${freelanceNet.toLocaleString()}`, y, { bold: true, color: BRAND.accent });
+    y = drawKVRow(doc, "SE Tax", `$${Math.round(se.seTax).toLocaleString()}`, y);
+    y = drawKVRow(doc, "Deductible Half of SE Tax", `$${Math.round(se.deductibleHalf).toLocaleString()}`, y);
+    y = drawRule(doc, y);
 
     // Section 3: Deductions
-    heading("Section 3: Deductions & Adjustments");
-    row("Standard Deduction", `$${standardDed.toLocaleString()}`);
-    row("Charitable Donations", `$${charitableDonations.toLocaleString()}`);
-    row("Mortgage Interest", `$${mortgageInterest.toLocaleString()}`);
-    row("Itemized Total", `$${itemizedTotal.toLocaleString()}`);
-    row(`Deduction Used (${deduction === standardDed ? "Standard" : "Itemized"})`, `$${deduction.toLocaleString()}`);
-    row("Retirement Contributions", `$${retirementContrib.toLocaleString()}`);
-    y += 4;
+    checkPage(50);
+    y = drawSectionHeading(doc, "Section 3: Deductions & Adjustments", y);
+    y = drawKVRow(doc, "Standard Deduction", `$${standardDed.toLocaleString()}`, y);
+    y = drawKVRow(doc, "Charitable Donations", `$${charitableDonations.toLocaleString()}`, y);
+    y = drawKVRow(doc, "Mortgage Interest", `$${mortgageInterest.toLocaleString()}`, y);
+    y = drawKVRow(doc, "Itemized Total", `$${itemizedTotal.toLocaleString()}`, y);
+    y = drawKVRow(doc, `Deduction Used (${deduction === standardDed ? "Standard" : "Itemized"})`, `$${deduction.toLocaleString()}`, y, { bold: true, color: BRAND.accent });
+    y = drawKVRow(doc, "Retirement Contributions", `$${retirementContrib.toLocaleString()}`, y);
+    y = drawRule(doc, y);
 
-    // Section 4: Tax calculation
-    heading("Section 4: Tax Calculation");
-    row("Filing Status", filing === "mfj" ? "Married Filing Jointly" : "Single");
-    row("Adjusted Gross Income", `$${Math.round(agi).toLocaleString()}`);
-    row("Taxable Income", `$${Math.round(taxableIncome).toLocaleString()}`);
-    row("Federal Income Tax", `$${Math.round(federalTax).toLocaleString()}`);
-    row("Self-Employment Tax", `$${Math.round(se.seTax).toLocaleString()}`);
-    row(`State Tax (${stateRate}%)`, `$${Math.round(stateTax).toLocaleString()}`);
-    row("Total Tax Liability", `$${Math.round(totalTax).toLocaleString()}`);
-    y += 4;
+    // Section 4: Tax Calculation
+    checkPage(50);
+    y = drawSectionHeading(doc, "Section 4: Tax Calculation", y);
+    y = drawKVRow(doc, "Filing Status", filing === "mfj" ? "Married Filing Jointly" : "Single", y);
+    y = drawKVRow(doc, "Adjusted Gross Income", `$${Math.round(agi).toLocaleString()}`, y);
+    y = drawKVRow(doc, "Taxable Income", `$${Math.round(taxableIncome).toLocaleString()}`, y, { bold: true });
+    y = drawKVRow(doc, "Federal Income Tax", `$${Math.round(federalTax).toLocaleString()}`, y);
+    y = drawKVRow(doc, "Self-Employment Tax", `$${Math.round(se.seTax).toLocaleString()}`, y);
+    y = drawKVRow(doc, `State Tax (${stateRate}%)`, `$${Math.round(stateTax).toLocaleString()}`, y);
+    y = drawKVRow(doc, "Total Tax Liability", `$${Math.round(totalTax).toLocaleString()}`, y, { bold: true, color: BRAND.red, size: 11 });
+    y = drawRule(doc, y);
 
-    // Section 5: Payments
-    heading("Section 5: Payments & Balance");
-    row("W-2 Withholding", `$${withholding.toLocaleString()}`);
-    row("Estimated Payments Made", `$${estimatedPaid.toLocaleString()}`);
-    row("Total Paid", `$${totalPaid.toLocaleString()}`);
+    // Section 5: Payments & Balance
+    checkPage(40);
+    y = drawSectionHeading(doc, "Section 5: Payments & Balance", y);
+    y = drawKVRow(doc, "W-2 Withholding", `$${withholding.toLocaleString()}`, y);
+    y = drawKVRow(doc, "Estimated Payments Made", `$${estimatedPaid.toLocaleString()}`, y);
+    y = drawKVRow(doc, "Total Paid", `$${totalPaid.toLocaleString()}`, y, { bold: true });
+    y += 2;
+    // Balance highlight bar
+    const balColor = balance >= 0 ? BRAND.red : BRAND.green;
+    doc.setFillColor(...balColor);
+    doc.roundedRect(LM, y, PW, 12, 2, 2, "F");
     doc.setFont("helvetica", "bold");
-    row(balance >= 0 ? "AMOUNT OWED" : "REFUND DUE", `$${Math.abs(Math.round(balance)).toLocaleString()}`);
-    doc.setFont("helvetica", "normal");
-    y += 4;
+    doc.setFontSize(11);
+    doc.setTextColor(...BRAND.white);
+    const balLabel = balance >= 0 ? "AMOUNT OWED" : "REFUND DUE";
+    doc.text(balLabel, LM + 6, y + 8);
+    const balVal = `$${Math.abs(Math.round(balance)).toLocaleString()}`;
+    doc.text(balVal, LM + PW - 6 - doc.getTextWidth(balVal), y + 8);
+    y += 18;
 
-    // Section 6: Key rates
-    heading("Section 6: Key Rates & Reference");
-    row("Effective Tax Rate", `${effectiveRate.toFixed(1)}%`);
-    row("Marginal Tax Bracket", `${marginal}%`);
-    y += 4;
+    // Section 6: Key Rates
+    checkPage(30);
+    y = drawSectionHeading(doc, "Section 6: Key Rates & Reference", y);
+    y = drawKVRow(doc, "Effective Tax Rate", `${effectiveRate.toFixed(1)}%`, y);
+    y = drawKVRow(doc, "Marginal Tax Bracket", `${marginal}%`, y);
+    y = drawRule(doc, y);
 
     // Quarterly dates
-    heading("Quarterly Payment Schedule (Next Year)");
+    checkPage(40);
+    y = drawSectionHeading(doc, "Quarterly Payment Schedule (Next Year)", y);
     QUARTERLY_DUE_DATES.forEach(q => {
-      row(`${q.quarter} (${q.period})`, `Due ${q.due}`);
+      y = drawKVRow(doc, `${q.quarter} (${q.period})`, `Due ${q.due}`, y);
     });
 
-    // Footer on all pages
-    const pageCount = doc.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      doc.setFontSize(7);
-      doc.setTextColor(150);
-      doc.text(`RealProfits.com — Year-End Tax Packet | Page ${i} of ${pageCount}`, lm, 290);
-      doc.text("PREP ONLY — Not for IRS submission. Informational estimates only.", lm, 285);
-    }
-
+    drawFooter(doc);
     doc.save("year-end-tax-packet.pdf");
     toast({ title: "Tax packet downloaded", description: "Your year-end tax packet has been saved as PDF." });
   };

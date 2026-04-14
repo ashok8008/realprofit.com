@@ -7,7 +7,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 import { Plus, Trash2, RotateCcw, Pencil, Check, X, Download } from "lucide-react";
 import { ExportToCSVButton } from "@/components/export/ExportButtons";
-import { jsPDF } from "jspdf";
 import { useToast } from "@/hooks/use-toast";
 import { saveToStorage, loadFromStorage } from "@/lib/career-tools/storage";
 import { SubscriptionSummary } from "./subscription/SubscriptionSummary";
@@ -120,64 +119,52 @@ export function SubscriptionCostAnalyzer() {
 
   const handleExportPDF = () => {
     try {
+      const { jsPDF } = require("jspdf");
+      const { drawHeader, drawFooter, drawSectionHeading, drawKVRow, drawTable, drawBarChart, drawStatCard, BRAND, LM, PW, PAGE_W } = require("@/lib/pdf-brand");
       const doc = new jsPDF();
-      let y = 20;
-      doc.setFontSize(20);
-      doc.text("Subscription Cost Analysis", 20, y);
-      y += 12;
-      doc.setFontSize(12);
-      doc.text(`Generated: ${new Date().toLocaleDateString()}`, 20, y);
-      y += 15;
 
-      doc.setFontSize(14);
-      doc.text("Summary", 20, y);
-      y += 8;
-      doc.setFontSize(12);
-      doc.text(`Total Monthly Cost: $${totalMonthly.toFixed(2)}`, 25, y); y += 6;
-      doc.text(`Total Annual Cost: $${totalAnnual.toFixed(2)}`, 25, y); y += 6;
-      doc.text(`Average per Subscription: $${avgMonthly.toFixed(2)}/mo`, 25, y); y += 6;
-      doc.text(`Total Subscriptions: ${subs.length}`, 25, y); y += 6;
+      let y = drawHeader(doc, "Subscription Cost Analysis");
+
+      // Stat cards
+      const cardW = (PW - 10) / 3;
+      drawStatCard(doc, "Monthly Cost", `$${totalMonthly.toFixed(0)}`, LM, y, cardW, 22, BRAND.accent);
+      drawStatCard(doc, "Annual Cost", `$${totalAnnual.toFixed(0)}`, LM + cardW + 5, y, cardW, 22, BRAND.blue);
+      drawStatCard(doc, "Subscriptions", subs.length.toString(), LM + (cardW + 5) * 2, y, cardW, 22, BRAND.dark);
+      y += 30;
+
+      // Quick stats
+      y = drawSectionHeading(doc, "Overview", y);
+      y = drawKVRow(doc, "Average per subscription", `$${avgMonthly.toFixed(2)}/mo`, y);
       if (mostExpensive) {
-        doc.text(`Most Expensive: ${mostExpensive.name} ($${mostExpensive.monthlyEquivalent.toFixed(2)}/mo)`, 25, y);
+        y = drawKVRow(doc, "Most expensive", `${mostExpensive.name} ($${mostExpensive.monthlyEquivalent.toFixed(2)}/mo)`, y, { color: BRAND.red });
       }
-      y += 12;
+      y += 4;
 
-      doc.setFontSize(14);
-      doc.text("Subscriptions", 20, y);
-      y += 8;
+      // Subscriptions table
+      y = drawSectionHeading(doc, "Subscriptions", y);
+      const headers = ["Service", "Category", "Cost", "Monthly Eq."];
+      const rows = processedSubs.map(s => [
+        s.name,
+        s.category,
+        `$${s.cost.toFixed(2)} /${s.cycle === "monthly" ? "mo" : "yr"}`,
+        `$${s.monthlyEquivalent.toFixed(2)}`
+      ]);
+      y = drawTable(doc, headers, rows, [55, 45, 40, 40], y);
+      y += 4;
 
-      doc.setFillColor(240, 240, 240);
-      doc.rect(20, y - 1, 170, 8, "F");
-      doc.setFontSize(10);
-      doc.setFont(undefined as any, "bold");
-      doc.text("Service", 22, y + 5);
-      doc.text("Category", 75, y + 5);
-      doc.text("Cost", 115, y + 5);
-      doc.text("Monthly Eq.", 150, y + 5);
-      doc.setFont(undefined as any, "normal");
-      y += 12;
-
-      processedSubs.forEach(s => {
-        doc.text(s.name, 22, y);
-        doc.text(s.category, 75, y);
-        doc.text(`$${s.cost.toFixed(2)} /${s.cycle === 'monthly' ? 'mo' : 'yr'}`, 115, y);
-        doc.text(`$${s.monthlyEquivalent.toFixed(2)}`, 150, y);
-        y += 7;
-        if (y > 270) { doc.addPage(); y = 20; }
-      });
-
-      y += 8;
+      // Category breakdown with bar chart
       if (categoryData.length > 0) {
-        doc.setFontSize(14);
-        doc.text("By Category (Monthly)", 20, y);
-        y += 8;
-        doc.setFontSize(12);
-        categoryData.forEach(cat => {
-          doc.text(`${cat.name}: $${cat.value.toFixed(2)}/mo`, 25, y);
-          y += 6;
-        });
+        y = drawSectionHeading(doc, "By Category (Monthly)", y);
+        const catColors: [number, number, number][] = [BRAND.accent, BRAND.blue, BRAND.amber, BRAND.green, BRAND.red];
+        const catItems = categoryData.map((cat, i) => ({
+          label: cat.name,
+          value: cat.value,
+          color: catColors[i % catColors.length],
+        }));
+        y = drawBarChart(doc, catItems, y);
       }
 
+      drawFooter(doc);
       doc.save("subscription-analysis.pdf");
       toast({ title: "PDF Downloaded", description: "Your subscription analysis has been saved." });
     } catch {

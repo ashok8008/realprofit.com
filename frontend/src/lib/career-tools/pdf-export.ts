@@ -1,74 +1,6 @@
 // PDF Export utilities for Career Tools
 import jsPDF from 'jspdf';
 
-interface PDFOptions {
-  title: string;
-  subtitle?: string;
-  filename: string;
-}
-
-export function createCareerPDF(options: PDFOptions): jsPDF {
-  const pdf = new jsPDF('p', 'mm', 'a4');
-  const pageWidth = pdf.internal.pageSize.getWidth();
-  
-  // Header
-  pdf.setFontSize(10);
-  pdf.setTextColor(100);
-  pdf.text('RealProfits.com', 15, 15);
-  pdf.text(new Date().toLocaleDateString(), pageWidth - 15, 15, { align: 'right' });
-  
-  // Title
-  pdf.setFontSize(24);
-  pdf.setTextColor(0);
-  pdf.text(options.title, 15, 35);
-  
-  if (options.subtitle) {
-    pdf.setFontSize(12);
-    pdf.setTextColor(100);
-    pdf.text(options.subtitle, 15, 45);
-  }
-  
-  return pdf;
-}
-
-export function addSection(pdf: jsPDF, title: string, y: number): number {
-  pdf.setFontSize(14);
-  pdf.setTextColor(0);
-  pdf.setFont('helvetica', 'bold');
-  pdf.text(title, 15, y);
-  pdf.setFont('helvetica', 'normal');
-  return y + 8;
-}
-
-export function addText(pdf: jsPDF, text: string, y: number, options?: { indent?: number; fontSize?: number; color?: number }): number {
-  const indent = options?.indent || 15;
-  const fontSize = options?.fontSize || 11;
-  const color = options?.color || 50;
-  
-  pdf.setFontSize(fontSize);
-  pdf.setTextColor(color);
-  
-  const pageWidth = pdf.internal.pageSize.getWidth();
-  const maxWidth = pageWidth - indent - 15;
-  const lines = pdf.splitTextToSize(text, maxWidth);
-  
-  pdf.text(lines, indent, y);
-  return y + (lines.length * (fontSize * 0.4));
-}
-
-export function addKeyValue(pdf: jsPDF, key: string, value: string, y: number): number {
-  pdf.setFontSize(11);
-  pdf.setTextColor(100);
-  pdf.text(key + ':', 15, y);
-  pdf.setTextColor(0);
-  pdf.text(value, 60, y);
-  return y + 6;
-}
-
-export function downloadPDF(pdf: jsPDF, filename: string): void {
-  pdf.save(filename);
-}
-
 // Resume-specific PDF generation
 export interface ResumeData {
   personalDetails: {
@@ -103,18 +35,36 @@ export interface ResumeData {
 }
 
 export function generateResumePDF(data: ResumeData, template: string = 'clean'): jsPDF {
+  let pdf: jsPDF;
   switch (template) {
     case 'executive':
-      return generateExecutiveTemplate(data);
+      pdf = generateExecutiveTemplate(data);
+      break;
     case 'modern':
-      return generateModernTemplate(data);
+      pdf = generateModernTemplate(data);
+      break;
     case 'minimal':
-      return generateMinimalTemplate(data);
+      pdf = generateMinimalTemplate(data);
+      break;
     case 'professional':
-      return generateProfessionalTemplate(data);
+      pdf = generateProfessionalTemplate(data);
+      break;
     default:
-      return generateCleanTemplate(data);
+      pdf = generateCleanTemplate(data);
   }
+  // Add subtle footer to all pages
+  const pageCount = pdf.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    pdf.setPage(i);
+    pdf.setFontSize(6);
+    pdf.setTextColor(180, 180, 180);
+    pdf.text("Built with RealProfits.com", 15, 290);
+    if (pageCount > 1) {
+      const pageText = `${i} / ${pageCount}`;
+      pdf.text(pageText, 195 - pdf.getTextWidth(pageText), 290);
+    }
+  }
+  return pdf;
 }
 
 // Clean Template (default ATS-friendly)
@@ -806,21 +756,33 @@ export function generateCoverLetterPDF(
   applicantName: string,
   date: string
 ): jsPDF {
+  const { drawHeader, drawFooter, LM, PW } = require("@/lib/pdf-brand");
   const pdf = new jsPDF('p', 'mm', 'a4');
-  const pageWidth = pdf.internal.pageSize.getWidth();
-  let y = 30;
-  
-  // Date
-  pdf.setFontSize(11);
-  pdf.setTextColor(80);
-  pdf.text(date, pageWidth - 15, y, { align: 'right' });
-  y += 20;
-  
-  // Content
-  pdf.setFontSize(11);
-  pdf.setTextColor(30);
-  const lines = pdf.splitTextToSize(content, pageWidth - 30);
-  pdf.text(lines, 15, y);
-  
+
+  let y = drawHeader(pdf, "Cover Letter", applicantName || "Applicant");
+
+  // Date right-aligned
+  pdf.setFontSize(9);
+  pdf.setTextColor(100, 116, 139);
+  pdf.text(date, LM + PW - pdf.getTextWidth(date), y);
+  y += 10;
+
+  // Applicant name
+  if (applicantName) {
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(12);
+    pdf.setTextColor(15, 23, 42);
+    pdf.text(applicantName, LM, y);
+    y += 8;
+  }
+
+  // Content body
+  pdf.setFont("helvetica", "normal");
+  pdf.setFontSize(10);
+  pdf.setTextColor(40, 40, 40);
+  const lines = pdf.splitTextToSize(content, PW);
+  pdf.text(lines, LM, y);
+
+  drawFooter(pdf);
   return pdf;
 }

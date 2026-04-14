@@ -1,7 +1,6 @@
 "use client";
 import React from "react";
 import { Download, Printer } from "lucide-react";
-import { jsPDF } from "jspdf";
 import { useToast } from "@/hooks/use-toast";
 
 interface TaxPDFExportProps {
@@ -15,78 +14,56 @@ export function TaxPDFExport({ title, sections, notes, fileName }: TaxPDFExportP
   const { toast } = useToast();
 
   const generatePDF = () => {
+    const { jsPDF } = require("jspdf");
+    const { drawHeader, drawFooter, drawSectionHeading, drawKVRow, drawRule, BRAND, LM, PW, PAGE_W, PAGE_H } = require("@/lib/pdf-brand");
     const doc = new jsPDF();
-    let y = 20;
-    const lm = 20;
-    const pw = 170;
 
-    // Title
-    doc.setFontSize(18);
-    doc.setFont("helvetica", "bold");
-    doc.text(title, lm, y);
-    y += 8;
+    let y = drawHeader(doc, title, "Tax filing reference document");
 
     // Disclaimer bar
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(120);
-    doc.text("Prepared for filing reference only. This is NOT an official IRS document.", lm, y);
-    doc.setTextColor(0);
-    y += 4;
-
-    doc.setDrawColor(200);
-    doc.line(lm, y, lm + pw, y);
-    y += 8;
-
-    // Date
-    doc.setFontSize(9);
-    doc.text(`Generated: ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}`, lm, y);
-    y += 10;
+    doc.setFillColor(255, 243, 205);
+    doc.roundedRect(LM, y, PW, 12, 2, 2, "F");
+    doc.setFontSize(7);
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(120, 80, 0);
+    doc.text("This is NOT an official IRS document. Prepared for filing reference only.", LM + 4, y + 5);
+    doc.text(`Generated: ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}`, LM + 4, y + 10);
+    doc.setTextColor(0, 0, 0);
+    y += 18;
 
     for (const section of sections) {
-      if (y > 260) { doc.addPage(); y = 20; }
+      if (y > PAGE_H - 40) { doc.addPage(); y = 15; }
 
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "bold");
-      doc.text(section.heading, lm, y);
-      y += 7;
+      y = drawSectionHeading(doc, section.heading, y);
 
-      doc.setFontSize(10);
-      doc.setFont("helvetica", "normal");
       for (const row of section.rows) {
-        if (y > 275) { doc.addPage(); y = 20; }
-        doc.text(row.label, lm, y);
-        doc.text(row.value, lm + pw - doc.getTextWidth(row.value), y);
-        y += 6;
+        if (y > PAGE_H - 20) { doc.addPage(); y = 15; }
+        const isTotal = row.label.toLowerCase().includes("total") || row.label.toLowerCase().includes("net");
+        y = drawKVRow(doc, row.label, row.value, y, {
+          bold: isTotal,
+          color: isTotal ? BRAND.accent : BRAND.dark,
+          size: isTotal ? 11 : 9,
+        });
       }
-      y += 4;
-      doc.setDrawColor(230);
-      doc.line(lm, y, lm + pw, y);
-      y += 8;
+      y += 2;
+      y = drawRule(doc, y);
     }
 
     if (notes && notes.length > 0) {
-      if (y > 250) { doc.addPage(); y = 20; }
-      doc.setFontSize(9);
+      if (y > PAGE_H - 40) { doc.addPage(); y = 15; }
+      y = drawSectionHeading(doc, "Notes", y);
+      doc.setFontSize(8);
       doc.setFont("helvetica", "italic");
-      doc.setTextColor(100);
+      doc.setTextColor(...BRAND.muted);
       for (const note of notes) {
-        const lines = doc.splitTextToSize(note, pw);
-        doc.text(lines, lm, y);
-        y += lines.length * 5 + 3;
+        const lines = doc.splitTextToSize(note, PW);
+        doc.text(lines, LM + 4, y);
+        y += lines.length * 4 + 3;
       }
-      doc.setTextColor(0);
+      doc.setTextColor(0, 0, 0);
     }
 
-    // Footer disclaimer
-    const pageCount = doc.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      doc.setFontSize(7);
-      doc.setTextColor(150);
-      doc.text("RealProfits.com — Informational tax prep only. Not a substitute for professional tax advice.", lm, 290);
-    }
-
+    drawFooter(doc);
     const name = fileName || title.toLowerCase().replace(/[^a-z0-9]+/g, "-");
     doc.save(`${name}.pdf`);
     toast({ title: "PDF downloaded", description: `${title} saved successfully.` });

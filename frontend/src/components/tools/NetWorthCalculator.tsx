@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend } from "recharts";
 import { RotateCcw, Download } from "lucide-react";
 import { ExportToCSVButton } from "@/components/export/ExportButtons";
-import { jsPDF } from "jspdf";
 import { useToast } from "@/hooks/use-toast";
 import { saveToStorage, loadFromStorage } from "@/lib/career-tools/storage";
 
@@ -103,73 +102,55 @@ export function NetWorthCalculator() {
 
   const handleExportPDF = () => {
     try {
+      const { jsPDF } = require("jspdf");
+      const { drawHeader, drawFooter, drawSectionHeading, drawKVRow, drawBarChart, drawRule, drawStatCard, BRAND, LM, PW, PAGE_W } = require("@/lib/pdf-brand");
       const doc = new jsPDF();
-      let y = 20;
 
-      doc.setFontSize(22);
-      doc.text("Net Worth Report", 20, y);
-      doc.setFontSize(10);
-      doc.text(`Generated: ${new Date().toLocaleDateString()}`, 150, y);
-      y += 15;
+      let y = drawHeader(doc, "Net Worth Report");
 
-      doc.setFontSize(16);
-      const nwColor = netWorth >= 0 ? [34, 197, 94] : [239, 68, 68];
-      doc.setTextColor(nwColor[0], nwColor[1], nwColor[2]);
-      doc.text(`Total Net Worth: $${netWorth.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 20, y);
-      doc.setTextColor(0, 0, 0);
-      y += 15;
+      // Stat cards row
+      const cardW = (PW - 10) / 3;
+      drawStatCard(doc, "Total Assets", `$${totalAssets.toLocaleString(undefined, { minimumFractionDigits: 0 })}`, LM, y, cardW, 22, BRAND.green);
+      drawStatCard(doc, "Total Liabilities", `$${totalLiabilities.toLocaleString(undefined, { minimumFractionDigits: 0 })}`, LM + cardW + 5, y, cardW, 22, BRAND.red);
+      drawStatCard(doc, "Net Worth", `$${netWorth.toLocaleString(undefined, { minimumFractionDigits: 0 })}`, LM + (cardW + 5) * 2, y, cardW, 22, netWorth >= 0 ? BRAND.accent : BRAND.red);
+      y += 30;
 
-      doc.setFontSize(14);
-      doc.setTextColor(34, 197, 94);
-      doc.text(`Assets: $${totalAssets.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 20, y);
-      doc.setTextColor(0, 0, 0);
-      y += 8;
+      // Assets section with bar chart
+      y = drawSectionHeading(doc, "Assets", y);
+      const assetItems = Object.entries(assets).filter(([, val]) => val > 0).map(([key, val]) => ({
+        label: ASSET_LABELS[key] || key,
+        value: val,
+        color: BRAND.green as [number, number, number],
+      }));
+      if (assetItems.length > 0) {
+        y = drawBarChart(doc, assetItems, y);
+      } else {
+        doc.setFontSize(9); doc.setTextColor(...BRAND.muted); doc.text("No assets entered", LM + 4, y); y += 8;
+      }
+      y += 4;
 
-      doc.setFontSize(11);
-      Object.entries(assets).forEach(([key, val]) => {
-        if (val > 0) {
-          doc.text(`  ${ASSET_LABELS[key] || key}`, 24, y);
-          doc.text(`$${val.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 150, y);
-          y += 7;
-        }
-      });
+      // Liabilities section with bar chart
+      y = drawSectionHeading(doc, "Liabilities", y);
+      const liabItems = Object.entries(liabilities).filter(([, val]) => val > 0).map(([key, val]) => ({
+        label: LIABILITY_LABELS[key] || key,
+        value: val,
+        color: BRAND.red as [number, number, number],
+      }));
+      if (liabItems.length > 0) {
+        y = drawBarChart(doc, liabItems, y);
+      } else {
+        doc.setFontSize(9); doc.setTextColor(...BRAND.muted); doc.text("No liabilities entered", LM + 4, y); y += 8;
+      }
+      y += 4;
 
-      y += 5;
-      doc.setFontSize(14);
-      doc.setTextColor(239, 68, 68);
-      doc.text(`Liabilities: $${totalLiabilities.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 20, y);
-      doc.setTextColor(0, 0, 0);
-      y += 8;
+      // Summary section
+      y = drawRule(doc, y);
+      y = drawSectionHeading(doc, "Summary", y);
+      y = drawKVRow(doc, "Total Assets", `$${totalAssets.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, y, { color: BRAND.green });
+      y = drawKVRow(doc, "Total Liabilities", `$${totalLiabilities.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, y, { color: BRAND.red });
+      y = drawKVRow(doc, "Net Worth", `$${netWorth.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, y, { bold: true, color: netWorth >= 0 ? BRAND.accent : BRAND.red, size: 12 });
 
-      doc.setFontSize(11);
-      Object.entries(liabilities).forEach(([key, val]) => {
-        if (val > 0) {
-          doc.text(`  ${LIABILITY_LABELS[key] || key}`, 24, y);
-          doc.text(`$${val.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 150, y);
-          y += 7;
-        }
-      });
-
-      y += 10;
-      doc.setDrawColor(200, 200, 200);
-      doc.line(20, y, 190, y);
-      y += 8;
-      doc.setFontSize(12);
-      doc.setFont(undefined as any, "bold");
-      doc.text("Summary", 20, y);
-      doc.setFont(undefined as any, "normal");
-      y += 8;
-      doc.setFontSize(11);
-      doc.text(`Total Assets:`, 24, y);
-      doc.text(`$${totalAssets.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 150, y);
-      y += 7;
-      doc.text(`Total Liabilities:`, 24, y);
-      doc.text(`$${totalLiabilities.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 150, y);
-      y += 7;
-      doc.setFont(undefined as any, "bold");
-      doc.text(`Net Worth:`, 24, y);
-      doc.text(`$${netWorth.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, 150, y);
-
+      drawFooter(doc);
       doc.save("net-worth-report.pdf");
       toast({ title: "PDF Downloaded", description: "Your net worth report has been saved." });
     } catch {

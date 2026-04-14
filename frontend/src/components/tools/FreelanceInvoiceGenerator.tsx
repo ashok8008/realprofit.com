@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Trash2, Copy, Download, Printer, RotateCcw } from "lucide-react";
-import { jsPDF } from "jspdf";
 import { useToast } from "@/hooks/use-toast";
 import { saveToStorage, loadFromStorage } from "@/lib/career-tools/storage";
 import { InvoicePreview } from "@/components/invoice/InvoicePreview";
@@ -90,112 +89,163 @@ export function FreelanceInvoiceGenerator() {
 
   const handleExportPDF = () => {
     try {
+      const { jsPDF } = require("jspdf");
+      const { drawHeader, drawFooter, drawRule, BRAND, LM, PW, PAGE_W } = require("@/lib/pdf-brand");
       const doc = new jsPDF();
-      let y = 20;
 
-      doc.setFontSize(24);
-      doc.text("INVOICE", 150, y);
-      doc.setFontSize(12);
+      // Header
+      let y = drawHeader(doc, "INVOICE", `Invoice ${data.invoiceNumber}`);
 
-      doc.text(data.senderName || "Your Company", 20, y);
+      // Two-column: Sender (left) | Invoice details (right)
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(...BRAND.dark);
+      doc.text("From", LM, y);
+      doc.text("Invoice Details", PAGE_W / 2 + 10, y);
       y += 6;
-      if (data.senderAddress) {
-        const addressLines = doc.splitTextToSize(data.senderAddress, 60);
-        doc.text(addressLines, 20, y);
-        y += addressLines.length * 6;
-      }
-      if (data.senderEmail) {
-        doc.text(data.senderEmail, 20, y);
-      }
 
-      y = Math.max(y + 15, 50);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(...BRAND.muted);
+      const senderLines = [data.senderName, data.senderAddress, data.senderEmail].filter(Boolean);
+      senderLines.forEach(line => { doc.text(line, LM, y); y += 5; });
 
-      doc.text(`Invoice Number: ${data.invoiceNumber}`, 150, y);
-      y += 6;
-      doc.text(`Date: ${data.date}`, 150, y);
-      y += 6;
-      doc.text(`Due Date: ${data.dueDate}`, 150, y);
-
-      y -= 12;
-
-      doc.setFontSize(14);
-      doc.text("Bill To:", 20, y);
-      doc.setFontSize(12);
-      y += 6;
-      doc.text(data.clientName || "Client Name", 20, y);
-      y += 6;
-      if (data.clientAddress) {
-        const addressLines = doc.splitTextToSize(data.clientAddress, 60);
-        doc.text(addressLines, 20, y);
-        y += addressLines.length * 6;
-      }
-      if (data.clientEmail) {
-        doc.text(data.clientEmail, 20, y);
-      }
-
-      y = Math.max(y + 15, 80);
-
-      doc.setFillColor(240, 240, 240);
-      doc.rect(20, y, 170, 10, "F");
-      doc.setFont(undefined as any, "bold");
-      doc.text("Description", 22, y + 7);
-      doc.text("Qty", 120, y + 7);
-      doc.text("Rate", 145, y + 7);
-      doc.text("Amount", 170, y + 7);
-      doc.setFont(undefined as any, "normal");
-
-      y += 15;
-
-      data.items.forEach(item => {
-        const qty = getItemQty(item);
-        const rate = getItemRate(item);
-        const descLines = doc.splitTextToSize(item.description || "Item", 90);
-        doc.text(descLines, 22, y);
-        doc.text(qty.toString(), 120, y);
-        doc.text(`$${rate.toFixed(2)}`, 145, y);
-        doc.text(`$${(qty * rate).toFixed(2)}`, 170, y);
-
-        y += Math.max(descLines.length * 6, 10);
+      let ry = y - senderLines.length * 5;
+      const details = [
+        ["Invoice #:", data.invoiceNumber],
+        ["Date:", data.date],
+        ["Due Date:", data.dueDate],
+      ];
+      details.forEach(([label, val]) => {
+        doc.setTextColor(...BRAND.muted);
+        doc.text(label, PAGE_W / 2 + 10, ry);
+        doc.setTextColor(...BRAND.dark);
+        doc.setFont("helvetica", "bold");
+        doc.text(val, PAGE_W / 2 + 40, ry);
+        doc.setFont("helvetica", "normal");
+        ry += 5;
       });
 
-      y += 10;
-      doc.text(`Subtotal:`, 140, y);
-      doc.text(`$${subtotal.toFixed(2)}`, 170, y);
+      y = Math.max(y, ry) + 6;
+      y = drawRule(doc, y);
+
+      // Bill To
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(...BRAND.accent);
+      doc.text("Bill To", LM, y);
+      y += 6;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(...BRAND.dark);
+      [data.clientName, data.clientAddress, data.clientEmail].filter(Boolean).forEach(line => {
+        doc.text(line, LM, y); y += 5;
+      });
+      y += 6;
+
+      // Items Table
+      const colWidths = [80, 25, 35, 35];
+      const tableHeaders = ["Description", "Qty", "Rate", "Amount"];
+      const rowH = 8;
+
+      // Table header
+      doc.setFillColor(...BRAND.dark);
+      doc.roundedRect(LM, y, PW, 9, 1.5, 1.5, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(...BRAND.white);
+      let x = LM + 4;
+      tableHeaders.forEach((h, i) => { doc.text(h, x, y + 6); x += colWidths[i]; });
+      y += 11;
+
+      // Table rows
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      data.items.forEach((item, ri) => {
+        if (ri % 2 === 0) {
+          doc.setFillColor(...BRAND.light);
+          doc.rect(LM, y - 1, PW, rowH, "F");
+        }
+        doc.setTextColor(...BRAND.dark);
+        const qty = getItemQty(item);
+        const rate = getItemRate(item);
+        const desc = (item.description || "Item").substring(0, 40);
+        x = LM + 4;
+        doc.text(desc, x, y + 5); x += colWidths[0];
+        doc.text(qty.toString(), x, y + 5); x += colWidths[1];
+        doc.text(`$${rate.toFixed(2)}`, x, y + 5); x += colWidths[2];
+        doc.text(`$${(qty * rate).toFixed(2)}`, x, y + 5);
+        y += rowH;
+      });
+
+      y += 6;
+
+      // Totals section (right-aligned)
+      const totalsX = PAGE_W / 2 + 20;
+      const valX = PAGE_W - LM;
+
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      doc.setTextColor(...BRAND.muted);
+      doc.text("Subtotal:", totalsX, y);
+      doc.setTextColor(...BRAND.dark);
+      doc.text(`$${subtotal.toFixed(2)}`, valX - doc.getTextWidth(`$${subtotal.toFixed(2)}`), y);
+      y += 6;
 
       if (discountVal > 0) {
+        doc.setTextColor(...BRAND.muted);
+        doc.text("Discount:", totalsX, y);
+        doc.setTextColor(...BRAND.red);
+        doc.text(`-$${discountVal.toFixed(2)}`, valX - doc.getTextWidth(`-$${discountVal.toFixed(2)}`), y);
         y += 6;
-        doc.text(`Discount:`, 140, y);
-        doc.text(`-$${discountVal.toFixed(2)}`, 170, y);
       }
 
       if (taxPctVal > 0) {
+        doc.setTextColor(...BRAND.muted);
+        doc.text(`Tax (${taxPctVal}%):`, totalsX, y);
+        doc.setTextColor(...BRAND.dark);
+        doc.text(`$${taxAmount.toFixed(2)}`, valX - doc.getTextWidth(`$${taxAmount.toFixed(2)}`), y);
         y += 6;
-        doc.text(`Tax (${taxPctVal}%):`, 140, y);
-        doc.text(`$${taxAmount.toFixed(2)}`, 170, y);
       }
 
-      y += 8;
-      doc.setFont(undefined as any, "bold");
-      doc.text(`Total:`, 140, y);
-      doc.text(`$${grandTotal.toFixed(2)}`, 170, y);
-      doc.setFont(undefined as any, "normal");
+      // Grand total bar
+      y += 2;
+      doc.setFillColor(...BRAND.accent);
+      doc.roundedRect(totalsX - 5, y - 3, PAGE_W - LM - totalsX + 10, 12, 2, 2, "F");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.setTextColor(...BRAND.white);
+      doc.text("TOTAL", totalsX, y + 5);
+      const totalStr = `$${grandTotal.toFixed(2)}`;
+      doc.text(totalStr, valX - doc.getTextWidth(totalStr), y + 5);
+      y += 18;
 
-      y += 20;
+      // Notes & Payment Terms
       if (data.notes) {
-        doc.text("Notes:", 20, y);
-        y += 6;
-        const noteLines = doc.splitTextToSize(data.notes, 170);
-        doc.text(noteLines, 20, y);
-        y += noteLines.length * 6 + 4;
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.setTextColor(...BRAND.dark);
+        doc.text("Notes", LM, y); y += 5;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(...BRAND.muted);
+        const noteLines = doc.splitTextToSize(data.notes, PW);
+        doc.text(noteLines, LM, y); y += noteLines.length * 4 + 4;
       }
 
       if (data.paymentTerms) {
-        doc.text("Payment Terms:", 20, y);
-        y += 6;
-        const termLines = doc.splitTextToSize(data.paymentTerms, 170);
-        doc.text(termLines, 20, y);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(9);
+        doc.setTextColor(...BRAND.dark);
+        doc.text("Payment Terms", LM, y); y += 5;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(8);
+        doc.setTextColor(...BRAND.muted);
+        const termLines = doc.splitTextToSize(data.paymentTerms, PW);
+        doc.text(termLines, LM, y);
       }
 
+      drawFooter(doc);
       doc.save(`${data.invoiceNumber || "invoice"}.pdf`);
       toast({ title: "Invoice Downloaded", description: "Your PDF has been saved." });
     } catch (e) {
