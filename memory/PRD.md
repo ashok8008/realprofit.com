@@ -193,6 +193,18 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - **Score Toolbar Integration**: New "ATS Check" button between progress bars and Tips button
 - Testing: Backend 100% (7/7), Frontend 100% (16/16) — iteration_28
 
+### Phase 25: Premium PDF Export Redesign (Apr 2026) -- DONE
+- **Shared Branding Utility** (`/app/frontend/src/lib/pdf-brand.ts`): Dark header bar with teal accent stripe, RealProfits branding, drawHeader/drawFooter/drawStatCard/drawTable/drawBarChart/drawSectionHeading/drawKVRow/drawRule helpers
+- **Freelance Invoice**: Professional layout with From/To columns, styled items table with alternating rows, teal total bar, notes/payment terms sections
+- **Net Worth Calculator**: 3 stat cards (Assets/Liabilities/Net Worth), colored bar charts for asset/liability breakdown, summary section
+- **Subscription Cost Analyzer**: 3 stat cards (Monthly/Annual/Count), styled subscription table, category bar chart with alternating colors
+- **Tax PDF Export**: Branded header, disclaimer bar, accent-bordered section headings, bold totals in teal
+- **Year-End Tax Packet**: 4 stat cards (Gross/Federal/SE/Balance), 6 branded sections, balance highlight bar (red=owed, green=refund), quarterly schedule
+- **Resume PDF**: Subtle footer branding + page numbers on all templates
+- **Cover Letter**: Branded header with applicant name, clean letterhead formatting
+- **Dead code removed**: `createCareerPDF`, `addSection`, `addText`, `addKeyValue`, `downloadPDF` (all unused)
+- Testing: Frontend 100% (18/18) — iteration_29
+
 ### Phase 24a: Database Stitching & Draft Persistence (Apr 2026) -- DONE
 - Added `resume_drafts` collection index (`draft_id`, unique) in `db.py`
 - Frontend now loads drafts from MongoDB as fallback when localStorage is empty (cross-device persistence)
