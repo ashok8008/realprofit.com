@@ -53,7 +53,7 @@ function buildSalary(amount: number): SalaryEntry {
   return {
     value: amount,
     slug: `${amount}-salary`,
-    title: `Is $${amount.toLocaleString()} a Good Salary? A Reality Check`,
+    title: `Is $${amount.toLocaleString()} a Good Salary? (Full Breakdown)`,
     type: "salary",
     context: getContext(amount),
     taxBracket,

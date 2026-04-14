@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const desc = entry.title.length > 120 ? entry.title.slice(0, 117) + "..." : entry.title + " — Free tools, templates, and expert tips from RealProfits.";
 
   return {
-    title: `${entry.title} | RealProfits`,
+    title: entry.title,
     description: desc,
     alternates: { canonical: `${BASE}/learn/${slug}` },
     openGraph: { title: entry.title, description: desc, url: `${BASE}/learn/${slug}`, type: "article", siteName: "RealProfits" },

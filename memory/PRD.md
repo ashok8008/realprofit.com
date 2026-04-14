@@ -227,22 +227,21 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - Fixed stale `.next` build cache causing CSS loading failure (updated deployment guide)
 
 ### Phase 28: Full-Site pSEO System — Resume & Career Guides (Apr 2026) -- DONE
-- **117 new pSEO pages** at `/learn/[slug]` route, all SSG pre-rendered
+- **122 new pSEO pages** at `/learn/[slug]` route, all SSG pre-rendered
 - **6 content categories**:
-  - Resume by Job Role: 50 roles (Software Engineer, Product Manager, Data Scientist, etc.)
-  - Resume Score Explained: 13 score pages (20-95/100)
-  - Resume by Experience: 9 levels (No Experience → 10+ Years, Career Change, Gap)
-  - Resume for Companies: 20 companies (Google, Amazon, Apple, Meta, etc.)
-  - Resume Problems & Fixes: 15 common issues (ATS rejected, too long, gaps, etc.)
-  - Career Decisions: 10 frameworks (Should I change jobs, negotiate salary, etc.)
-- **Variation Engine** (`resumeVariationEngine.ts`): Unique content per page with varied intros, sections, FAQs
-- **GEO/AI Optimization**: Direct-answer paragraphs, Key Takeaways sections, FAQ schema on all pages
-- **Internal Linking**: Every page links to 3-5 related tools/pages, cross-category
+  - Resume by Job Role: 50 roles with CTR-optimized titles
+  - Resume Score: 13 score pages ("Is 70 Good? 70 vs 90 Explained")
+  - Resume by Experience: 9 levels ("No Experience", "Career Change", etc.)
+  - Resume for Companies: 20 companies (Google, Amazon, Apple, etc.)
+  - Resume Problems & Fixes: 18 issues ("Not Getting Interviews? Fix in 10 Min")
+  - Career Decisions: 12 frameworks ("Should I Change Jobs?", "Pay Cut?")
+- **CTR-Optimized Titles** across ALL pSEO pages (salary, tax, learn) with emotional hooks, clarity, curiosity
+- **Variation Engine** (`resumeVariationEngine.ts`): Unique content per page
+- **GEO/AI Optimization**: Direct-answer paragraphs, Key Takeaways, FAQ schema
+- **Cross-category internal linking**: Every page links to 3-5 related tools
 - **Hub Page** at `/learn` with categorized index
-- **Sitemap updated**: 1,320 total URLs (was 1,216)
-- **Navbar**: Added "LEARN" link
-- **robots.txt**: Added `/learn/` to allow list
-- **JSON-LD**: FAQPage + BreadcrumbList on all pages
+- **Sitemap**: 1,325 total URLs, all crawlable
+- **Quality-first approach**: Deep, unique content per page (not thin/repetitive)
 
 ## Upcoming Tasks
 - Stripe integration for monetization (P2)

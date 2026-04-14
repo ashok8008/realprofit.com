@@ -47,7 +47,7 @@ function buildTax(amount: number): TaxEntry {
   return {
     value: amount,
     slug: `tax-on-${amount}-income`,
-    title: `How Much Tax Do You Pay on $${amount.toLocaleString()} Income?`,
+    title: `$${amount.toLocaleString()} Income — Tax Breakdown & Take-Home Pay`,
     type: "tax",
     filingStatus: "Single",
     standardDeduction,
