@@ -114,6 +114,7 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - Iteration 26: Backend 100% (9/9), Frontend 100% (23/23) — Onboarding + Template Selection Redesign (plant icons, golden underlines, full preview)
 - Iteration 27: Frontend 100% (18/18) — 5 Distinct Templates + Years of Experience Screen
 - Iteration 28: Backend 100% (7/7), Frontend 100% (16/16) — Premium ATS Checks
+- Iteration 30: Backend 100% (2/2), Frontend 100% (14/14) — Component Splitting Regression
 
 ### Phase 17: Tax Tools SEO Schemas, Canonical URLs, Sitemap & Robots (Apr 2026) -- DONE
 - Added JSON-LD structured data: BreadcrumbList, ItemList, FAQPage on hub; WebApplication, BreadcrumbList, FAQPage on detail pages
@@ -211,6 +212,20 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - Template selection, experience level, years of experience, and industry choices now saved to `resume_meta` localStorage key and persisted across sessions
 - Reset/clear now properly wipes both resume data and meta preferences
 - Auto-save now includes template and onboarding choices in the save cycle
+
+### Phase 26: Code Quality Report — Component Splitting & Cleanup (Apr 2026) -- DONE
+- **ResumeBuilder.tsx split** from 1458 → 381 lines (orchestrator) + 6 focused sub-components:
+  - `resume/EntryScreens.tsx` (312 lines): Entry, Upload, Processing, Welcome, Analysis screens
+  - `resume/OnboardingScreens.tsx` (131 lines): Experience Level, Years, Industry screens
+  - `resume/TemplateSelection.tsx` (98 lines): Template selection with previews
+  - `resume/ATSCheckPanel.tsx` (169 lines): ATS compatibility check overlay
+  - `resume/TipsPanel.tsx` (70 lines): Tips & fixes overlay
+  - `resume/WizardStepContent.tsx` (362 lines): All 7 wizard form step renderers
+  - `resume/constants.ts` (58 lines): Shared constants, types, sample data
+- **FreelanceInvoiceGenerator.tsx** reduced from 447 → 285 lines by extracting `invoice/InvoicePDFExport.ts` (185 lines)
+- **AmIUnderpaid.tsx** reduced from 366 → 183 lines by extracting `underpaid/UnderpaidResults.tsx` (145 lines)
+- **Earlier code quality fixes** (from previous session): Hardcoded secrets removed, MD5 → SHA-256, `ats_check()` backend refactored into helper functions
+- Testing: Backend 100% (2/2), Frontend 100% (14/14) — iteration_30
 
 ## Upcoming Tasks
 - Stripe integration for monetization (P2)
