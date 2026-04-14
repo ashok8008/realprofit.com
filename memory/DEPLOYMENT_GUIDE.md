@@ -105,8 +105,11 @@ pip install -r requirements.txt
 # Frontend
 cd ../frontend
 yarn install --frozen-lockfile
-yarn build
+rm -rf .next        # IMPORTANT: Always clear old build artifacts
+yarn build          # Generates Tailwind CSS with fresh hashes
 ```
+
+> **CRITICAL**: Always run `rm -rf .next` before `yarn build` during deployments. The CSS file hashes change between builds, and serving stale `.next` artifacts will result in a completely unstyled page (no CSS).
 
 ### 4b. MongoDB Setup
 
@@ -431,9 +434,10 @@ source venv/bin/activate
 pip install -r requirements.txt
 sudo systemctl restart realprofits-backend
 
-# Frontend
+# Frontend (MUST clear .next before rebuild)
 cd ../frontend
 yarn install --frozen-lockfile
+rm -rf .next
 yarn build
 sudo systemctl restart realprofits-frontend
 ```
