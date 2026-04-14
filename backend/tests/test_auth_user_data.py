@@ -10,11 +10,11 @@ import uuid
 
 BASE_URL = os.environ.get('NEXT_PUBLIC_BACKEND_URL', '').rstrip('/')
 
-# Test credentials
-ADMIN_EMAIL = "admin@realprofits.com"
-ADMIN_PASSWORD = "RealProfits2026!"
-TEST_USER_EMAIL = "test@example.com"
-TEST_USER_PASSWORD = "test1234"
+# Test credentials — loaded from env with fallbacks for local test runs only
+ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL", "admin@realprofits.com")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "RealProfits2026!")
+TEST_USER_EMAIL = os.environ.get("TEST_USER_EMAIL", "test@example.com")
+TEST_USER_PASSWORD = os.environ.get("TEST_USER_PASSWORD", "test1234")
 
 
 class TestHealthCheck:

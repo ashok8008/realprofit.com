@@ -8,8 +8,10 @@ _db = None
 def get_db():
     global _client, _db
     if _db is None:
-        mongo_url = os.environ["MONGO_URL"]
-        db_name = os.environ["DB_NAME"]
+        mongo_url = os.environ.get("MONGO_URL")
+        db_name = os.environ.get("DB_NAME")
+        if not mongo_url or not db_name:
+            raise RuntimeError("MONGO_URL and DB_NAME environment variables must be set")
         _client = AsyncIOMotorClient(mongo_url)
         _db = _client[db_name]
     return _db

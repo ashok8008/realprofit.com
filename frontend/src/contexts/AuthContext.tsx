@@ -49,8 +49,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (meRes.ok) setUser(await meRes.json());
         }
       }
-    } catch {
-      // Not authenticated
+    } catch (e) {
+      console.warn("AuthContext: session check failed", e);
     } finally {
       setLoading(false);
     }

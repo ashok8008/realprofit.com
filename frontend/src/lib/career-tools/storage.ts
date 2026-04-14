@@ -84,8 +84,8 @@ export async function loadFromStorageAsync<T>(key: string, defaultValue: T): Pro
   try {
     const stored = localStorage.getItem(STORAGE_PREFIX + key);
     if (stored) local = JSON.parse(stored) as T;
-  } catch {
-    // ignore
+  } catch (e) {
+    console.warn("loadFromStorageAsync: localStorage read failed", e);
   }
 
   // Try server
@@ -94,8 +94,8 @@ export async function loadFromStorageAsync<T>(key: string, defaultValue: T): Pro
     // Server has data — update localStorage too
     try {
       localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(serverData));
-    } catch {
-      // ignore
+    } catch (e) {
+      console.warn("loadFromStorageAsync: localStorage write failed", e);
     }
     return serverData;
   }
@@ -140,8 +140,8 @@ export async function syncLocalToServer(): Promise<void> {
         }
       }
     }
-  } catch {
-    // ignore
+  } catch (e) {
+    console.warn("syncLocalToServer: failed to read localStorage", e);
   }
 
   if (items.length > 0) {
@@ -152,8 +152,8 @@ export async function syncLocalToServer(): Promise<void> {
         credentials: "include",
         body: JSON.stringify({ items }),
       });
-    } catch {
-      // silent fail
+    } catch (e) {
+      console.warn("syncLocalToServer: bulk upload failed", e);
     }
   }
 }
