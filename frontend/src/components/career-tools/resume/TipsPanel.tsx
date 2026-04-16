@@ -17,7 +17,7 @@ export function TipsPanel({ allFixes, handleFixAll, setFlowState, setWizardStep 
   const normFixes = allFixes.filter(f => f.severity !== "critical");
 
   return (
-    <div className="min-h-[calc(100vh-64px)] bg-zinc-900 text-white" data-testid="full-tips-view">
+    <div className="min-h-screen bg-zinc-900 text-white" data-testid="full-tips-view">
       <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
         <div>
           <h2 className="text-xl font-bold flex items-center gap-2"><Star className="w-5 h-5 text-amber-400" /> Tips & fixes</h2>

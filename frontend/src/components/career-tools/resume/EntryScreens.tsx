@@ -17,7 +17,7 @@ interface EntryScreenProps {
 
 export function EntryScreen({ data, hasSavedDraft, setFlowState, setData, setHasSavedDraft, defaultResumeData }: EntryScreenProps) {
   return (
-    <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-6" data-testid="resume-builder-entry">
+    <div className="min-h-screen flex items-center justify-center px-6" data-testid="resume-builder-entry">
       <div className="w-full max-w-3xl">
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-zinc-900 tracking-tight leading-tight mb-6">
           AI Resume Builder<br />
@@ -81,7 +81,7 @@ export function UploadScreen({ setFlowState, handleFileImport, handleTextImport 
 
   if (pasteMode) {
     return (
-      <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-6" data-testid="resume-paste-mode">
+      <div className="min-h-screen flex items-center justify-center px-6" data-testid="resume-paste-mode">
         <div className="w-full max-w-2xl">
           <button onClick={() => setPasteMode(false)} className="text-sm text-zinc-400 hover:text-zinc-600 mb-4 flex items-center gap-1"><ChevronLeft className="w-4 h-4" /> Back</button>
           <h2 className="text-3xl font-black text-zinc-900 mb-2">Paste Your Resume</h2>
@@ -94,7 +94,7 @@ export function UploadScreen({ setFlowState, handleFileImport, handleTextImport 
   }
 
   return (
-    <div className="min-h-[calc(100vh-64px)] flex flex-col items-center justify-center px-6" data-testid="resume-upload-page">
+    <div className="min-h-screen flex flex-col items-center justify-center px-6" data-testid="resume-upload-page">
       <div className="w-full max-w-2xl">
         <div className="text-center mb-8">
           <h2 className="text-3xl sm:text-4xl font-black text-zinc-900 mb-1">Upload your resume</h2>
@@ -142,7 +142,7 @@ export function ProcessingScreen({ processingStep }: ProcessingScreenProps) {
     { title: "Stand Out", text: "Adding 5-8 relevant skills increases your match rate by 60% on job boards." },
   ];
   return (
-    <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-6 bg-gradient-to-br from-white to-teal-50/30" data-testid="resume-builder-processing">
+    <div className="min-h-screen flex items-center justify-center px-6 bg-gradient-to-br from-white to-teal-50/30" data-testid="resume-builder-processing">
       <div className="max-w-lg w-full text-center">
         <div className="relative mx-auto w-24 h-24 mb-8">
           <div className="absolute inset-0 rounded-full border-4 border-zinc-100" />
@@ -187,7 +187,7 @@ interface WelcomeScreenProps {
 export function WelcomeScreen({ data, setFlowState }: WelcomeScreenProps) {
   const firstName = data.personalDetails.fullName?.split(" ")[0] || "there";
   return (
-    <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-6" data-testid="import-welcome">
+    <div className="min-h-screen flex items-center justify-center px-6" data-testid="import-welcome">
       <div className="max-w-4xl w-full flex flex-col md:flex-row items-center gap-10 md:gap-16">
         <div className="flex-shrink-0 w-64 md:w-80">
           <svg viewBox="0 0 300 320" fill="none" className="w-full">
@@ -252,7 +252,7 @@ export function AnalysisScreen({ data, setFlowState }: AnalysisScreenProps) {
   improvements.push("AI-enhance your summary to align with best practices.");
 
   return (
-    <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-6" data-testid="import-analysis">
+    <div className="min-h-screen flex items-center justify-center px-6" data-testid="import-analysis">
       <div className="max-w-4xl w-full flex flex-col md:flex-row items-center gap-10 md:gap-16">
         <div className="flex-shrink-0 w-64 md:w-72">
           <svg viewBox="0 0 300 320" fill="none" className="w-full">

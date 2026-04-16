@@ -19,7 +19,7 @@ const PLANT_ICONS = [
 
 export function OnboardingLevel({ onboardLevel, setOnboardLevel, setFlowState }: OnboardingLevelProps) {
   return (
-    <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-6" data-testid="onboarding-level">
+    <div className="min-h-screen flex items-center justify-center px-6" data-testid="onboarding-level">
       <div className="w-full max-w-lg text-center">
         <div className="w-14 h-14 mx-auto mb-5 rounded-full bg-[#fef3c7] flex items-center justify-center">
           <Briefcase className="w-7 h-7 text-[#b45309]" />
@@ -60,7 +60,7 @@ const YEARS_OPTIONS = [
 
 export function OnboardingYears({ onboardYears, setOnboardYears, setFlowState }: OnboardingYearsProps) {
   return (
-    <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-6" data-testid="onboarding-years">
+    <div className="min-h-screen flex items-center justify-center px-6" data-testid="onboarding-years">
       <div className="w-full max-w-lg text-center">
         <div className="w-14 h-14 mx-auto mb-5 rounded-full bg-[#e0f2fe] flex items-center justify-center">
           <Calendar className="w-7 h-7 text-[#0369a1]" />
@@ -99,7 +99,7 @@ interface OnboardingIndustryProps {
 export function OnboardingIndustry({ onboardIndustries, setOnboardIndustries, setFlowState }: OnboardingIndustryProps) {
   const toggleInd = (ind: string) => setOnboardIndustries(prev => prev.includes(ind) ? prev.filter(x => x !== ind) : prev.length < 3 ? [...prev, ind] : prev);
   return (
-    <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-6" data-testid="onboarding-industry">
+    <div className="min-h-screen flex items-center justify-center px-6" data-testid="onboarding-industry">
       <div className="w-full max-w-xl text-center">
         <div className="w-14 h-14 mx-auto mb-5 rounded-full bg-[#fef3c7] flex items-center justify-center">
           <Wrench className="w-7 h-7 text-[#b45309]" />

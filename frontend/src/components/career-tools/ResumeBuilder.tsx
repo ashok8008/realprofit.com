@@ -248,7 +248,7 @@ export function ResumeBuilder() {
   // WIZARD (Main guided editor layout)
   // ════════════════════════════════════════════
   return (
-    <div className="h-[calc(100vh-64px)] flex overflow-hidden bg-white" data-testid="resume-builder-editor">
+    <div className="h-screen flex overflow-hidden bg-white" data-testid="resume-builder-editor">
       {/* ═══ DARK SIDEBAR ═══ */}
       <aside className="hidden md:flex flex-col w-16 lg:w-52 bg-slate-900 flex-shrink-0" data-testid="editor-sidebar">
         <div className="p-3 lg:px-4 lg:py-3 border-b border-slate-800">

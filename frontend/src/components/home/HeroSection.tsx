@@ -8,7 +8,7 @@ const LazyHeroCharts = lazy(() => import("@/components/home/HeroCharts"));
 
 export function HeroSection() {
   return (
-    <section className="hero-gradient py-20 md:py-28 lg:py-32 px-4" data-testid="hero-section">
+    <section className="hero-gradient py-12 md:py-16 lg:py-20 px-4" data-testid="hero-section">
       <div className="container mx-auto max-w-6xl relative z-10">
         <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
           <div className="lg:w-1/2 text-white">

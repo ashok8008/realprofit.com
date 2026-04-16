@@ -38,7 +38,7 @@ export function TemplateSelection({ template, setTemplate, data, onboardLevel, o
   const previewData: ResumeData = hasData ? data : SAMPLE_DATA;
 
   return (
-    <div className="min-h-[calc(100vh-64px)] flex items-center justify-center px-6" data-testid="template-selection">
+    <div className="min-h-screen flex items-center justify-center px-6" data-testid="template-selection">
       <div className="w-full max-w-5xl flex flex-col lg:flex-row gap-8">
         <div className="flex gap-4 flex-1">
           <div className="hidden md:flex flex-col gap-2 flex-shrink-0 w-20">
