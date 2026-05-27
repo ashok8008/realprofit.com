@@ -2,6 +2,7 @@
 import os
 import asyncio
 import logging
+import base64
 import resend
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
@@ -77,6 +78,12 @@ class ClientCreate(BaseModel):
     email: str
     address: str = ""
 
+class SendInvoiceEmailRequest(BaseModel):
+    invoice_id: str
+    recipient_email: str
+    subject: str = ""
+    message: str = ""
+
 # ── Helpers ─────────────────────────────────────────────
 
 def _clean_doc(doc: dict) -> dict:
@@ -97,6 +104,160 @@ async def list_invoices(request: Request):
         doc.pop("user_id", None)
         invoices.append(doc)
     return invoices
+
+# ── Static routes (MUST be before /{invoice_id}) ────────
+
+@router.get("/stats/summary")
+async def invoice_stats(request: Request):
+    user = await get_current_user(request)
+    db = get_db()
+    pipeline = [
+        {"$match": {"user_id": str(user["_id"])}},
+        {"$group": {
+            "_id": None,
+            "total_count": {"$sum": 1},
+            "total_revenue": {"$sum": "$total"},
+            "paid_count": {"$sum": {"$cond": [{"$eq": ["$status", "paid"]}, 1, 0]}},
+            "overdue_count": {"$sum": {"$cond": [{"$eq": ["$status", "overdue"]}, 1, 0]}},
+        }}
+    ]
+    result = await db.invoices.aggregate(pipeline).to_list(1)
+    if result:
+        r = result[0]
+        r.pop("_id", None)
+        return r
+    return {"total_count": 0, "total_revenue": 0, "paid_count": 0, "overdue_count": 0}
+
+@router.get("/settings")
+async def get_invoice_settings(request: Request):
+    user = await get_current_user(request)
+    db = get_db()
+    doc = await db.invoice_settings.find_one({"user_id": str(user["_id"])}, {"_id": 0, "user_id": 0})
+    return doc or {}
+
+@router.post("/upload-logo")
+async def upload_logo(request: Request):
+    user = await get_current_user(request)
+    form = await request.form()
+    file = form.get("file")
+    if not file:
+        raise HTTPException(400, "No file provided")
+    content = await file.read()
+    if len(content) > 2 * 1024 * 1024:
+        raise HTTPException(400, "File too large (max 2MB)")
+    content_type = file.content_type or "image/png"
+    if content_type not in ("image/png", "image/jpeg", "image/webp", "image/svg+xml"):
+        raise HTTPException(400, "Invalid file type. Use PNG, JPEG, WebP, or SVG")
+    b64 = base64.b64encode(content).decode()
+    data_url = f"data:{content_type};base64,{b64}"
+    db = get_db()
+    await db.invoice_settings.update_one(
+        {"user_id": str(user["_id"])},
+        {"$set": {"logo_url": data_url, "updated_at": datetime.now(timezone.utc).isoformat()}},
+        upsert=True
+    )
+    return {"logo_url": data_url, "status": "uploaded"}
+
+@router.get("/clients/list")
+async def list_clients(request: Request):
+    user = await get_current_user(request)
+    db = get_db()
+    cursor = db.invoice_clients.find({"user_id": str(user["_id"])}).sort("name", 1)
+    clients = []
+    async for doc in cursor:
+        clients.append(_clean_doc(doc))
+    return clients
+
+@router.post("/clients")
+async def create_client(body: ClientCreate, request: Request):
+    user = await get_current_user(request)
+    db = get_db()
+    now = datetime.now(timezone.utc).isoformat()
+    doc = body.model_dump()
+    doc["user_id"] = str(user["_id"])
+    doc["created_at"] = now
+    result = await db.invoice_clients.insert_one(doc)
+    return {"id": str(result.inserted_id), "status": "created"}
+
+@router.post("/send-email")
+async def send_invoice_email(body: SendInvoiceEmailRequest, request: Request):
+    user = await get_current_user(request)
+    db = get_db()
+    doc = await db.invoices.find_one({"_id": ObjectId(body.invoice_id), "user_id": str(user["_id"])})
+    if not doc:
+        raise HTTPException(404, "Invoice not found")
+    inv_num = doc.get("invoice_number", "INV-000")
+    client_name = doc.get("client_name", "Client")
+    total = doc.get("total", 0)
+    currency = doc.get("currency", "USD")
+    due_date = doc.get("due_date", "")
+    biz_name = doc.get("business_name", "Your Business")
+    biz_email = doc.get("business_email", "")
+    accent = doc.get("accent_color", "#0B3D3D")
+    items = doc.get("items", [])
+    notes = doc.get("notes", "")
+    payment_link = doc.get("payment_link", "")
+    sym_map = {"USD": "$", "EUR": "€", "GBP": "£", "INR": "₹", "CAD": "C$", "AUD": "A$"}
+    sym = sym_map.get(currency, "$")
+    subject = body.subject or f"Invoice {inv_num} from {biz_name}"
+    custom_msg = body.message or ""
+    items_rows = ""
+    for item in items:
+        desc = item.get("description", "Item")
+        qty = item.get("qty", 1)
+        unit = item.get("unit", "hr")
+        rate = item.get("rate", 0)
+        amt = qty * rate
+        items_rows += f'<tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">{desc}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;">{qty} {unit}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right;">{sym}{rate:,.2f}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right;font-weight:600;">{sym}{amt:,.2f}</td></tr>'
+    payment_btn = ""
+    if payment_link:
+        payment_btn = f'<div style="text-align:center;margin:24px 0;"><a href="{payment_link}" style="background:{accent};color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:16px;display:inline-block;">Pay Now</a></div>'
+    html = f"""
+    <div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;background:#fff;">
+      <div style="background:{accent};padding:24px 32px;border-radius:8px 8px 0 0;">
+        <h1 style="color:#fff;font-size:24px;margin:0;">{biz_name}</h1>
+        <p style="color:rgba(255,255,255,0.7);margin:4px 0 0;font-size:14px;">Invoice {inv_num}</p>
+      </div>
+      <div style="padding:32px;border:1px solid #e5e5e5;border-top:none;border-radius:0 0 8px 8px;">
+        <p style="font-size:16px;color:#333;margin:0 0 8px;">Hi {client_name},</p>
+        {"<p style='font-size:14px;color:#555;margin:0 0 16px;'>" + custom_msg + "</p>" if custom_msg else ""}
+        <p style="font-size:14px;color:#555;margin:0 0 24px;">Please find your invoice details below.</p>
+        <div style="background:#f9f8f5;border-radius:8px;padding:16px;margin-bottom:24px;">
+          <table style="width:100%;font-size:13px;color:#555;">
+            <tr><td style="padding:4px 0;"><strong>Invoice:</strong> {inv_num}</td><td style="text-align:right;padding:4px 0;"><strong>Due:</strong> {due_date}</td></tr>
+          </table>
+        </div>
+        <table style="width:100%;font-size:13px;border-collapse:collapse;">
+          <thead><tr style="background:#f5f5f5;">
+            <th style="padding:8px 12px;text-align:left;font-weight:600;color:#555;">Description</th>
+            <th style="padding:8px 12px;text-align:center;font-weight:600;color:#555;">Qty</th>
+            <th style="padding:8px 12px;text-align:right;font-weight:600;color:#555;">Rate</th>
+            <th style="padding:8px 12px;text-align:right;font-weight:600;color:#555;">Amount</th>
+          </tr></thead>
+          <tbody>{items_rows}</tbody>
+        </table>
+        <div style="text-align:right;margin-top:16px;padding-top:16px;border-top:2px solid {accent};">
+          <span style="font-size:14px;color:#555;">Total Due: </span>
+          <span style="font-size:24px;font-weight:700;color:{accent};">{sym}{total:,.2f}</span>
+        </div>
+        {payment_btn}
+        {"<div style='background:#f9f8f5;border-radius:8px;padding:12px 16px;margin-top:16px;font-size:13px;color:#666;'><strong>Notes:</strong> " + notes + "</div>" if notes else ""}
+        <hr style="border:none;border-top:1px solid #eee;margin:24px 0;" />
+        <p style="font-size:12px;color:#999;text-align:center;">Sent via <a href="https://realprofits.com" style="color:{accent};text-decoration:none;">RealProfits</a> Invoice Generator</p>
+        {f"<p style='font-size:12px;color:#999;text-align:center;'>{biz_email}</p>" if biz_email else ""}
+      </div>
+    </div>
+    """
+    try:
+        params = {"from": SENDER_EMAIL, "to": [body.recipient_email], "subject": subject, "html": html}
+        email_result = await asyncio.to_thread(resend.Emails.send, params)
+        await db.invoices.update_one({"_id": ObjectId(body.invoice_id)}, {"$set": {"status": "sent", "updated_at": datetime.now(timezone.utc).isoformat()}})
+        return {"status": "sent", "email_id": email_result.get("id", ""), "message": f"Invoice sent to {body.recipient_email}"}
+    except Exception as e:
+        logger.error(f"Failed to send invoice email: {e}")
+        raise HTTPException(500, f"Failed to send email: {str(e)}")
+
+# ── Parameterized routes ────────────────────────────────
 
 @router.get("/{invoice_id}")
 async def get_invoice(invoice_id: str, request: Request):
@@ -158,49 +319,6 @@ async def record_payment(invoice_id: str, body: PaymentRecord, request: Request)
         raise HTTPException(404, "Invoice not found")
     return {"status": "payment_recorded"}
 
-@router.get("/stats/summary")
-async def invoice_stats(request: Request):
-    user = await get_current_user(request)
-    db = get_db()
-    pipeline = [
-        {"$match": {"user_id": str(user["_id"])}},
-        {"$group": {
-            "_id": None,
-            "total_count": {"$sum": 1},
-            "total_revenue": {"$sum": "$total"},
-            "paid_count": {"$sum": {"$cond": [{"$eq": ["$status", "paid"]}, 1, 0]}},
-            "overdue_count": {"$sum": {"$cond": [{"$eq": ["$status", "overdue"]}, 1, 0]}},
-        }}
-    ]
-    result = await db.invoices.aggregate(pipeline).to_list(1)
-    if result:
-        r = result[0]
-        r.pop("_id", None)
-        return r
-    return {"total_count": 0, "total_revenue": 0, "paid_count": 0, "overdue_count": 0}
-
-# ── Client CRUD ─────────────────────────────────────────
-
-@router.get("/clients/list")
-async def list_clients(request: Request):
-    user = await get_current_user(request)
-    db = get_db()
-    cursor = db.invoice_clients.find({"user_id": str(user["_id"])}).sort("name", 1)
-    clients = []
-    async for doc in cursor:
-        clients.append(_clean_doc(doc))
-    return clients
-
-@router.post("/clients")
-async def create_client(body: ClientCreate, request: Request):
-    user = await get_current_user(request)
-    db = get_db()
-    now = datetime.now(timezone.utc).isoformat()
-    doc = body.model_dump()
-    doc["user_id"] = str(user["_id"])
-    doc["created_at"] = now
-    result = await db.invoice_clients.insert_one(doc)
-    return {"id": str(result.inserted_id), "status": "created"}
 
 @router.put("/clients/{client_id}")
 async def update_client(client_id: str, body: ClientCreate, request: Request):
@@ -223,115 +341,3 @@ async def delete_client(client_id: str, request: Request):
         raise HTTPException(404, "Client not found")
     return {"status": "deleted"}
 
-
-# ── Email Invoice ───────────────────────────────────────
-
-class SendInvoiceEmailRequest(BaseModel):
-    invoice_id: str
-    recipient_email: str
-    subject: str = ""
-    message: str = ""
-
-@router.post("/send-email")
-async def send_invoice_email(body: SendInvoiceEmailRequest, request: Request):
-    user = await get_current_user(request)
-    db = get_db()
-
-    doc = await db.invoices.find_one({"_id": ObjectId(body.invoice_id), "user_id": str(user["_id"])})
-    if not doc:
-        raise HTTPException(404, "Invoice not found")
-
-    inv_num = doc.get("invoice_number", "INV-000")
-    client_name = doc.get("client_name", "Client")
-    total = doc.get("total", 0)
-    currency = doc.get("currency", "USD")
-    due_date = doc.get("due_date", "")
-    biz_name = doc.get("business_name", "Your Business")
-    biz_email = doc.get("business_email", "")
-    accent = doc.get("accent_color", "#0B3D3D")
-    items = doc.get("items", [])
-    notes = doc.get("notes", "")
-    payment_link = doc.get("payment_link", "")
-
-    sym_map = {"USD": "$", "EUR": "€", "GBP": "£", "INR": "₹", "CAD": "C$", "AUD": "A$"}
-    sym = sym_map.get(currency, "$")
-
-    subject = body.subject or f"Invoice {inv_num} from {biz_name}"
-    custom_msg = body.message or ""
-
-    # Build items HTML
-    items_rows = ""
-    for item in items:
-        desc = item.get("description", "Item")
-        qty = item.get("qty", 1)
-        unit = item.get("unit", "hr")
-        rate = item.get("rate", 0)
-        amt = qty * rate
-        items_rows += f'<tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">{desc}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;">{qty} {unit}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right;">{sym}{rate:,.2f}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right;font-weight:600;">{sym}{amt:,.2f}</td></tr>'
-
-    payment_btn = ""
-    if payment_link:
-        payment_btn = f'<div style="text-align:center;margin:24px 0;"><a href="{payment_link}" style="background:{accent};color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:16px;display:inline-block;">Pay Now</a></div>'
-
-    html = f"""
-    <div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;background:#fff;">
-      <div style="background:{accent};padding:24px 32px;border-radius:8px 8px 0 0;">
-        <h1 style="color:#fff;font-size:24px;margin:0;">{biz_name}</h1>
-        <p style="color:rgba(255,255,255,0.7);margin:4px 0 0;font-size:14px;">Invoice {inv_num}</p>
-      </div>
-      <div style="padding:32px;border:1px solid #e5e5e5;border-top:none;border-radius:0 0 8px 8px;">
-        <p style="font-size:16px;color:#333;margin:0 0 8px;">Hi {client_name},</p>
-        {"<p style='font-size:14px;color:#555;margin:0 0 16px;'>" + custom_msg + "</p>" if custom_msg else ""}
-        <p style="font-size:14px;color:#555;margin:0 0 24px;">Please find your invoice details below.</p>
-
-        <div style="background:#f9f8f5;border-radius:8px;padding:16px;margin-bottom:24px;">
-          <table style="width:100%;font-size:13px;color:#555;">
-            <tr><td style="padding:4px 0;"><strong>Invoice:</strong> {inv_num}</td><td style="text-align:right;padding:4px 0;"><strong>Due:</strong> {due_date}</td></tr>
-          </table>
-        </div>
-
-        <table style="width:100%;font-size:13px;border-collapse:collapse;">
-          <thead><tr style="background:#f5f5f5;">
-            <th style="padding:8px 12px;text-align:left;font-weight:600;color:#555;">Description</th>
-            <th style="padding:8px 12px;text-align:center;font-weight:600;color:#555;">Qty</th>
-            <th style="padding:8px 12px;text-align:right;font-weight:600;color:#555;">Rate</th>
-            <th style="padding:8px 12px;text-align:right;font-weight:600;color:#555;">Amount</th>
-          </tr></thead>
-          <tbody>{items_rows}</tbody>
-        </table>
-
-        <div style="text-align:right;margin-top:16px;padding-top:16px;border-top:2px solid {accent};">
-          <span style="font-size:14px;color:#555;">Total Due: </span>
-          <span style="font-size:24px;font-weight:700;color:{accent};">{sym}{total:,.2f}</span>
-        </div>
-
-        {payment_btn}
-
-        {"<div style='background:#f9f8f5;border-radius:8px;padding:12px 16px;margin-top:16px;font-size:13px;color:#666;'><strong>Notes:</strong> " + notes + "</div>" if notes else ""}
-
-        <hr style="border:none;border-top:1px solid #eee;margin:24px 0;" />
-        <p style="font-size:12px;color:#999;text-align:center;">Sent via <a href="https://realprofits.com" style="color:{accent};text-decoration:none;">RealProfits</a> Invoice Generator</p>
-        {f"<p style='font-size:12px;color:#999;text-align:center;'>{biz_email}</p>" if biz_email else ""}
-      </div>
-    </div>
-    """
-
-    try:
-        params = {
-            "from": SENDER_EMAIL,
-            "to": [body.recipient_email],
-            "subject": subject,
-            "html": html,
-        }
-        email_result = await asyncio.to_thread(resend.Emails.send, params)
-
-        # Update invoice status to sent
-        await db.invoices.update_one(
-            {"_id": ObjectId(body.invoice_id)},
-            {"$set": {"status": "sent", "updated_at": datetime.now(timezone.utc).isoformat()}}
-        )
-
-        return {"status": "sent", "email_id": email_result.get("id", ""), "message": f"Invoice sent to {body.recipient_email}"}
-    except Exception as e:
-        logger.error(f"Failed to send invoice email: {e}")
-        raise HTTPException(500, f"Failed to send email: {str(e)}")

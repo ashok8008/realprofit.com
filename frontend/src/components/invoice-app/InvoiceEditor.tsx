@@ -10,6 +10,7 @@ interface EditorProps {
   clients: ClientData[];
   onSaveAsClient: () => void;
   onRecordPayment: () => void;
+  onLogoUpload: (file: File) => void;
 }
 
 const lbl = "text-[11px] font-semibold text-[#6E6B63] uppercase tracking-wider mb-1 block";
@@ -17,7 +18,7 @@ const inp = "w-full bg-[#F9F8F5] border border-[#E2DDD4] rounded-md px-3 py-2 te
 const fst = "text-[11px] font-bold text-[#0B3D3D] uppercase tracking-widest mb-3 flex items-center gap-2";
 const section = "bg-white border border-[#E2DDD4] rounded-xl p-5 mb-3.5";
 
-export function InvoiceEditor({ inv, setInv, clients, onSaveAsClient, onRecordPayment }: EditorProps) {
+export function InvoiceEditor({ inv, setInv, clients, onSaveAsClient, onRecordPayment, onLogoUpload }: EditorProps) {
   const sym = getCurrencySymbol(inv.currency);
   const totals = calcTotals(inv);
 
@@ -71,6 +72,29 @@ export function InvoiceEditor({ inv, setInv, clients, onSaveAsClient, onRecordPa
       {/* Your Business */}
       <div className={section}>
         <p className={fst}><Upload className="w-3.5 h-3.5" /> Your Business</p>
+        {/* Logo Upload */}
+        <div className="flex items-center gap-4 mb-4 pb-4 border-b border-[#E2DDD4]">
+          <div className="w-16 h-16 rounded-lg border-2 border-dashed border-[#E2DDD4] flex items-center justify-center overflow-hidden bg-[#F9F8F5] flex-shrink-0">
+            {inv.logo_url ? (
+              <img src={inv.logo_url} alt="Logo" className="w-full h-full object-contain" />
+            ) : (
+              <Upload className="w-5 h-5 text-[#C4C0B6]" />
+            )}
+          </div>
+          <div>
+            <label className={lbl}>Business Logo</label>
+            <div className="flex items-center gap-2">
+              <label className="cursor-pointer text-xs font-semibold text-[#0B3D3D] hover:text-[#C8A96E] transition-colors">
+                {inv.logo_url ? "Change Logo" : "Upload Logo"}
+                <input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) onLogoUpload(f); }} data-testid="logo-upload-input" />
+              </label>
+              {inv.logo_url && (
+                <button onClick={() => set("logo_url", "")} className="text-xs text-red-500 hover:text-red-700">Remove</button>
+              )}
+            </div>
+            <p className="text-[10px] text-[#C4C0B6] mt-0.5">PNG, JPEG, WebP or SVG (max 2MB)</p>
+          </div>
+        </div>
         <div className="grid grid-cols-2 gap-3">
           <div><label className={lbl}>Business Name</label><input className={inp} value={inv.business_name} onChange={e => set("business_name", e.target.value)} data-testid="biz-name" /></div>
           <div><label className={lbl}>Email</label><input type="email" className={inp} value={inv.business_email} onChange={e => set("business_email", e.target.value)} data-testid="biz-email" /></div>

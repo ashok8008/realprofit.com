@@ -38,7 +38,7 @@ function LoginForm() {
           <p className="text-gray-500 text-sm">Access your saved tools and synced data</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
+        <form method="post" action="#" onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm" autoComplete="on">
           {error && (
             <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-6 text-sm text-red-700" data-testid="login-error">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -69,6 +69,7 @@ function LoginForm() {
               <input
                 type="password"
                 required
+                autoComplete="current-password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"

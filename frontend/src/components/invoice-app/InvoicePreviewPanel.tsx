@@ -43,6 +43,7 @@ export function InvoicePreviewPanel({ inv, onPrint, onDownloadPDF }: PreviewProp
           {/* Header */}
           <div className="flex justify-between items-start mb-6">
             <div>
+              {inv.logo_url && <img src={inv.logo_url} alt="Logo" className="h-10 mb-2 object-contain" />}
               <h2 className="text-lg font-bold" style={{ color: accent }}>{inv.business_name || "Your Business"}</h2>
               {inv.business_email && <p className="text-[#6E6B63] mt-0.5">{inv.business_email}</p>}
               {inv.business_phone && <p className="text-[#6E6B63]">{inv.business_phone}</p>}

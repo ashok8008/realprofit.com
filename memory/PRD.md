@@ -291,6 +291,11 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - **Frontend**: "Send by Email" button in sidebar, modal with recipient, subject, custom message
 - **Note**: Resend in test mode — can only send to verified email (ashok8008@gmail.com). To send to any email, verify a domain at resend.com/domains
 
+### Phase 34: Login Security Fix + Logo Upload (May 2026) -- DONE
+- **Login form security**: Changed `<form>` from default GET to `method="post"` on login + register pages. Added `autoComplete` attributes (email, current-password, new-password). Credentials no longer exposed in URL query string.
+- **Logo upload**: `POST /api/invoices/upload-logo` accepts PNG/JPEG/WebP/SVG (max 2MB), stores as base64 data URL in MongoDB `invoice_settings`. Logo persists across sessions, displays in editor and preview panel.
+- **Route ordering fix**: Moved static routes (`/stats/summary`, `/settings`, `/upload-logo`, `/clients/list`, `/send-email`) before parameterized `/{invoice_id}` to prevent 500 errors.
+
 ## Upcoming Tasks
 - Stripe integration for monetization (P2)
 - A/B test hero CTAs (P2)

@@ -44,6 +44,11 @@ export function InvoiceApp() {
       setClients(cl);
       setInvoices(inv);
       setStats(st);
+      // Load saved settings (logo)
+      try {
+        const settings = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/invoices/settings`, { credentials: "include" }).then(r => r.json());
+        if (settings.logo_url) setInv(prev => ({ ...prev, logo_url: settings.logo_url }));
+      } catch {}
     } catch (err: unknown) {
       if (err instanceof Error && err.message === "AUTH_REQUIRED") return;
       console.error("Failed to load data:", err);
@@ -167,6 +172,23 @@ export function InvoiceApp() {
       loadData();
     } catch {
       toast({ title: "Failed to record payment", variant: "destructive" });
+    }
+  };
+
+
+  const handleLogoUpload = async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/invoices/upload-logo`, {
+        method: "POST", credentials: "include", body: formData,
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = await res.json();
+      setInv(prev => ({ ...prev, logo_url: data.logo_url }));
+      toast({ title: "Logo uploaded" });
+    } catch {
+      toast({ title: "Upload failed", variant: "destructive" });
     }
   };
 
@@ -323,7 +345,7 @@ export function InvoiceApp() {
 
           {/* Tab content */}
           {activeTab === "editor" && (
-            <InvoiceEditor inv={inv} setInv={setInv} clients={clients} onSaveAsClient={handleSaveAsClient} onRecordPayment={() => setPaymentModal(true)} />
+            <InvoiceEditor inv={inv} setInv={setInv} clients={clients} onSaveAsClient={handleSaveAsClient} onRecordPayment={() => setPaymentModal(true)} onLogoUpload={handleLogoUpload} />
           )}
           {activeTab === "clients" && (
             <ClientsTab

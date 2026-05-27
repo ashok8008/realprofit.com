@@ -41,7 +41,7 @@ export default function RegisterPage() {
           <p className="text-gray-500 text-sm">Save your progress and sync across devices</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
+        <form method="post" action="#" onSubmit={handleSubmit} className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm" autoComplete="on">
           {error && (
             <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-4 py-3 mb-6 text-sm text-red-700" data-testid="register-error">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -56,6 +56,7 @@ export default function RegisterPage() {
               <input
                 type="text"
                 required
+                autoComplete="name"
                 value={name}
                 onChange={e => setName(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
@@ -72,6 +73,7 @@ export default function RegisterPage() {
               <input
                 type="email"
                 required
+                autoComplete="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
@@ -88,6 +90,7 @@ export default function RegisterPage() {
               <input
                 type="password"
                 required
+                autoComplete="new-password"
                 minLength={6}
                 value={password}
                 onChange={e => setPassword(e.target.value)}
