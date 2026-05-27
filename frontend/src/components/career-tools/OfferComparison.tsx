@@ -29,8 +29,8 @@ interface JobOffer {
   notes: string;
 }
 
-const createEmptyOffer = (): JobOffer => ({
-  id: Date.now().toString(),
+const createEmptyOffer = (idx?: number): JobOffer => ({
+  id: `offer-${Date.now()}-${idx ?? Math.random().toString(36).slice(2, 6)}`,
   companyName: '',
   jobTitle: '',
   baseSalary: 0,
@@ -88,7 +88,7 @@ export function OfferComparison() {
   const { toast } = useToast();
   const [offers, setOffers] = useState<JobOffer[]>(() => {
     const saved = loadFromStorage<JobOffer[]>(STORAGE_KEY, []);
-    return saved.length > 0 ? saved : [createEmptyOffer(), createEmptyOffer()];
+    return saved.length > 0 ? saved : [createEmptyOffer(0), createEmptyOffer(1)];
   });
 
   // Auto-save
@@ -104,7 +104,7 @@ export function OfferComparison() {
       toast({ title: "Maximum 5 offers", description: "Remove an offer to add a new one." });
       return;
     }
-    setOffers([...offers, createEmptyOffer()]);
+    setOffers([...offers, createEmptyOffer(offers.length)]);
   };
 
   const removeOffer = (id: string) => {
@@ -123,7 +123,7 @@ export function OfferComparison() {
 
   const handleReset = () => {
     if (confirm('Clear all offers and start over?')) {
-      setOffers([createEmptyOffer(), createEmptyOffer()]);
+      setOffers([createEmptyOffer(0), createEmptyOffer(1)]);
       clearStorage(STORAGE_KEY);
       toast({ title: "Offers cleared" });
     }
@@ -213,36 +213,40 @@ export function OfferComparison() {
                       <Label className="text-xs">Base Salary</Label>
                       <Input 
                         type="number"
+                        min="0"
                         placeholder="100000"
                         value={offer.baseSalary || ''}
-                        onChange={e => updateOffer(offer.id, 'baseSalary', Number(e.target.value))}
+                        onChange={e => updateOffer(offer.id, 'baseSalary', Math.max(0, Number(e.target.value)))}
                       />
                     </div>
                     <div>
                       <Label className="text-xs">Signing Bonus</Label>
                       <Input 
                         type="number"
+                        min="0"
                         placeholder="10000"
                         value={offer.signingBonus || ''}
-                        onChange={e => updateOffer(offer.id, 'signingBonus', Number(e.target.value))}
+                        onChange={e => updateOffer(offer.id, 'signingBonus', Math.max(0, Number(e.target.value)))}
                       />
                     </div>
                     <div>
                       <Label className="text-xs">Annual Bonus</Label>
                       <Input 
                         type="number"
+                        min="0"
                         placeholder="15000"
                         value={offer.annualBonus || ''}
-                        onChange={e => updateOffer(offer.id, 'annualBonus', Number(e.target.value))}
+                        onChange={e => updateOffer(offer.id, 'annualBonus', Math.max(0, Number(e.target.value)))}
                       />
                     </div>
                     <div>
                       <Label className="text-xs">Stock Value (total)</Label>
                       <Input 
                         type="number"
+                        min="0"
                         placeholder="50000"
                         value={offer.stockValue || ''}
-                        onChange={e => updateOffer(offer.id, 'stockValue', Number(e.target.value))}
+                        onChange={e => updateOffer(offer.id, 'stockValue', Math.max(0, Number(e.target.value)))}
                       />
                     </div>
                   </div>

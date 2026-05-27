@@ -64,11 +64,13 @@ export function NetWorthCalculator() {
   }, [assets, liabilities]);
 
   const handleAssetChange = (key: keyof typeof assets, value: string) => {
-    setAssets(prev => ({ ...prev, [key]: parseFloat(value) || 0 }));
+    const num = parseFloat(value);
+    setAssets(prev => ({ ...prev, [key]: isNaN(num) ? 0 : Math.max(0, num) }));
   };
 
   const handleLiabilityChange = (key: keyof typeof liabilities, value: string) => {
-    setLiabilities(prev => ({ ...prev, [key]: parseFloat(value) || 0 }));
+    const num = parseFloat(value);
+    setLiabilities(prev => ({ ...prev, [key]: isNaN(num) ? 0 : Math.max(0, num) }));
   };
 
   const totalAssets = Object.values(assets).reduce((a, b) => a + b, 0);

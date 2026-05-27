@@ -52,6 +52,11 @@ export function EmailTemplates() {
 
   const update = (field: keyof FormData, value: string) => {
     setForm(prev => ({ ...prev, [field]: value }));
+    // Reset generated email when template type changes
+    if (field === "templateType") {
+      setEmail(null);
+      setIsAiGenerated(false);
+    }
   };
 
   const validateForm = () => {

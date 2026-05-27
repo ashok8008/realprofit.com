@@ -40,11 +40,11 @@ export function PaycheckCalculator() {
     saveToStorage(STORAGE_KEY, data);
   }, [data]);
 
-  const grossPayVal = parseFloat(data.grossPay) || 0;
-  const taxRateVal = parseFloat(data.taxRate) || 0;
-  const retirementVal = parseFloat(data.retirement) || 0;
-  const insuranceVal = parseFloat(data.insurance) || 0;
-  const otherVal = parseFloat(data.otherDeductions) || 0;
+  const grossPayVal = Math.max(0, parseFloat(data.grossPay) || 0);
+  const taxRateVal = Math.min(100, Math.max(0, parseFloat(data.taxRate) || 0));
+  const retirementVal = Math.max(0, parseFloat(data.retirement) || 0);
+  const insuranceVal = Math.max(0, parseFloat(data.insurance) || 0);
+  const otherVal = Math.max(0, parseFloat(data.otherDeductions) || 0);
 
   const getMultiplier = (freq: string) => {
     switch (freq) {
@@ -76,8 +76,13 @@ export function PaycheckCalculator() {
 
   return (
     <div className="space-y-8">
-      <div className="bg-muted/30 border-l-4 border-l-primary p-4 rounded-r-lg text-sm text-muted-foreground mb-6">
-        <strong>Disclaimer:</strong> This is a simplified estimate for educational purposes. Actual tax withholdings are complex and depend on your W-4, state, local taxes, and exact benefit structures.
+      <div className="flex items-center justify-between mb-2">
+        <div className="bg-muted/30 border-l-4 border-l-primary p-4 rounded-r-lg text-sm text-muted-foreground flex-1">
+          <strong>Disclaimer:</strong> This is a simplified estimate for educational purposes. Actual tax withholdings depend on your W-4, state, local taxes, and benefit structures.
+        </div>
+        <div className="flex gap-2 ml-4 flex-shrink-0">
+          <button onClick={() => { setData({ grossPay: "3000", frequency: "biweekly", taxRate: "22", retirement: "150", insurance: "100", otherDeductions: "50" }); toast({ title: "Reset to defaults" }); }} className="px-3 py-2 text-sm font-medium border rounded-lg hover:bg-muted/50">Reset</button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -88,7 +93,7 @@ export function PaycheckCalculator() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Gross Pay ($)</Label>
-                <Input type="number" min="0" value={data.grossPay} onChange={e => setData({ ...data, grossPay: e.target.value })} />
+                <Input type="number" min="0" value={data.grossPay} onChange={e => { const v = e.target.value; if (v === "" || parseFloat(v) >= 0) setData({ ...data, grossPay: v }); }} />
               </div>
               <div className="space-y-2">
                 <Label>Pay Frequency</Label>
@@ -107,7 +112,7 @@ export function PaycheckCalculator() {
 
             <div className="space-y-2 pt-2">
               <Label>Estimated Tax Rate (%)</Label>
-              <Input type="number" min="0" max="100" value={data.taxRate} onChange={e => setData({ ...data, taxRate: e.target.value })} />
+              <Input type="number" min="0" max="100" value={data.taxRate} onChange={e => { const v = e.target.value; if (v === "" || (parseFloat(v) >= 0 && parseFloat(v) <= 100)) setData({ ...data, taxRate: v }); }} />
               <p className="text-xs text-muted-foreground">Combined Federal, State, and FICA estimate.</p>
             </div>
           </div>
@@ -118,15 +123,15 @@ export function PaycheckCalculator() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 items-center gap-4">
                 <Label>Retirement (401k, etc)</Label>
-                <Input type="number" className="text-right" value={data.retirement} onChange={e => setData({ ...data, retirement: e.target.value })} />
+                <Input type="number" min="0" className="text-right" value={data.retirement} onChange={e => { const v = e.target.value; if (v === "" || parseFloat(v) >= 0) setData({ ...data, retirement: v }); }} />
               </div>
               <div className="grid grid-cols-2 items-center gap-4">
                 <Label>Health Insurance</Label>
-                <Input type="number" className="text-right" value={data.insurance} onChange={e => setData({ ...data, insurance: e.target.value })} />
+                <Input type="number" min="0" className="text-right" value={data.insurance} onChange={e => { const v = e.target.value; if (v === "" || parseFloat(v) >= 0) setData({ ...data, insurance: v }); }} />
               </div>
               <div className="grid grid-cols-2 items-center gap-4">
                 <Label>Other Deductions</Label>
-                <Input type="number" className="text-right" value={data.otherDeductions} onChange={e => setData({ ...data, otherDeductions: e.target.value })} />
+                <Input type="number" min="0" className="text-right" value={data.otherDeductions} onChange={e => { const v = e.target.value; if (v === "" || parseFloat(v) >= 0) setData({ ...data, otherDeductions: v }); }} />
               </div>
             </div>
           </div>

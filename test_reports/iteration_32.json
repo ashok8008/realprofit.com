@@ -1,0 +1,78 @@
+{
+  "summary": "QA Bug Fix Verification (Iteration 32). All 12 bug fixes verified working correctly. Tested: Paycheck Calculator negative values + Reset button, Net Worth Calculator negative values, Offer Comparison independent offers + negative values, Email Templates clearing on tab change, Resume Builder Add Industry button + phone validation, Invoice redirect, Homepage Trending Guides, /learn page.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "passed_tests": [
+    "Paycheck Calculator: Negative values blocked in Gross Pay field (value stays at default 3000)",
+    "Paycheck Calculator: Negative values blocked in Tax Rate field (value stays at default 22)",
+    "Paycheck Calculator: Negative values blocked in Retirement/Deductions fields",
+    "Paycheck Calculator: Reset button restores default values (3000, 22, 150, 100, 50)",
+    "Net Worth Calculator: Negative values converted to 0 in asset fields (Math.max(0, num))",
+    "Net Worth Calculator: Negative values converted to 0 in liability fields",
+    "Offer Comparison: Entering data in Offer 1 does NOT auto-fill Offer 2 (unique IDs working)",
+    "Offer Comparison: Negative values blocked in salary field (becomes empty)",
+    "Offer Comparison: Negative values blocked in bonus field (becomes empty)",
+    "Email Templates: Generated email is cleared when template type tab is changed",
+    "Resume Builder: 'Add Industry' link shows custom input field when clicked",
+    "Resume Builder: Custom industry can be added via input field",
+    "Resume Builder: Phone field filters out letters (abc123def456 becomes 123456)",
+    "Resume Builder: Phone field accepts valid characters (digits, spaces, dashes, parens)",
+    "Resume Builder: Phone field respects maxLength=15",
+    "Invoice Redirect: /tools/freelance-invoice-generator redirects to /login?redirect=/tools/invoice",
+    "Homepage: Loads with Trending Guides section visible",
+    "/learn page: Loads with resume and career guides (122+ FREE GUIDES)",
+    "Backend /api/health: Returns healthy status"
+  ],
+
+  "test_report_links": [
+    "/app/frontend/src/components/tools/PaycheckCalculator.tsx",
+    "/app/frontend/src/components/tools/NetWorthCalculator.tsx",
+    "/app/frontend/src/components/career-tools/OfferComparison.tsx",
+    "/app/frontend/src/components/career-tools/EmailTemplates.tsx",
+    "/app/frontend/src/components/career-tools/resume/OnboardingScreens.tsx",
+    "/app/frontend/src/components/career-tools/resume/WizardStepContent.tsx",
+    "/app/frontend/src/views/ToolDetail.tsx"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "PaycheckCalculator.tsx: Uses conditional check (v === '' || parseFloat(v) >= 0) in onChange handlers to block negative input",
+    "NetWorthCalculator.tsx: Uses Math.max(0, num) in handleAssetChange and handleLiabilityChange to convert negatives to 0",
+    "OfferComparison.tsx: createEmptyOffer() now uses idx parameter for unique IDs: `offer-${Date.now()}-${idx ?? Math.random()}`",
+    "OfferComparison.tsx: All numeric inputs have min='0' and use Math.max(0, Number(e.target.value)) in onChange",
+    "EmailTemplates.tsx: update() function resets email state when field === 'templateType': setEmail(null); setIsAiGenerated(false)",
+    "OnboardingScreens.tsx: Add Industry button toggles showCustom state, revealing custom-industry-input field",
+    "WizardStepContent.tsx: Phone input uses maxLength={15} and filters with regex: e.target.value.replace(/[^\\d\\s\\-\\+\\(\\)]/g, '')"
+  ],
+
+  "updated_files": [],
+
+  "success_rate": {
+    "backend": "100% (1/1 endpoint tested)",
+    "frontend": "100% (18/18 tests passed)"
+  },
+
+  "test_credentials": {
+    "admin": "admin@realprofits.com / RealProfits2026!",
+    "test_user": "test@example.com / test1234"
+  },
+
+  "seed_data_creation": "None",
+
+  "retest_needed": false,
+
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "All QA bug fixes from iteration 32 verified working. Key implementations: (1) Negative value prevention uses conditional checks in onChange handlers or Math.max(0, num), (2) Offer Comparison unique IDs use idx parameter in createEmptyOffer(), (3) Email Templates reset uses setEmail(null) when templateType changes, (4) Resume Builder Add Industry uses showCustom state toggle, (5) Phone validation uses regex filter and maxLength=15. All calculators, career tools, and redirects working correctly."
+}

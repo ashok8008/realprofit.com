@@ -97,7 +97,17 @@ interface OnboardingIndustryProps {
 }
 
 export function OnboardingIndustry({ onboardIndustries, setOnboardIndustries, setFlowState }: OnboardingIndustryProps) {
+  const [showCustom, setShowCustom] = React.useState(false);
+  const [customValue, setCustomValue] = React.useState("");
   const toggleInd = (ind: string) => setOnboardIndustries(prev => prev.includes(ind) ? prev.filter(x => x !== ind) : prev.length < 3 ? [...prev, ind] : prev);
+  const addCustom = () => {
+    const v = customValue.trim();
+    if (v && !onboardIndustries.includes(v) && onboardIndustries.length < 3) {
+      setOnboardIndustries(prev => [...prev, v]);
+      setCustomValue("");
+      setShowCustom(false);
+    }
+  };
   return (
     <div className="min-h-screen flex items-center justify-center px-6" data-testid="onboarding-industry">
       <div className="w-full max-w-xl text-center">
@@ -115,9 +125,17 @@ export function OnboardingIndustry({ onboardIndustries, setOnboardIndustries, se
             </button>
           ))}
         </div>
-        <button className="text-[#3b82f6] text-sm font-bold hover:underline mb-8 inline-flex items-center gap-1" data-testid="add-industry-link">
-          <Plus className="w-4 h-4" /> Add Industry
-        </button>
+        {showCustom ? (
+          <div className="flex items-center justify-center gap-2 mb-8">
+            <input className="h-10 px-4 text-sm border-2 border-zinc-300 rounded-full focus:border-[#3b82f6] focus:outline-none w-48" placeholder="Type industry..." value={customValue} onChange={e => setCustomValue(e.target.value)} onKeyDown={e => e.key === "Enter" && addCustom()} autoFocus data-testid="custom-industry-input" />
+            <button onClick={addCustom} className="h-10 px-4 rounded-full bg-[#3b82f6] text-white text-sm font-bold">Add</button>
+            <button onClick={() => setShowCustom(false)} className="h-10 px-4 rounded-full border border-zinc-200 text-sm text-zinc-500">Cancel</button>
+          </div>
+        ) : (
+          <button onClick={() => setShowCustom(true)} className="text-[#3b82f6] text-sm font-bold hover:underline mb-8 inline-flex items-center gap-1" data-testid="add-industry-link">
+            <Plus className="w-4 h-4" /> Add Industry
+          </button>
+        )}
         <div className="flex items-center justify-center gap-4">
           <button onClick={() => setFlowState("onboarding-years")} className="h-12 px-8 rounded-full border-2 border-zinc-900 text-zinc-900 font-bold text-sm hover:bg-zinc-50 bg-white" data-testid="onboarding-back">
             Back
