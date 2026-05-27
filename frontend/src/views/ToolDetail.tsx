@@ -1,6 +1,6 @@
 "use client";
 import React, { Suspense, lazy } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Seo } from "@/components/Seo";
 import { tools } from "@/data/tools";
 import { BreadcrumbNav, RelatedArticles } from "@/components/linking/InternalLinks";
@@ -38,7 +38,14 @@ function getToolComponent(slug: string) {
 
 export default function ToolDetail() {
   const { slug } = useParams() as { slug: string };
+  const router = useRouter();
   const tool = tools.find(t => t.slug === slug);
+
+  // Redirect invoice to new pro app
+  if (slug === "freelance-invoice-generator") {
+    router.replace("/tools/invoice");
+    return null;
+  }
 
   if (!tool) {
     return <div className="container mx-auto py-20 text-center">Tool not found</div>;
