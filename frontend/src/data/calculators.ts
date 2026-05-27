@@ -63,4 +63,5 @@ export const calculators: CalculatorDef[] = [
   
   // New Life Decision Calculators
   { id: "can-i-afford", name: "Can I Afford This Calculator", slug: "can-i-afford-this-calculator", description: "Quickly verify if a new recurring cost fits your budget.", category: "life-decisions-calc" },
+  { id: "salary-calculator", name: "Salary Calculator", slug: "salary-calculator", description: "Calculate your annual, monthly, and hourly salary after taxes and deductions.", category: "income-freelance" },
 ];

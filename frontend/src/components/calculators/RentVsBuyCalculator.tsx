@@ -30,30 +30,49 @@ export function RentVsBuyCalculator() {
   
   const totalRent = rent * 12 * years;
   const totalBuy = monthlyBuyCost * 12 * years;
+
+  // Full analysis
+  const appreciationRate = 3.5;
+  const homeValueAfter = price * Math.pow(1 + appreciationRate / 100, years);
+  const equity = homeValueAfter - principal * Math.pow(1 + rate / 100 / 12, years * 12) + (monthlyMortgage * 12 * years); // simplified
+  const equityBuilt = Math.max(0, Math.min(homeValueAfter, homeValueAfter - (principal - (monthlyMortgage - principal * monthlyRate) * 12 * years)));
+  const totalMortgageInterest = (monthlyMortgage * 30 * 12) - principal;
+  const interestPaidInPeriod = Math.min(totalMortgageInterest, monthlyMortgage * 12 * years - principal * (years / 30));
+  const investmentReturn = 7;
+  const rentInvestGrowth = downPayment * Math.pow(1 + investmentReturn / 100, years);
+  const monthlySavings = Math.max(0, monthlyBuyCost - rent);
+  let investedSavings = 0;
+  for (let m = 0; m < years * 12; m++) {
+    investedSavings += monthlySavings;
+    investedSavings *= 1 + investmentReturn / 100 / 12;
+  }
+  const totalRenterWealth = rentInvestGrowth + investedSavings;
+
+  const hasData = rent > 0 || price > 0;
   
-  const data = [
+  const data = hasData ? [
     { name: 'Renting', cost: Math.round(totalRent), fill: '#f59e0b' },
     { name: 'Buying (Total Costs)', cost: Math.round(totalBuy), fill: '#059669' }
-  ];
+  ] : [];
 
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Current Rent ($/mo)</Label>
-          <Input type="number" min="0" value={rent} onChange={e => setRent(Math.max(0, Number(e.target.value) || 0))} />
+          <Input type="number" min="0" value={rent || ""} onChange={e => setRent(Math.max(0, Number(e.target.value) || 0))} placeholder="2000" />
         </div>
         <div className="space-y-2">
           <Label>Target Home Price ($)</Label>
-          <Input type="number" min="0" value={price} onChange={e => setPrice(Math.max(0, Number(e.target.value) || 0))} />
+          <Input type="number" min="0" value={price || ""} onChange={e => setPrice(Math.max(0, Number(e.target.value) || 0))} placeholder="400000" />
         </div>
         <div className="space-y-2">
           <Label>Down Payment ($)</Label>
-          <Input type="number" min="0" value={downPayment} onChange={e => setDownPayment(Math.max(0, Number(e.target.value) || 0))} />
+          <Input type="number" min="0" value={downPayment || ""} onChange={e => setDownPayment(Math.max(0, Number(e.target.value) || 0))} placeholder="80000" />
         </div>
         <div className="space-y-2">
           <Label>Mortgage Rate (%)</Label>
-          <Input type="number" min="0" max="30" step="0.1" value={rate} onChange={e => setRate(Math.max(0, Number(e.target.value) || 0))} />
+          <Input type="number" min="0" max="30" step="0.1" value={rate || ""} onChange={e => setRate(Math.max(0, Number(e.target.value) || 0))} placeholder="6.5" />
         </div>
         <div className="space-y-2 md:col-span-2">
           <Label>Timeframe (Years)</Label>
@@ -61,34 +80,73 @@ export function RentVsBuyCalculator() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-muted/30 p-6 rounded-xl border text-center">
-        <div>
-          <h3 className="font-bold mb-1">Monthly Buy Cost</h3>
-          <div className="text-3xl font-serif font-bold text-primary">${Math.round(monthlyBuyCost).toLocaleString()}</div>
-          <p className="text-xs text-muted-foreground mt-1">Includes mortgage, taxes, ins, maintenance</p>
+      {!hasData ? (
+        <div className="text-center py-12 bg-muted/20 rounded-xl border border-dashed">
+          <p className="text-muted-foreground">Enter rent and home price to see the comparison.</p>
         </div>
-        <div>
-          <h3 className="font-bold mb-1">Difference over {years} years</h3>
-          <div className={`text-3xl font-serif font-bold ${totalBuy < totalRent ? 'text-primary' : 'text-amber-500'}`}>
-            ${Math.abs(Math.round(totalRent - totalBuy)).toLocaleString()}
+      ) : (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-muted/30 p-6 rounded-xl border text-center">
+            <div>
+              <h3 className="font-bold mb-1">Monthly Buy Cost</h3>
+              <div className="text-3xl font-serif font-bold text-primary">${Math.round(monthlyBuyCost).toLocaleString()}</div>
+              <p className="text-xs text-muted-foreground mt-1">Includes mortgage, taxes, ins, maintenance</p>
+            </div>
+            <div>
+              <h3 className="font-bold mb-1">Difference over {years} years</h3>
+              <div className={`text-3xl font-serif font-bold ${totalBuy < totalRent ? 'text-primary' : 'text-amber-500'}`}>
+                ${Math.abs(Math.round(totalRent - totalBuy)).toLocaleString()}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {totalBuy < totalRent ? 'Buying is cheaper' : 'Renting is cheaper'}
+              </p>
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            {totalBuy < totalRent ? 'Buying is cheaper' : 'Renting is cheaper'}
-          </p>
-        </div>
-      </div>
 
-      <div className="h-[250px]" id="rent-vs-buy-chart">
-        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-          <BarChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="name" />
-            <YAxis tickFormatter={(v) => `$${v/1000}k`} />
-            <Tooltip formatter={(value) => `$${Number(value).toLocaleString()}`} />
-            <Bar dataKey="cost" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+          <div className="h-[250px]" id="rent-vs-buy-chart">
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+              <BarChart data={data}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="name" />
+                <YAxis tickFormatter={(v) => `$${v/1000}k`} />
+                <Tooltip formatter={(value) => `$${Number(value).toLocaleString()}`} />
+                <Bar dataKey="cost" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Full Analysis Section */}
+          <div className="bg-card border rounded-xl p-6 space-y-4">
+            <h3 className="font-bold text-lg border-b pb-2">Full Analysis</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-3">
+                <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">If You Buy</h4>
+                <div className="flex justify-between text-sm"><span>Monthly Mortgage</span><span className="font-bold">${Math.round(monthlyMortgage).toLocaleString()}</span></div>
+                <div className="flex justify-between text-sm"><span>Property Tax</span><span className="font-bold">${Math.round(propertyTax).toLocaleString()}/mo</span></div>
+                <div className="flex justify-between text-sm"><span>Insurance + Maintenance</span><span className="font-bold">${Math.round(insurance + maintenance).toLocaleString()}/mo</span></div>
+                <div className="flex justify-between text-sm"><span>Total Monthly</span><span className="font-bold text-primary">${Math.round(monthlyBuyCost).toLocaleString()}</span></div>
+                <div className="flex justify-between text-sm border-t pt-2"><span>Home Value After {years}yr ({appreciationRate}% appreciation)</span><span className="font-bold text-emerald-600">${Math.round(homeValueAfter).toLocaleString()}</span></div>
+                <div className="flex justify-between text-sm"><span>Total Cost Over {years} Years</span><span className="font-bold">${Math.round(totalBuy).toLocaleString()}</span></div>
+              </div>
+              <div className="space-y-3">
+                <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">If You Rent + Invest</h4>
+                <div className="flex justify-between text-sm"><span>Monthly Rent</span><span className="font-bold">${rent.toLocaleString()}</span></div>
+                <div className="flex justify-between text-sm"><span>Monthly Savings vs Buying</span><span className="font-bold">${Math.round(monthlySavings).toLocaleString()}</span></div>
+                <div className="flex justify-between text-sm"><span>Down Payment Invested ({investmentReturn}%)</span><span className="font-bold text-emerald-600">${Math.round(rentInvestGrowth).toLocaleString()}</span></div>
+                <div className="flex justify-between text-sm"><span>Monthly Savings Invested</span><span className="font-bold text-emerald-600">${Math.round(investedSavings).toLocaleString()}</span></div>
+                <div className="flex justify-between text-sm border-t pt-2"><span>Total Renter Wealth After {years}yr</span><span className="font-bold text-emerald-600">${Math.round(totalRenterWealth).toLocaleString()}</span></div>
+                <div className="flex justify-between text-sm"><span>Total Rent Paid</span><span className="font-bold">${Math.round(totalRent).toLocaleString()}</span></div>
+              </div>
+            </div>
+            <div className={`p-4 rounded-lg text-center font-bold ${totalRenterWealth > homeValueAfter ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-emerald-50 text-emerald-800 border border-emerald-200'}`}>
+              {totalRenterWealth > homeValueAfter
+                ? `Renting + investing builds $${Math.round(totalRenterWealth - homeValueAfter).toLocaleString()} more wealth over ${years} years`
+                : `Buying builds $${Math.round(homeValueAfter - totalRenterWealth).toLocaleString()} more wealth over ${years} years (including home equity)`
+              }
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

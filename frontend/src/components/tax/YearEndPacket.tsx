@@ -161,11 +161,16 @@ export function YearEndPacket() {
 
   return (
     <div className="space-y-8" data-testid="year-end-packet">
-      <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 flex items-start gap-3" data-testid="irs-prep-disclaimer">
-        <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-        <div className="text-sm text-amber-800">
-          <strong>Prep Document Only.</strong> This generates a comprehensive tax prep packet for your records. It is <strong>NOT</strong> an official tax return and <strong>cannot</strong> be submitted to the IRS.
+      <div className="flex items-center justify-between">
+        <div className="bg-amber-50 border border-amber-300 rounded-xl p-4 flex items-start gap-3 flex-1" data-testid="irs-prep-disclaimer">
+          <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+          <div className="text-sm text-amber-800">
+            <strong>Prep Document Only.</strong> This generates a comprehensive tax prep packet for your records. It is <strong>NOT</strong> an official tax return and <strong>cannot</strong> be submitted to the IRS.
+          </div>
         </div>
+        <button onClick={generatePacket} className="ml-4 flex-shrink-0 inline-flex items-center gap-2 bg-teal-600 text-white hover:bg-teal-700 rounded-lg px-5 py-2.5 font-bold text-sm transition-colors" data-testid="download-packet-btn-top">
+          <Download className="w-4 h-4" /> Download PDF
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

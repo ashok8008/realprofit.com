@@ -38,11 +38,11 @@ export function RetirementGrowthCalculator() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="space-y-2">
           <Label>Current Age</Label>
-          <Input type="number" min="16" max="90" value={currentAge} onChange={e => setCurrentAge(Math.max(16, Math.min(90, Number(e.target.value) || 16)))} />
+          <Input type="number" min="16" max="90" value={currentAge || ""} onChange={e => { const v = e.target.value; if (v === "") return setCurrentAge(0); setCurrentAge(Math.max(16, Math.min(90, Number(v) || 16))); }} />
         </div>
         <div className="space-y-2">
           <Label>Retirement Age</Label>
-          <Input type="number" min="20" max="100" value={retirementAge} onChange={e => setRetirementAge(Math.max(20, Math.min(100, Number(e.target.value) || 20)))} />
+          <Input type="number" min="20" max="100" value={retirementAge || ""} onChange={e => { const v = e.target.value; if (v === "") return setRetirementAge(0); setRetirementAge(Math.max(20, Math.min(100, Number(v) || 20))); }} />
         </div>
         <div className="space-y-2">
           <Label>Current Savings ($)</Label>

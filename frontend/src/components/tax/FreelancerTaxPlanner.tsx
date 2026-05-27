@@ -54,29 +54,29 @@ export function FreelancerTaxPlanner() {
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <div className="bg-muted/30 p-4 rounded-xl border text-center">
           <div className="text-xs text-muted-foreground mb-1">Annual Gross</div>
-          <div className="text-2xl font-bold">${annualIncome.toLocaleString()}</div>
+          <div className="text-xl font-bold break-all">${annualIncome.toLocaleString()}</div>
         </div>
         <div className="bg-muted/30 p-4 rounded-xl border text-center">
           <div className="text-xs text-muted-foreground mb-1">Annual Expenses</div>
-          <div className="text-2xl font-bold">${annualExpenses.toLocaleString()}</div>
+          <div className="text-xl font-bold break-all">${annualExpenses.toLocaleString()}</div>
         </div>
         <div className="bg-muted/30 p-4 rounded-xl border text-center">
           <div className="text-xs text-muted-foreground mb-1">Annual Net</div>
-          <div className="text-2xl font-bold">${annualNet.toLocaleString()}</div>
+          <div className="text-xl font-bold break-all">${annualNet.toLocaleString()}</div>
         </div>
         {selfEmployed === "yes" && (
           <div className="bg-orange-50 p-4 rounded-xl border border-orange-200 text-center">
             <div className="text-xs text-orange-700 mb-1">SE Tax</div>
-            <div className="text-2xl font-bold text-orange-700">${Math.round(se.seTax).toLocaleString()}</div>
+            <div className="text-xl font-bold text-orange-700 break-all">${Math.round(se.seTax).toLocaleString()}</div>
           </div>
         )}
         <div className="bg-red-50 p-4 rounded-xl border border-red-200 text-center">
           <div className="text-xs text-red-700 mb-1">Est. Total Tax</div>
-          <div className="text-2xl font-bold text-red-700">${Math.round(estimatedTax).toLocaleString()}</div>
+          <div className="text-xl font-bold text-red-700 break-all">${Math.round(estimatedTax).toLocaleString()}</div>
         </div>
         <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-200 text-center">
           <div className="text-xs text-emerald-700 mb-1">Est. Take-Home</div>
-          <div className="text-2xl font-bold text-emerald-700">${Math.round(annualTakeHome).toLocaleString()}</div>
+          <div className="text-xl font-bold text-emerald-700 break-all">${Math.round(annualTakeHome).toLocaleString()}</div>
         </div>
       </div>
 

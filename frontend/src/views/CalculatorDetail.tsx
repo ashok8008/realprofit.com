@@ -30,6 +30,7 @@ const LoanInterestCalculator = lazy(() => import("@/components/calculators/LoanI
 const DebtSnowballCalculator = lazy(() => import("@/components/calculators/DebtSnowballCalculator").then(m => ({ default: m.DebtSnowballCalculator })));
 const CostOfLivingComparison = lazy(() => import("@/components/calculators/CostOfLivingComparison").then(m => ({ default: m.CostOfLivingComparison })));
 const SalaryRealityCalculator = lazy(() => import("@/components/calculators/SalaryRealityCalculator").then(m => ({ default: m.SalaryRealityCalculator })));
+const SalaryCalculator = lazy(() => import("@/components/calculators/SalaryCalculator").then(m => ({ default: m.SalaryCalculator })));
 
 const SimpleSavingsCalculator = lazy(() => import("@/components/calculators/SimpleSavingsCalculator").then(m => ({ default: m.SimpleSavingsCalculator })));
 const MonthlySavingsCalculator = lazy(() => import("@/components/calculators/MonthlySavingsCalculator").then(m => ({ default: m.MonthlySavingsCalculator })));
@@ -100,6 +101,7 @@ function getCalculatorComponent(slug: string) {
     case 'profit-margin-calculator': return ProfitMarginCalculator;
     case 'net-income-calculator': return NetIncomeCalculator;
     case 'can-i-afford-this-calculator': return CanIAffordThisCalculator;
+    case 'salary-calculator': return SalaryCalculator;
     default: return FallbackCalculator;
   }
 }

@@ -58,7 +58,7 @@ export function BillSplitTool() {
   const actualTipAmount = subtotalVal * (tipPercentVal / 100);
   const grandTotal = subtotalVal + taxAmountVal + actualTipAmount;
 
-  const multiplier = subtotalVal > 0 ? grandTotal / subtotalVal : 1;
+  const multiplier = subtotalVal > 0 ? grandTotal / subtotalVal : 0;
 
   const handleReset = () => {
     setData({ ...DEFAULT_STATE, customPeople: DEFAULT_STATE.customPeople.map(p => ({ ...p })) });
@@ -215,7 +215,7 @@ export function BillSplitTool() {
               <p className="text-sm text-muted-foreground uppercase tracking-wider mb-2">Total Paid</p>
               <p className="text-4xl font-bold">${grandTotal.toFixed(2)}</p>
               <p className="text-sm text-muted-foreground mt-2">
-                Includes ${taxAmountVal.toFixed(2)} tax and ${actualTipAmount.toFixed(2)} tip
+                Includes ${taxAmountVal.toFixed(2)} tax and ${actualTipAmount.toFixed(2)} tip ({tipPercentVal}%)
               </p>
             </div>
 
