@@ -7,18 +7,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: [
-          "/",
-          "/calculators/",
-          "/tools/",
-          "/career-tools/",
-          "/tax-tools/",
-          "/guides/",
-          "/learn/",
-          "/articles/",
-          "/about",
-          "/contact",
-        ],
+        allow: ["/"],
         disallow: [
           "/api/",
           "/login",
@@ -27,6 +16,31 @@ export default function robots(): MetadataRoute.Robots {
           "/account/*",
           "/_next/",
         ],
+      },
+      {
+        userAgent: "Googlebot",
+        allow: ["/"],
+        disallow: ["/api/", "/login", "/register", "/account", "/_next/"],
+      },
+      {
+        userAgent: "Bingbot",
+        allow: ["/"],
+        disallow: ["/api/", "/login", "/register", "/account", "/_next/"],
+      },
+      {
+        userAgent: "SemrushBot",
+        allow: ["/"],
+        disallow: ["/api/", "/login", "/register", "/account", "/_next/"],
+      },
+      {
+        userAgent: "SemrushBot-SA",
+        allow: ["/"],
+        disallow: ["/api/", "/login", "/register", "/account", "/_next/"],
+      },
+      {
+        userAgent: "AhrefsBot",
+        allow: ["/"],
+        disallow: ["/api/", "/login", "/register", "/account", "/_next/"],
       },
       {
         userAgent: "GPTBot",
