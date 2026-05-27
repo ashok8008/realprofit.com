@@ -95,12 +95,18 @@ export function SigningPage({ token }: Props) {
   }
 
   if (error || !view) {
+    const friendlyMsg =
+      !error ? "This signing link is invalid or has expired." :
+      error.includes("AUTH_REQUIRED") || error.includes("Invalid") ? "This signing link is invalid. Please use the link from your email." :
+      error.includes("expired") ? "This signing link has expired. Contact the sender to request a new one." :
+      error.includes("voided") ? "This document has been voided by the sender." :
+      "We couldn't open this document. The link may be invalid or expired.";
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F5F3EE] px-6">
         <div className="bg-white border border-stone-200 rounded-xl p-10 max-w-md text-center shadow-sm">
           <AlertTriangle className="w-12 h-12 mx-auto text-[#B53D2F] mb-4" />
           <h1 className="text-xl font-semibold text-stone-900 mb-2">Unable to open document</h1>
-          <p className="text-sm text-stone-600">{error || "This signing link is invalid or has expired."}</p>
+          <p className="text-sm text-stone-600">{friendlyMsg}</p>
         </div>
       </div>
     );

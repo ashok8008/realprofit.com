@@ -18,7 +18,10 @@ export default function VerifyPage({ params }: { params: Promise<{ docId: string
         <div className="bg-white border border-stone-200 rounded-xl p-10 max-w-md text-center">
           <AlertTriangle className="w-12 h-12 mx-auto text-[#B53D2F] mb-4" />
           <h1 className="text-xl font-semibold text-stone-900 mb-2">Document not found</h1>
-          <p className="text-sm text-stone-600">{error}</p>
+          <p className="text-sm text-stone-600">
+            We couldn't locate this document. The link may be incorrect or the document
+            has been deleted by its owner.
+          </p>
         </div>
       </div>
     );

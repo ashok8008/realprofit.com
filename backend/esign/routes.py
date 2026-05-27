@@ -28,7 +28,7 @@ from typing import Optional, List
 import jwt as pyjwt
 from fastapi import APIRouter, HTTPException, Request, UploadFile, File, Form, BackgroundTasks, Depends
 from fastapi.responses import Response, StreamingResponse, JSONResponse
-from sqlalchemy import select, func, delete
+from sqlalchemy import select, func, delete, Integer, case
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -148,7 +148,7 @@ async def list_documents(request: Request, session: AsyncSession = Depends(get_s
         select(
             Document,
             func.count(Signer.id).label("signer_count"),
-            func.sum(func.cast(Signer.status == "signed", type_=__import__("sqlalchemy").Integer)).label("signed_count"),
+            func.sum(func.cast(Signer.status == "signed", type_=Integer)).label("signed_count"),
         )
         .outerjoin(Signer, Signer.document_id == Document.id)
         .where(Document.owner_id == str(user["_id"]))
@@ -256,14 +256,14 @@ async def send_document(doc_id: str, request: Request, background: BackgroundTas
         to_notify = list(doc.signers)
 
     # Generate tokens for ALL signers (we'll still email only the relevant ones now)
+    raw_tokens: dict[str, str] = {}  # signer_id → raw token (in-memory only)
     for s in doc.signers:
         token = esign_tokens.create_signing_token(str(s.id), str(doc.id), s.email,
                                                   expires_at=doc.expires_at)
         s.token_hash = esign_tokens.hash_token(token)
         s.token_used = False
         s.status = "notified" if s in to_notify else "pending"
-        # We need the raw token for the email — keep a per-signer mapping
-        s.__send_token = token  # transient attribute
+        raw_tokens[str(s.id)] = token
 
     doc.status = "sent"
     doc.updated_at = datetime.now(timezone.utc)
@@ -273,7 +273,7 @@ async def send_document(doc_id: str, request: Request, background: BackgroundTas
 
     expiry_str = doc.expires_at.strftime("%b %d, %Y") if doc.expires_at else None
     for s in to_notify:
-        sign_url = f"{app_url}/sign/{s.__send_token}"
+        sign_url = f"{app_url}/sign/{raw_tokens[str(s.id)]}"
         background.add_task(
             email_service.send_signature_request,
             to_email=s.email, signer_name=s.name, owner_name=owner_name,

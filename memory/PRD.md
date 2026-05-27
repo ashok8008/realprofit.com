@@ -1,21 +1,32 @@
 # RealProfits - Product Requirements Document
 
 ## Overview
-RealProfits is a financial + career decision platform. Organic traffic via pSEO is the primary acquisition channel.
+RealProfits is a financial + career decision platform. Organic traffic via pSEO is the primary acquisition channel. Now includes a **free eSign tool** as part of the Productive Tools suite (DocuSign competitor).
 
 ## Architecture
 - **Frontend**: Next.js 16 (App Router) + TypeScript + Tailwind CSS + shadcn/ui
-- **Backend**: FastAPI + GPT-4o-mini via emergentintegrations + MongoDB (motor async)
+- **Backend**: FastAPI + GPT-4o-mini via emergentintegrations
+- **Databases**:
+  - **MongoDB** (motor async) — auth, users, invoices, resume drafts, calculator caches
+  - **PostgreSQL 15** (asyncpg + SQLAlchemy 2.0) — **eSign module only** (documents, signers, signature_fields, audit_events). User chose Postgres for the eSign tool to support future Stripe subscriptions cleanly.
 - **Auth**: JWT (httpOnly cookies, 15min access + 7-day refresh tokens, bcrypt, brute force protection)
 - **State**: MongoDB for authenticated users, localStorage fallback for anonymous
 - **SSR/SSG**: pSEO pages are server components with generateMetadata
 - **Deployment**: Emergent native (Kubernetes)
 
 ## Database Schema
+### MongoDB
 - **users**: email (unique), password_hash, name, role, created_at
 - **login_attempts**: identifier (IP:email), count, locked_until
 - **password_reset_tokens**: token, user_id, expires_at, used (TTL index)
 - **user_data**: user_id + tool_key (compound unique), data (any), created_at, updated_at
+- **invoices**, **clients** (Invoice Generator)
+
+### PostgreSQL (eSign — db `realprofits_esign`)
+- **documents**: id (UUID), owner_id (Mongo ObjectId str), title, original_key, signed_key, status (draft/sent/partial/completed/expired/voided/declined), doc_hash (SHA-256), signing_order, page_count, expires_at, completed_at, settings (JSONB), created_at, updated_at
+- **signers**: id (UUID), document_id (FK), name, email, role, order_index, color, token_hash (SHA-256 of JWT), token_used, status, signed_at, viewed_at, ip_address, user_agent, geo_country, geo_city, reminder_count, decline_reason
+- **signature_fields**: id (UUID), document_id, signer_id, page, x/y/width/height (0–1 fractions), field_type (signature/initials/date/text/checkbox/stamp), required, label, filled_at, value
+- **audit_events**: id (UUID), document_id, signer_id, event_type, occurred_at, ip_address, user_agent, metadata (JSONB)
 
 ## pSEO System
 - **56 cities** across 4 cost tiers (very-high, high, moderate, low)
@@ -44,6 +55,31 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 
 ### Other
 - GET /api/health, /api/sitemap.xml, /api/sitemap/stats
+
+### eSign (/api/esign/*) — **NEW (2026-05-27)**
+**Owner (auth required):**
+- POST `/documents` (multipart PDF upload, 25MB max, magic-byte validated)
+- GET `/documents` (list with signed_count + signer_count)
+- GET `/documents/{id}` (detail with signers + fields)
+- PATCH `/documents/{id}` (update title, signing_order, expires_at, settings, signers array, fields array)
+- DELETE `/documents/{id}`
+- POST `/documents/{id}/send` (creates per-signer JWTs, emails E1, sets status=sent)
+- POST `/documents/{id}/void` (sets status=voided, emails E10 to all signers)
+- GET `/documents/{id}/original` (download original PDF)
+- GET `/documents/{id}/signed` (download signed PDF with audit page)
+
+**Public (token-based, no auth):**
+- GET `/sign/{token}` (records 'viewed' event, returns SignerPublicView)
+- GET `/sign/{token}/pdf` (fetch PDF for in-browser PDF.js rendering)
+- POST `/sign/{token}/submit` (FieldValue[], consent required, marks signed; if last → triggers finalize → completed)
+- POST `/sign/{token}/decline` (reason → emails E9 to owner + signers)
+- GET `/verify/{doc_id}` (public verification with masked emails + SHA-256)
+
+**Key behaviors:**
+- Tokens are RS256-compatible JWTs (currently HS256), stored as SHA-256 hash, single-use
+- Sequential signing supported (next signer notified after previous completes)
+- Final PDF = original + signature overlays (pypdf + reportlab) + audit-trail page with QR
+- Audit events recorded on every state change (document_sent, viewed, signed, declined, voided, completed)
 
 ## Tax Tools System (Phase 16)
 ### Hub: /tax-tools
