@@ -244,13 +244,14 @@ async def _sync_subscription(session: AsyncSession, user_id: str,
 @router.post("/webhook")
 async def stripe_webhook(request: Request, background: BackgroundTasks,
                           session: AsyncSession = Depends(get_session)):
-    stripe.api_key = _stripe_key()
     body = await request.body()
     sig = request.headers.get("stripe-signature", "")
     webhook_secret = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 
     try:
         if webhook_secret and webhook_secret != "whsec_test":
+            # Real signature verification — needs the Stripe SDK + real key
+            stripe.api_key = _stripe_key()
             event = stripe.Webhook.construct_event(body, sig, webhook_secret)
         else:
             # Local/test mode — parse without signature verification
