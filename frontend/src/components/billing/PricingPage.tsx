@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Check, X, Sparkles } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useABTest } from "@/lib/ab-test";
 
 const API = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -27,11 +28,24 @@ export function PricingPage() {
   const [interval, setInterval] = useState<"month" | "year">("month");
   const [loading, setLoading] = useState<string | null>(null);
 
+  // A/B test the hero copy: variant 'pro' emphasizes upgrade, 'free' emphasizes the free plan.
+  const { variant, track } = useABTest("pricing_hero_v1", ["pro", "free"]);
+  const heroCopy = variant === "pro"
+    ? {
+        title: "Upgrade to unlimited. Cancel anytime.",
+        subtitle: "Free is great for trying us out. Pro removes the limits — unlimited documents, no branding, longer storage, all for $9/mo.",
+      }
+    : {
+        title: "Simple pricing. No tricks.",
+        subtitle: "Start free forever. Upgrade only when you need to remove branding or send more than 5 docs/month.",
+      };
+
   useEffect(() => {
     fetch(`${API}/api/billing/plans`).then((r) => r.json()).then((d) => setPlans(d.plans));
   }, []);
 
   const upgrade = async (planId: string) => {
+    track("click", { plan: planId, interval });
     if (!user) {
       router.push(`/login?redirect=/pricing`);
       return;
@@ -54,6 +68,7 @@ export function PricingPage() {
         toast({ title: "Checkout error", description: typeof msg === "string" ? msg : "Stripe not configured", variant: "destructive" });
         return;
       }
+      track("convert", { plan: planId, interval });
       window.location.href = data.url;
     } catch (e: any) {
       toast({ title: "Network error", description: e.message, variant: "destructive" });
@@ -64,15 +79,13 @@ export function PricingPage() {
 
   return (
     <div className="min-h-screen bg-[#F5F3EE]">
-      <section className="bg-[#0B3D3D] text-white">
+      <section className="bg-[#0B3D3D] text-white" data-testid={`hero-variant-${variant}`}>
         <div className="max-w-5xl mx-auto px-6 py-16 text-center">
           <div className="text-[10px] tracking-[0.3em] text-[#C8A96E] uppercase font-medium mb-3">
             RealProfits eSign · Pricing
           </div>
-          <h1 className="text-4xl sm:text-5xl font-bold mb-4">Simple pricing. No tricks.</h1>
-          <p className="text-lg text-stone-300 max-w-2xl mx-auto">
-            Start free forever. Upgrade when you need to remove branding or send more than 5 docs/month.
-          </p>
+          <h1 className="text-4xl sm:text-5xl font-bold mb-4">{heroCopy.title}</h1>
+          <p className="text-lg text-stone-300 max-w-2xl mx-auto">{heroCopy.subtitle}</p>
           <div className="inline-flex bg-[#165252] rounded-full p-1 mt-8">
             <button
               onClick={() => setInterval("month")}

@@ -18,6 +18,7 @@ export const invoiceApi = {
   recordPayment: (id: string, payment: { amount: number; date: string; note: string }) => f(`/api/invoices/${id}/payment`, { method: "POST", body: JSON.stringify(payment) }),
   stats: () => f("/api/invoices/stats/summary"),
   sendEmail: (data: { invoice_id: string; recipient_email: string; subject?: string; message?: string }) => f("/api/invoices/send-email", { method: "POST", body: JSON.stringify(data) }),
+  share: (id: string) => f(`/api/invoices/${id}/share`, { method: "POST" }),
 };
 
 export const clientApi = {

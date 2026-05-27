@@ -16,13 +16,13 @@ export function EsignLanding() {
               RealProfits eSign · 100% Free
             </div>
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-6">
-              Sign documents in <span className="text-[#C8A96E]">90 seconds</span>.<br />
-              Free forever.
+              Sign Documents Free.<br />
+              <span className="text-[#C8A96E]">No DocuSign.</span> No HelloSign.<br />
+              No monthly fee.
             </h1>
             <p className="text-lg text-stone-200 leading-relaxed mb-8 max-w-2xl">
-              Upload a PDF. Add signers. Drop fields. Send. We email each signer a secure,
-              one-time link. They sign in any browser — no account needed. You get a legally
-              binding signed PDF and a tamper-proof audit trail.
+              Upload any PDF, place signature fields for up to 5 parties, collect signatures with a
+              full legal audit trail — all free on RealProfits. Better than DocuSign, and completely free.
             </p>
             <div className="flex flex-wrap gap-3">
               <Link
@@ -30,7 +30,7 @@ export function EsignLanding() {
                 data-testid="hero-cta-new"
                 className="px-7 py-3.5 text-base font-bold text-[#0B3D3D] bg-[#C8A96E] rounded-md hover:bg-[#D4B780] transition-colors"
               >
-                Start signing — free
+                Sign a Document Free →
               </Link>
               <Link
                 href="/tools/esign/dashboard"
@@ -112,8 +112,77 @@ export function EsignLanding() {
         </div>
       </section>
 
+      {/* Comparison table */}
+      <section className="max-w-6xl mx-auto px-6 py-20" data-testid="comparison-table-section">
+        <div className="text-center mb-12">
+          <div className="text-[10px] tracking-[0.3em] text-[#C8A96E] uppercase font-medium mb-3">
+            The honest comparison
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-bold text-stone-900">
+            RealProfits eSign vs DocuSign vs HelloSign
+          </h2>
+          <p className="text-stone-600 mt-3 max-w-2xl mx-auto text-sm">
+            Everything DocuSign and HelloSign charge $15–$45/month for is free here. Decide for yourself.
+          </p>
+        </div>
+        <div className="overflow-x-auto bg-white border border-stone-200 rounded-xl shadow-sm">
+          <table className="w-full text-sm" data-testid="comparison-table">
+            <thead>
+              <tr className="border-b border-stone-200">
+                <th className="text-left py-4 px-5 font-semibold text-stone-700">Feature</th>
+                <th className="text-center py-4 px-5 bg-[#0B3D3D] text-white">
+                  <div className="text-[10px] tracking-wider opacity-80">FREE</div>
+                  <div className="font-bold text-base">RealProfits eSign</div>
+                </th>
+                <th className="text-center py-4 px-5 text-stone-700">
+                  <div className="text-[10px] tracking-wider opacity-60">FROM $15/MO</div>
+                  <div className="font-semibold">DocuSign</div>
+                </th>
+                <th className="text-center py-4 px-5 text-stone-700">
+                  <div className="text-[10px] tracking-wider opacity-60">FROM $15/MO</div>
+                  <div className="font-semibold">HelloSign</div>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                ["Free documents per month", "5 (Unlimited on Pro $9/mo)", "5 trial", "3 trial"],
+                ["Up to 5 signers per document", "✓ Free", "Higher tiers", "Higher tiers"],
+                ["Drag-and-drop field placement", "✓ Free", "✓", "✓"],
+                ["Audit trail PDF", "✓ Free", "✓ paid", "✓ paid"],
+                ["SHA-256 document hash", "✓ Free", "Enterprise only", "Enterprise only"],
+                ["QR verification code", "✓ Free", "✗", "✗"],
+                ["Per-signer unique ID overlay", "✓ Free", "✗", "✗"],
+                ["Sequential + parallel signing", "✓ Free", "✓", "Higher tiers"],
+                ["Smart reminders (3/7/14 days)", "✓ Free", "✓ paid", "✓ paid"],
+                ["Public verification page", "✓ Free", "✗", "✗"],
+                ["Remove our branding", "$9/mo (Pro)", "$25/mo+", "$20/mo+"],
+                ["Templates library", "Coming soon", "Higher tiers", "✓"],
+                ["API access", "Business $29/mo", "$40/mo+", "$30/mo+"],
+              ].map((row, idx) => (
+                <tr key={idx} className={idx % 2 ? "bg-stone-50/60" : ""}>
+                  <td className="py-3 px-5 text-stone-800 font-medium">{row[0]}</td>
+                  <td className="py-3 px-5 text-center font-semibold text-[#0B3D3D]">{row[1]}</td>
+                  <td className="py-3 px-5 text-center text-stone-600">{row[2]}</td>
+                  <td className="py-3 px-5 text-center text-stone-600">{row[3]}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="text-center mt-8">
+          <Link
+            href="/tools/esign/new"
+            data-testid="comparison-cta"
+            className="inline-flex items-center gap-2 px-7 py-3.5 text-base font-bold text-[#0B3D3D] bg-[#C8A96E] rounded-md hover:bg-[#D4B780] transition-colors"
+          >
+            Start free — no signup needed →
+          </Link>
+        </div>
+      </section>
+
       {/* Features */}
-      <section className="max-w-6xl mx-auto px-6 py-20">
+      <section id="features" className="max-w-6xl mx-auto px-6 py-20">
         <div className="text-center mb-12">
           <h2 className="text-3xl sm:text-4xl font-bold text-stone-900">Built for serious work</h2>
         </div>

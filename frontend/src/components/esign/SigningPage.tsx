@@ -1,10 +1,12 @@
 "use client";
 // Public signing page — no auth required. Token-driven.
 import { useEffect, useState, useMemo } from "react";
-import { CheckCircle2, AlertTriangle, FileSignature, X } from "lucide-react";
+import { CheckCircle2, AlertTriangle, FileSignature, X, Sparkles } from "lucide-react";
 import { signApi, type Field } from "./api";
 import { usePdfRenderer, PageCanvas } from "./PdfRenderer";
 import { SignatureCreator } from "./SignatureCreator";
+
+const API = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 interface Props {
   token: string;
@@ -26,6 +28,15 @@ export function SigningPage({ token }: Props) {
   const [declined, setDeclined] = useState(false);
   const [declineReason, setDeclineReason] = useState("");
   const [showDeclineModal, setShowDeclineModal] = useState(false);
+
+  // Saved signature (only available if signer is also a logged-in user)
+  const [savedSig, setSavedSig] = useState<string | null>(null);
+  useEffect(() => {
+    fetch(`${API}/api/esign/signature`, { credentials: "include" })
+      .then(async (r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d && d.image_data) setSavedSig(d.image_data); })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     (async () => {
@@ -120,6 +131,18 @@ export function SigningPage({ token }: Props) {
           <h1 className="text-2xl font-semibold text-stone-900 mb-2">Thank you!</h1>
           <p className="text-stone-600 mb-1">You've signed <b>{view.document_title}</b>.</p>
           <p className="text-sm text-stone-500 mt-4">A signed copy will be emailed to you once all parties complete signing.</p>
+          <div className="mt-6 pt-6 border-t border-stone-200">
+            <div className="text-[10px] tracking-[0.2em] uppercase text-[#C8A96E] font-semibold mb-2">
+              Need to invoice this client?
+            </div>
+            <a
+              href="/tools/invoice"
+              data-testid="completion-cross-promo-invoice"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-[#0B3D3D] border border-[#0B3D3D] rounded-md hover:bg-[#0B3D3D] hover:text-white transition-colors"
+            >
+              Try Invoice Generator →
+            </a>
+          </div>
         </div>
       </div>
     );
@@ -304,6 +327,36 @@ export function SigningPage({ token }: Props) {
                   <h3 className="text-sm font-semibold text-stone-900 mb-3">
                     Create your {activeField.field_type}
                   </h3>
+                  {savedSig && (
+                    <div
+                      data-testid="saved-signature-banner"
+                      className="mb-3 bg-[#FAF5EE] border border-[#C8A96E] rounded-md p-3 flex items-center gap-3"
+                    >
+                      <img
+                        src={savedSig}
+                        alt="Saved signature"
+                        className="h-10 max-w-[120px] object-contain bg-white border border-stone-200 rounded"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-semibold text-stone-900 flex items-center gap-1">
+                          <Sparkles className="w-3 h-3 text-[#C8A96E]" /> Use your saved signature
+                        </div>
+                        <div className="text-[11px] text-stone-600">One click — no need to draw again.</div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setCurrentSignature(savedSig);
+                          setFieldValues({ ...fieldValues, [activeField.id]: savedSig });
+                          const next = view.fields.find((f) => f.id !== activeField.id && !fieldValues[f.id]);
+                          if (next) setActiveFieldId(next.id);
+                        }}
+                        data-testid="use-saved-sig-btn"
+                        className="px-3 py-1.5 text-xs font-bold text-white bg-[#0B3D3D] rounded-md hover:bg-[#165252] flex-shrink-0"
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  )}
                   <SignatureCreator
                     onChange={setCurrentSignature}
                     initialName={view.signer_name}

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="11" time="0.953" timestamp="2026-05-27T21:43:10.067115+00:00" hostname="agent-env-26946d75-b144-4788-8ed6-b7fc8b535d7c"><testcase classname="tests.test_sprint_ab.TestAnalytics" name="test_event_unauth_writes_ok" time="0.007" /><testcase classname="tests.test_sprint_ab.TestAnalytics" name="test_event_invalid_event_400" time="0.002" /><testcase classname="tests.test_sprint_ab.TestAnalytics" name="test_summary_requires_admin" time="0.002" /><testcase classname="tests.test_sprint_ab.TestAnalytics" name="test_summary_admin_aggregates_variants" time="0.281" /><testcase classname="tests.test_sprint_ab.TestInvoiceShare" name="test_share_creates_token" time="0.089" /><testcase classname="tests.test_sprint_ab.TestInvoiceShare" name="test_share_is_idempotent" time="0.090" /><testcase classname="tests.test_sprint_ab.TestInvoiceShare" name="test_public_invoice_returns_html" time="0.046" /><testcase classname="tests.test_sprint_ab.TestInvoiceShare" name="test_public_invalid_token_404" time="0.002" /><testcase classname="tests.test_sprint_ab.TestInvoiceShare" name="test_public_paid_invoice_hides_pay_btn" time="0.133" /><testcase classname="tests.test_sprint_ab.TestMarkOverdue" name="test_mark_invoices_overdue_job" time="0.183"><failure message="KeyError: 'DATABASE_URL'">tests/test_sprint_ab.py:158: in test_mark_invoices_overdue_job
+    from scheduler_jobs import mark_invoices_overdue_job
+scheduler_jobs.py:17: in &lt;module&gt;
+    from esign.database import SessionLocal
+esign/database.py:16: in &lt;module&gt;
+    engine = _build_engine()
+             ^^^^^^^^^^^^^^^
+esign/database.py:12: in _build_engine
+    url = os.environ["DATABASE_URL"]
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^
+&lt;frozen os&gt;:679: in __getitem__
+    ???
+E   KeyError: 'DATABASE_URL'</failure></testcase><testcase classname="tests.test_sprint_ab" name="test_scheduler_logged_five_jobs" time="0.003" /></testsuite></testsuites>

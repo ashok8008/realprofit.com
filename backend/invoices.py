@@ -257,6 +257,104 @@ async def send_invoice_email(body: SendInvoiceEmailRequest, request: Request):
         logger.error(f"Failed to send invoice email: {e}")
         raise HTTPException(500, f"Failed to send email: {str(e)}")
 
+# ── Public client portal ────────────────────────────────
+
+import secrets
+
+def _portal_html(doc: dict) -> str:
+    """Render a clean public invoice view + Pay button if payment_link is set."""
+    sym_map = {"USD": "$", "EUR": "€", "GBP": "£", "INR": "₹", "CAD": "C$", "AUD": "A$"}
+    sym = sym_map.get(doc.get("currency", "USD"), "$")
+    items = doc.get("items", [])
+    rows = ""
+    for it in items:
+        desc = (it.get("description") or "Item")[:200]
+        qty = it.get("qty", 1)
+        unit = it.get("unit", "hr")
+        rate = it.get("rate", 0)
+        amt = qty * rate
+        rows += f'<tr><td style="padding:10px 12px;border-bottom:1px solid #eee;">{desc}</td><td style="padding:10px 12px;border-bottom:1px solid #eee;text-align:center;">{qty} {unit}</td><td style="padding:10px 12px;border-bottom:1px solid #eee;text-align:right;">{sym}{rate:,.2f}</td><td style="padding:10px 12px;border-bottom:1px solid #eee;text-align:right;font-weight:600;">{sym}{amt:,.2f}</td></tr>'
+    pay_btn = ""
+    pl = doc.get("payment_link", "")
+    accent = doc.get("accent_color", "#0B3D3D")
+    if pl and doc.get("status") != "paid":
+        pay_btn = f'<a href="{pl}" data-testid="public-pay-btn" target="_blank" rel="noopener" style="display:inline-block;background:{accent};color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;">Pay Now {sym}{doc.get("total",0):,.2f}</a>'
+    status = doc.get("status", "sent")
+    status_color = {"paid": "#2A6B45", "overdue": "#B53D2F", "sent": "#A0621A"}.get(status, "#6E6B63")
+    return f"""<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Invoice {doc.get("invoice_number","")} from {doc.get("business_name","")}</title>
+<meta name="robots" content="noindex,nofollow">
+<style>
+body{{margin:0;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Arial,sans-serif;background:#F5F3EE;color:#1C1B18;}}
+.wrap{{max-width:760px;margin:0 auto;padding:24px;}}
+.card{{background:#fff;border:1px solid #E2DDD4;border-radius:12px;overflow:hidden;}}
+.bar{{background:{accent};color:#fff;padding:24px 32px;}}
+.bar h1{{font-size:24px;margin:0;}}
+.body{{padding:28px 32px;}}
+.row{{display:flex;justify-content:space-between;gap:16px;margin-bottom:24px;flex-wrap:wrap;}}
+.pill{{display:inline-block;padding:4px 10px;border-radius:99px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;}}
+table{{width:100%;border-collapse:collapse;font-size:13px;}}
+thead th{{background:#f9f8f5;padding:10px 12px;text-align:left;color:#6E6B63;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;}}
+.totals{{margin-top:18px;padding-top:18px;border-top:2px solid {accent};text-align:right;}}
+.totals .big{{font-size:28px;font-weight:700;color:{accent};}}
+.cta{{text-align:center;margin:32px 0 8px;}}
+.foot{{text-align:center;padding:18px;font-size:11px;color:#6E6B63;}}
+.foot a{{color:{accent};text-decoration:none;font-weight:600;}}
+</style></head><body>
+<div class="wrap"><div class="card">
+<div class="bar"><h1>{doc.get("business_name","Your Business")}</h1>
+<div style="opacity:.8;font-size:13px;margin-top:4px">Invoice {doc.get("invoice_number","")}</div></div>
+<div class="body">
+<div class="row">
+<div><div style="font-size:11px;color:#6E6B63;letter-spacing:.05em;text-transform:uppercase">Bill to</div>
+<div style="font-weight:600;font-size:15px;margin-top:4px">{doc.get("client_name","")}</div>
+<div style="color:#6E6B63;font-size:13px">{doc.get("client_company","")}</div></div>
+<div style="text-align:right">
+<div><span class="pill" style="background:{status_color}22;color:{status_color}">{status}</span></div>
+<div style="margin-top:8px;font-size:12px;color:#6E6B63">Issued: {doc.get("date","")}</div>
+<div style="font-size:12px;color:#6E6B63">Due: {doc.get("due_date","")}</div></div>
+</div>
+<table><thead><tr><th>Description</th><th style="text-align:center">Qty</th><th style="text-align:right">Rate</th><th style="text-align:right">Amount</th></tr></thead>
+<tbody>{rows}</tbody></table>
+<div class="totals"><div style="font-size:12px;color:#6E6B63">Total due</div><div class="big">{sym}{doc.get("total",0):,.2f}</div></div>
+<div class="cta">{pay_btn}</div>
+{"<div style='background:#FAF5EE;border-radius:8px;padding:14px 18px;margin-top:12px;font-size:13px'><b>Notes:</b> "+(doc.get("notes",""))+"</div>" if doc.get("notes") else ""}
+</div>
+<div class="foot">Sent via <a href="https://realprofits.com/tools/invoice">RealProfits Invoice Generator</a> · Need to sign too? <a href="https://realprofits.com/tools/esign">Try RealProfits eSign — free</a></div>
+</div></div></body></html>"""
+
+
+@router.post("/{invoice_id}/share")
+async def share_invoice(invoice_id: str, request: Request):
+    """Generate or return a public share token. Anyone with the URL can view (not edit) the invoice."""
+    user = await get_current_user(request)
+    db = get_db()
+    doc = await db.invoices.find_one({"_id": ObjectId(invoice_id), "user_id": str(user["_id"])})
+    if not doc:
+        raise HTTPException(404, "Invoice not found")
+    token = doc.get("share_token")
+    if not token:
+        token = secrets.token_urlsafe(24)
+        await db.invoices.update_one(
+            {"_id": ObjectId(invoice_id)},
+            {"$set": {"share_token": token, "updated_at": datetime.now(timezone.utc).isoformat()}},
+        )
+    base = os.environ.get("APP_URL", os.environ.get("FRONTEND_URL", "")).rstrip("/")
+    return {"share_token": token, "public_url": f"{base}/i/{token}" if base else f"/i/{token}"}
+
+
+@router.get("/public/{token}", response_class=None)
+async def public_invoice(token: str):
+    """Public read-only invoice view by share token."""
+    from fastapi.responses import HTMLResponse
+    db = get_db()
+    doc = await db.invoices.find_one({"share_token": token})
+    if not doc:
+        raise HTTPException(404, "Invoice not found")
+    return HTMLResponse(content=_portal_html(doc), status_code=200)
+
+
 # ── Parameterized routes ────────────────────────────────
 
 @router.get("/{invoice_id}")

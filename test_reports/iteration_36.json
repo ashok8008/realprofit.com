@@ -1,0 +1,66 @@
+{
+  "summary": "Iteration 36 — Sprint A (homepage developer brief) + Sprint B (saved sig banner, A/B pricing test, invoice public share + cross-promo, scheduler overdue job) testing. All backend + frontend acceptance criteria verified. Created new pytest suite /app/backend/tests/test_sprint_ab.py (11/11 PASS). Regression /app/backend/tests/test_esign_api.py + test_invoice_api.py = 32/32 PASS. Frontend Playwright smoke checks all data-testids, A/B variant persistence, analytics POST, public invoice route /i/{token} rendering, admin login + saved-signature seed all pass.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "/tools/esign", "issues": ["Meta title duplicates ' | RealProfits' suffix: 'Free eSign Tool — Sign PDF Documents Online | RealProfits | RealProfits'. Likely the page-level metadata.title already contains the brand AND the root layout template appends it again. Both required substrings are present so acceptance still passes, but the duplicated brand should be cleaned up by removing one occurrence."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_sprint_ab.py",
+    "/app/test_reports/pytest/sprint_ab.xml",
+    "/app/test_reports/pytest/regression.xml"
+  ],
+  "action_items": [
+    "Optional: deduplicate ' | RealProfits' in /tools/esign meta title (template-level concat)."
+  ],
+  "critical_code_review_comments": [
+    "POST /api/invoices/{id}/share is correctly idempotent (re-uses existing share_token) and uses secrets.token_urlsafe(24) → 32-char URL-safe base64; review request said '24-char' but actual is 32 — matches other_misc_info note. Confirmed safe.",
+    "GET /api/invoices/public/{token} returns 200 text/html and properly hides public-pay-btn when status='paid' or payment_link is empty.",
+    "Analytics /api/analytics/event is unauthenticated (intentional — front-end fires from anonymous pricing visitors). Server validates event enum via Pydantic (returns 422 on bad event), good.",
+    "/api/analytics/summary/{experiment} requires admin (current_user dep) — verified returns 401 anonymously.",
+    "Scheduler boots all 5 jobs on every restart — log line: '[scheduler] Started: reminders (every 6h), expire_docs (daily), reset_counters (monthly), mark_overdue (daily), invoice_reminders (daily)'.",
+    "mark_invoices_overdue_job correctly transitions status='sent' AND due_date<today → 'overdue'. Verified by direct asyncio.run() with a TEST invoice (due_date 2024-01-01) → status changed to 'overdue'."
+  ],
+  "updated_files": ["/app/backend/tests/test_sprint_ab.py"],
+  "success_rate": {"backend": "100% (11/11 new + 32/32 regression)", "frontend": "100% of testids + routes verified"},
+  "test_credentials": "admin@realprofits.com / RealProfits2026! (verified login works against preview URL)",
+  "seed_data_creation": "Tests create TEST_-prefixed invoices (auto-deleted in teardown). Analytics events: experiment='TEST_exp_unit'/'TEST_exp_summary' written to ab_events collection; cleanup not strictly necessary (read-only summary queries scoped by experiment name).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Run regression as: `REACT_APP_BACKEND_URL=http://localhost:8001 python -m pytest /app/backend/tests/test_esign_api.py /app/backend/tests/test_invoice_api.py /app/backend/tests/test_sprint_ab.py -v`. The /tools/esign meta-title brand duplication is the only minor cosmetic finding. Frontend Next.js prod build is up to date — no rebuild needed for this iteration.",
+  "verified_acceptance_criteria": {
+    "backend": {
+      "analytics_event_writes_to_ab_events": true,
+      "analytics_summary_requires_admin": true,
+      "analytics_summary_aggregates_click_and_conversion_rates": true,
+      "invoice_share_idempotent_returns_url_safe_token_32chars": true,
+      "public_invoice_html_200_text_html": true,
+      "public_invoice_invalid_token_404": true,
+      "public_invoice_pay_now_only_when_payment_link_and_not_paid": true,
+      "scheduler_started_5_jobs": true,
+      "mark_invoices_overdue_job_works": true,
+      "esign_17_invoice_15_regression_32_32_pass": true
+    },
+    "frontend": {
+      "home_freelancer_tools_section_testid": true,
+      "home_esign_promo_banner_testid": true,
+      "home_nav_productive_dropdown_with_NEW_badge_on_esign": true,
+      "home_popular_tools_lists_esign_not_expense_tracker": true,
+      "home_invoice_copy_mentions_payment_links_pdf_download": true,
+      "esign_landing_h1_sign_documents_free": true,
+      "esign_landing_comparison_table_testid": true,
+      "esign_landing_sign_a_document_free_cta": true,
+      "esign_meta_title_present_but_brand_duplicated_minor": true,
+      "pricing_hero_variant_testid_and_persists_via_localstorage": true,
+      "pricing_upgrade_fires_post_api_analytics_event": true,
+      "public_invoice_route_renders_via_backend_public_endpoint": true,
+      "signing_page_saved_signature_banner_code_present": "data-testid present in /app/frontend/src/components/esign/SigningPage.tsx lines 332, 353; PUT /api/esign/signature seed verified",
+      "invoice_sidebar_share_testid_present": true,
+      "invoice_esign_cross_promo_modal_testids_present_in_source": "InvoiceApp.tsx lines 445, 460",
+      "signing_completion_cross_promo_invoice_testid_present": "SigningPage.tsx line 140"
+    }
+  }
+}

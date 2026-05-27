@@ -6,6 +6,7 @@ import { CareerHighlightSection } from "@/components/home/CareerHighlight";
 import { WhatIfPreviewSection, CalculatorsShowcaseSection, ProductiveToolsSection } from "@/components/home/ShowcaseSections";
 import { ArticlesSection, TrustSection } from "@/components/home/ContentSections";
 import { TrendingGuidesSection } from "@/components/home/TrendingGuides";
+import { FreelancerToolsSection, EsignPromoBanner } from "@/components/home/FreelancerSections";
 
 export default function Home() {
   return (
@@ -19,11 +20,13 @@ export default function Home() {
       <HeroSection />
       <StartHereSection />
       <PillarCardsSection />
+      <FreelancerToolsSection />
       <PopularToolsSection />
       <CareerHighlightSection />
       <WhatIfPreviewSection />
       <CalculatorsShowcaseSection />
       <ProductiveToolsSection />
+      <EsignPromoBanner />
       <ArticlesSection />
       <TrendingGuidesSection />
       <TrustSection />

@@ -23,6 +23,7 @@ export function InvoiceApp() {
   const [clients, setClients] = useState<ClientData[]>([]);
   const [invoices, setInvoices] = useState<{ id: string; invoice_number: string; client_name: string; client_company?: string; status: string; total: number; currency: string; date: string; due_date: string }[]>([]);
   const [stats, setStats] = useState({ total_count: 0, paid_count: 0, overdue_count: 0, total_revenue: 0 });
+  const [showEsignCrossPromo, setShowEsignCrossPromo] = useState(false);
 
   // Modal states
   const [clientModal, setClientModal] = useState<{ open: boolean; editing: ClientData | null }>({ open: false, editing: null });
@@ -233,12 +234,29 @@ export function InvoiceApp() {
   };
 
   const handlePrint = () => window.print();
-  const handleDownloadPDF = () => {
+
+  const handleShare = async () => {
+    if (!editingId) {
+      toast({ title: "Save the invoice first", description: "Save before generating a shareable link.", variant: "destructive" });
+      return;
+    }
+    try {
+      const r = await invoiceApi.share(editingId);
+      const url = r.public_url.startsWith("http") ? r.public_url : `${window.location.origin}${r.public_url}`;
+      await navigator.clipboard.writeText(url).catch(() => {});
+      toast({ title: "Share link copied", description: url });
+    } catch (e: any) {
+      toast({ title: "Could not generate share link", description: e.message, variant: "destructive" });
+    }
+  };
+
+  const handleDownloadPDF = async () => {
     toast({ title: "Generating PDF..." });
     // Use jsPDF with pdf-brand
     try {
       const { jsPDF } = require("jspdf");
       const { drawHeader, drawFooter, BRAND, LM, PW } = require("@/lib/pdf-brand");
+      const QRCode = (await import("qrcode")).default;
       const doc = new jsPDF();
       const sym = getCurrencySymbol(inv.currency);
       const totals = calcTotals(inv);
@@ -307,8 +325,34 @@ export function InvoiceApp() {
       doc.text(ts, vx - doc.getTextWidth(ts), y + 5);
 
       drawFooter(doc);
+
+      // Append a QR code to the public share page (auto-share if not yet shared)
+      try {
+        if (editingId) {
+          let shareUrl = "";
+          try {
+            const r = await invoiceApi.share(editingId);
+            shareUrl = r.public_url.startsWith("http") ? r.public_url : `${window.location.origin}${r.public_url}`;
+          } catch {}
+          if (shareUrl) {
+            const qrDataUrl = await QRCode.toDataURL(shareUrl, { margin: 1, width: 220 });
+            const qrSize = 28;
+            const qrX = PW - LM - qrSize;
+            const qrY = doc.internal.pageSize.getHeight() - qrSize - 28;
+            doc.addImage(qrDataUrl, "PNG", qrX, qrY, qrSize, qrSize);
+            doc.setFontSize(7);
+            doc.setTextColor(110, 107, 99);
+            doc.text("Scan to view or pay online", qrX + qrSize / 2, qrY + qrSize + 4, { align: "center" });
+          }
+        }
+      } catch (qrErr) {
+        console.warn("QR code generation skipped:", qrErr);
+      }
+
       doc.save(`${inv.invoice_number || "invoice"}.pdf`);
       toast({ title: "PDF downloaded" });
+      // Cross-promote eSign after download — highest-intent moment
+      setShowEsignCrossPromo(true);
     } catch (err) {
       console.error("PDF error:", err);
       toast({ title: "PDF generation failed", variant: "destructive" });
@@ -325,7 +369,7 @@ export function InvoiceApp() {
         activeTab={activeTab} setActiveTab={setActiveTab}
         currency={inv.currency} setCurrency={c => setInv(prev => ({ ...prev, currency: c }))}
         onNewInvoice={handleNewInvoice} onDuplicate={handleDuplicate}
-        onSave={handleSave} onSendEmail={() => setEmailModal(true)} onExportCSV={handleExportCSV}
+        onSave={handleSave} onSendEmail={() => setEmailModal(true)} onShare={handleShare} onExportCSV={handleExportCSV}
         clientCount={clients.length} invoiceCount={invoices.length}
       />
 
@@ -394,11 +438,48 @@ export function InvoiceApp() {
           onClose={() => setEmailModal(false)}
         />
       )}
+      {/* eSign Cross-promo (high-intent: user just downloaded a PDF) */}
+      {showEsignCrossPromo && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-4" onClick={() => setShowEsignCrossPromo(false)}>
+          <div
+            data-testid="esign-cross-promo-modal"
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white rounded-xl shadow-2xl max-w-md w-full overflow-hidden"
+          >
+            <div className="bg-[#0B3D3D] text-white p-5">
+              <div className="text-[10px] tracking-[0.2em] uppercase text-[#C8A96E] font-semibold mb-1">One more thing…</div>
+              <h3 className="text-xl font-bold">Need your client to sign this invoice?</h3>
+            </div>
+            <div className="p-6">
+              <p className="text-sm text-stone-700 leading-relaxed mb-4">
+                Use <b>RealProfits eSign</b> — free for up to 5 signers, full audit trail. Upload the PDF you just downloaded and have it signed in under 90 seconds.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <a
+                  href="/tools/esign/new"
+                  data-testid="cross-promo-esign-cta"
+                  className="flex-1 px-4 py-2.5 bg-[#0B3D3D] text-white text-sm font-bold rounded-md hover:bg-[#165252] text-center"
+                >
+                  Sign with eSign →
+                </a>
+                <button
+                  onClick={() => setShowEsignCrossPromo(false)}
+                  data-testid="cross-promo-dismiss"
+                  className="px-4 py-2.5 text-sm font-semibold text-stone-600 border border-stone-300 rounded-md hover:bg-stone-50"
+                >
+                  Maybe later
+                </button>
+              </div>
+              <div className="text-[11px] text-stone-500 mt-3 text-center">
+                100% free · 5 signers per doc · ESIGN Act + eIDAS compliant
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-
-// ── Modals ──
 
 function ClientModal({ editing, onSave, onClose }: { editing: ClientData | null; onSave: (data: Partial<ClientData>, editId?: string) => void; onClose: () => void }) {
   const [name, setName] = useState(editing?.name || "");

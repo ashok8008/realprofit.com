@@ -18,6 +18,7 @@ from esign.database import init_esign_db
 from billing.routes import router as billing_router
 from billing.saved_signature import router as saved_sig_router
 from scheduler_jobs import start_scheduler, stop_scheduler
+from analytics import router as analytics_router
 
 app = FastAPI(title="RealProfits API")
 
@@ -42,6 +43,7 @@ app.include_router(invoices_router)
 app.include_router(esign_router)
 app.include_router(billing_router)
 app.include_router(saved_sig_router)
+app.include_router(analytics_router)
 
 
 @app.on_event("startup")

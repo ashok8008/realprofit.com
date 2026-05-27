@@ -2,22 +2,57 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, UserCircle } from "lucide-react";
+import { Menu, X, UserCircle, ChevronDown, Receipt, FileSignature } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function Navbar() {
   const [isOpen, setIsOpen] = React.useState(false);
+  const [productiveOpen, setProductiveOpen] = React.useState(false);
+  const productiveRef = React.useRef<HTMLDivElement>(null);
   const location = usePathname();
   const { user, loading } = useAuth();
+
+  // Close dropdown on outside click
+  React.useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (productiveRef.current && !productiveRef.current.contains(e.target as Node)) {
+        setProductiveOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   const links = [
     { name: "FINANCIAL CALCULATORS", href: "/calculators" },
     { name: "TAX TOOLS", href: "/tax-tools" },
-    { name: "PRODUCTIVE TOOLS", href: "/tools" },
+    { name: "PRODUCTIVE TOOLS", href: "/tools", dropdown: true },
     { name: "CAREER TOOLS", href: "/career-tools" },
     { name: "GUIDES", href: "/guides" },
     { name: "LEARN", href: "/learn" },
     { name: "WHAT IF", href: "/what-if" },
+  ];
+
+  const productiveItems = [
+    {
+      label: "Invoice Generator",
+      desc: "Professional invoices + payments",
+      href: "/tools/invoice",
+      icon: <Receipt className="w-4 h-4" />,
+    },
+    {
+      label: "eSign Tool",
+      desc: "Sign documents free — up to 5 parties",
+      href: "/tools/esign",
+      icon: <FileSignature className="w-4 h-4" />,
+      badge: "NEW",
+    },
+    {
+      label: "All Productive Tools",
+      desc: "Browse the full catalog",
+      href: "/tools",
+      icon: null,
+    },
   ];
 
   return (
@@ -29,17 +64,71 @@ export function Navbar() {
               RealProfits<span className="text-[#f5c542]">.</span>
             </span>
           </Link>
-          
+
           <nav className="hidden lg:flex items-center gap-6 text-xs font-semibold tracking-wider">
-            {links.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`transition-colors hover:text-[#f5c542] ${location.startsWith(link.href) ? "text-[#f5c542]" : "text-white/80"}`}
-              >
-                {link.name}
-              </Link>
-            ))}
+            {links.map((link) =>
+              link.dropdown ? (
+                <div key={link.href} className="relative" ref={productiveRef}>
+                  <button
+                    onClick={() => setProductiveOpen(!productiveOpen)}
+                    data-testid="nav-productive-tools-toggle"
+                    className={`flex items-center gap-1 transition-colors hover:text-[#f5c542] ${
+                      location.startsWith(link.href) || productiveOpen ? "text-[#f5c542]" : "text-white/80"
+                    }`}
+                  >
+                    {link.name}
+                    <ChevronDown
+                      className={`w-3 h-3 transition-transform ${productiveOpen ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                  {productiveOpen && (
+                    <div
+                      data-testid="nav-productive-dropdown"
+                      className="absolute top-full left-0 mt-2 w-72 bg-white rounded-lg shadow-xl border border-gray-200 py-2 z-50"
+                    >
+                      {productiveItems.map((item) => (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          data-testid={`nav-dropdown-${item.href.replace(/\//g, "-")}`}
+                          onClick={() => setProductiveOpen(false)}
+                          className="flex items-start gap-3 px-4 py-3 hover:bg-stone-50 group"
+                        >
+                          {item.icon && (
+                            <div className="w-8 h-8 rounded-md bg-teal-50 text-teal-700 flex items-center justify-center flex-shrink-0">
+                              {item.icon}
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-bold text-stone-900 group-hover:text-teal-700">
+                                {item.label}
+                              </span>
+                              {item.badge && (
+                                <span className="text-[9px] font-bold tracking-wider bg-teal-600 text-white px-1.5 py-0.5 rounded">
+                                  {item.badge}
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-stone-500 mt-0.5">{item.desc}</div>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`transition-colors hover:text-[#f5c542] ${
+                    location.startsWith(link.href) ? "text-[#f5c542]" : "text-white/80"
+                  }`}
+                >
+                  {link.name}
+                </Link>
+              )
+            )}
           </nav>
         </div>
 
@@ -71,7 +160,7 @@ export function Navbar() {
             Contact Us
           </Link>
 
-          <button 
+          <button
             className="lg:hidden text-white"
             onClick={() => setIsOpen(!isOpen)}
           >
@@ -83,8 +172,8 @@ export function Navbar() {
       {isOpen && (
         <div className="lg:hidden bg-[#0d9488] border-t border-white/10 p-4 space-y-3">
           {links.map((link) => (
-            <Link 
-              key={link.href} 
+            <Link
+              key={link.href}
               href={link.href}
               className="block text-sm font-semibold text-white/80 hover:text-[#f5c542] py-2"
               onClick={() => setIsOpen(false)}
@@ -92,6 +181,13 @@ export function Navbar() {
               {link.name}
             </Link>
           ))}
+          <Link
+            href="/tools/esign"
+            className="block text-sm font-semibold text-[#f5c542] py-2"
+            onClick={() => setIsOpen(false)}
+          >
+            ↳ eSign Tool <span className="text-[9px] font-bold bg-white/20 px-1.5 py-0.5 rounded ml-1">NEW</span>
+          </Link>
           {!loading && (
             user ? (
               <Link
