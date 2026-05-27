@@ -3,7 +3,7 @@ import { usePathname } from "next/navigation";
 import { Navbar } from "./Navbar";
 import { Footer } from "./Footer";
 
-const CHROMELESS_ROUTES = ["/career-tools/resume-builder"];
+const CHROMELESS_ROUTES = ["/career-tools/resume-builder", "/tools/invoice"];
 
 export function LayoutShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

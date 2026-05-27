@@ -12,6 +12,7 @@ import os
 from db import init_db
 from auth import router as auth_router, seed_admin
 from user_data import router as user_data_router
+from invoices import router as invoices_router
 
 app = FastAPI(title="RealProfits API")
 
@@ -32,6 +33,7 @@ app.add_middleware(
 # Include routers
 app.include_router(auth_router)
 app.include_router(user_data_router)
+app.include_router(invoices_router)
 
 
 @app.on_event("startup")

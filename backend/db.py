@@ -26,3 +26,5 @@ async def init_db():
     await db.resume_drafts.create_index("draft_id", unique=True)
     await db.ats_checks.create_index("hash", unique=True)
     await db.ats_checks.create_index("created_at")
+    await db.invoices.create_index([("user_id", 1), ("created_at", -1)])
+    await db.invoice_clients.create_index([("user_id", 1), ("name", 1)])
