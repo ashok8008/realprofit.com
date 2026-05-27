@@ -407,6 +407,30 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - **Centralised data layer** at `/app/frontend/src/lib/sitemap-data.ts` — single source of truth for section configs, URL gathering, XML rendering
 - **Production deploy notes**: user will manually add `https://www.realprofits.com/sitemap.xml` to Google Search Console once. Bing + Yandex auto-discover via IndexNow on every build.
 
+### Phase 37: pSEO Phase 3 — Contract Templates (Feb 2026) -- DONE
+- **631 new SSG pages** at `/contract-template/[type]/[industry]` per `RealProfits_pSEO_Plan.docx` §3
+- Final pSEO inventory: 250 invoice + 231 salary + 631 contract = **1,112 deep SSG pages**
+- **12 hand-crafted base templates** (NDA, MSA, Service Agreement, Independent Contractor, Photography, Web Design, Consulting, Non-Compete, License, Employment Offer, Partnership, Sales) — all written as plain-English starting points with `{{INDUSTRY}}` substitution
+- **30 contract types** (`/app/frontend/src/data/pseo/contracts.ts`) — each mapped to one of the 12 base templates, ranked by search volume, with key clauses array, default term, audience (b2b/b2c/either)
+- **20 industries** (`/app/frontend/src/data/pseo/industries.ts`) — each with trait tags ("regulated", "high-risk", "creative", etc.), industry-specific considerations, and pricing examples
+- **Top hub** `/contract-template` — browse by type (30 cards) + browse by industry (20 tiles)
+- **Type sub-hubs** `/contract-template/[type]` (30 pages) — explainer + 20-industry picker + related contracts
+- **Leaf pages** `/contract-template/[type]/[industry]` (600 pages) — each contains:
+  - Hero with industry-tailored H1 and intro
+  - **Template preview** (full base template with `{{INDUSTRY}}` substituted)
+  - Industry-specific considerations (genuinely unique per industry — verified)
+  - Pricing example for that industry
+  - 3-step "How to use" (Customize → Add fields → Send for signature)
+  - Customization tips with regulated-industry callout
+  - FAQ schema (5–6 questions, trait-driven copy)
+  - 5 related contracts (same industry)
+  - Legal disclaimer
+  - Final CTA: deep-linked `/tools/esign/new?from=contract&type=X&industry=Y`
+- **eSign banner integration** (option 2b — no backend changes): `/tools/esign/new` now reads `?from=contract&type=&industry=` via `useSearchParams` (inside Suspense) and shows a contextual banner with link back to the template. Dismissible via X. Banner is client-rendered only — no SSR cost.
+- **Sitemap** — new `/sitemap-contract-templates.xml` sub-sitemap (630 URLs); sitemap index now lists **7 sub-sitemaps**, total **2,443+ indexable URLs**
+- Testing: Backend 100% (3/3 regression), Frontend 100% (16/16 + Playwright banner e2e) — iteration_38
+- Fixed pre-existing bug: invoice-template page titles previously rendered "| RealProfits | RealProfits" (root layout template `%s | RealProfits` was being doubled by metadata that already included it). All 5 affected pages cleaned up.
+
 ## Upcoming Tasks
 - pSEO Master Plan Phase 1b+: salary comparisons (e.g., "$70K vs $90K"), more cities (target: 50 cities → 1,000 leaf pages), more jobs (target: 500 → 25,000 leaf pages) toward the 75K goal (P1)
 - pSEO Master Plan Phase 3: eSign contract templates `/contract-template/[type]/[industry]` (50 contracts × 30 industries = 1,500 pages) (P1)
