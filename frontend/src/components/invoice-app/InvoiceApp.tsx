@@ -27,6 +27,7 @@ export function InvoiceApp() {
   // Modal states
   const [clientModal, setClientModal] = useState<{ open: boolean; editing: ClientData | null }>({ open: false, editing: null });
   const [paymentModal, setPaymentModal] = useState(false);
+  const [emailModal, setEmailModal] = useState(false);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -169,6 +170,33 @@ export function InvoiceApp() {
     }
   };
 
+  const handleSendEmail = async (recipientEmail: string, subject: string, message: string) => {
+    if (!editingId) {
+      // Save first then send
+      const totals = calcTotals(inv);
+      const data = { ...inv, ...totals };
+      try {
+        const res = await invoiceApi.create(data);
+        setEditingId(res.id);
+        await invoiceApi.sendEmail({ invoice_id: res.id, recipient_email: recipientEmail, subject, message });
+        setEmailModal(false);
+        toast({ title: "Invoice sent!", description: `Email sent to ${recipientEmail}` });
+        loadData();
+      } catch {
+        toast({ title: "Failed to send", variant: "destructive" });
+      }
+      return;
+    }
+    try {
+      await invoiceApi.sendEmail({ invoice_id: editingId, recipient_email: recipientEmail, subject, message });
+      setEmailModal(false);
+      toast({ title: "Invoice sent!", description: `Email sent to ${recipientEmail}` });
+      loadData();
+    } catch {
+      toast({ title: "Failed to send email", variant: "destructive" });
+    }
+  };
+
   const handleExportCSV = () => {
     if (invoices.length === 0) { toast({ title: "No invoices to export" }); return; }
     const headers = ["Invoice #", "Client", "Status", "Amount", "Currency", "Date", "Due Date"];
@@ -275,7 +303,7 @@ export function InvoiceApp() {
         activeTab={activeTab} setActiveTab={setActiveTab}
         currency={inv.currency} setCurrency={c => setInv(prev => ({ ...prev, currency: c }))}
         onNewInvoice={handleNewInvoice} onDuplicate={handleDuplicate}
-        onSave={handleSave} onExportCSV={handleExportCSV}
+        onSave={handleSave} onSendEmail={() => setEmailModal(true)} onExportCSV={handleExportCSV}
         clientCount={clients.length} invoiceCount={invoices.length}
       />
 
@@ -333,6 +361,17 @@ export function InvoiceApp() {
           onClose={() => setPaymentModal(false)}
         />
       )}
+
+      {/* Send Email Modal */}
+      {emailModal && (
+        <SendEmailModal
+          defaultEmail={inv.client_email}
+          invoiceNumber={inv.invoice_number}
+          businessName={inv.business_name}
+          onSend={handleSendEmail}
+          onClose={() => setEmailModal(false)}
+        />
+      )}
     </div>
   );
 }
@@ -383,6 +422,43 @@ function PaymentModal({ onRecord, onClose }: { onRecord: (amount: number, date: 
         <div className="flex justify-end gap-2 mt-5">
           <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-[#6E6B63] border border-[#E2DDD4] rounded-md hover:bg-[#F9F8F5]">Cancel</button>
           <button onClick={() => { const a = parseFloat(amount); if (a > 0) onRecord(a, date, note); }} className="px-4 py-2 text-sm font-bold text-white bg-[#0B3D3D] rounded-md hover:bg-[#165252]" data-testid="modal-record-payment">Record Payment</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+function SendEmailModal({ defaultEmail, invoiceNumber, businessName, onSend, onClose }: { defaultEmail: string; invoiceNumber: string; businessName: string; onSend: (email: string, subject: string, message: string) => void; onClose: () => void }) {
+  const [email, setEmail] = useState(defaultEmail);
+  const [subject, setSubject] = useState(`Invoice ${invoiceNumber} from ${businessName || "RealProfits"}`);
+  const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
+  const inp = "w-full bg-[#F9F8F5] border border-[#E2DDD4] rounded-md px-3 py-2 text-sm focus:border-[#0B3D3D] focus:outline-none";
+
+  const handleSend = async () => {
+    if (!email) return;
+    setSending(true);
+    await onSend(email, subject, message);
+    setSending(false);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl" data-testid="send-email-modal">
+        <h3 className="text-lg font-bold text-[#1C1B18] mb-1">Send Invoice by Email</h3>
+        <p className="text-sm text-[#6E6B63] mb-4">Your client will receive a professional HTML email with invoice details.</p>
+        <div className="space-y-3">
+          <div><label className="text-xs font-semibold text-[#6E6B63] uppercase mb-1 block">Recipient Email *</label><input type="email" className={inp} value={email} onChange={e => setEmail(e.target.value)} data-testid="modal-send-email" /></div>
+          <div><label className="text-xs font-semibold text-[#6E6B63] uppercase mb-1 block">Subject</label><input className={inp} value={subject} onChange={e => setSubject(e.target.value)} /></div>
+          <div><label className="text-xs font-semibold text-[#6E6B63] uppercase mb-1 block">Personal Message (optional)</label><textarea className={inp + " min-h-[80px]"} placeholder="Hi, please find your invoice attached..." value={message} onChange={e => setMessage(e.target.value)} /></div>
+        </div>
+        <div className="flex justify-end gap-2 mt-5">
+          <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-[#6E6B63] border border-[#E2DDD4] rounded-md hover:bg-[#F9F8F5]">Cancel</button>
+          <button onClick={handleSend} disabled={!email || sending} className="px-4 py-2 text-sm font-bold text-white bg-[#0B3D3D] rounded-md hover:bg-[#165252] disabled:opacity-50 flex items-center gap-2" data-testid="modal-send-email-btn">
+            {sending ? <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" /> : null}
+            {sending ? "Sending..." : "Send Invoice"}
+          </button>
         </div>
       </div>
     </div>

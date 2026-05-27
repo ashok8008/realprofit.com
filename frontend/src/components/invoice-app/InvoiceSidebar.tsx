@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import Link from "next/link";
-import { FilePlus, Users, Clock, Copy, Save, Download, ChevronLeft } from "lucide-react";
+import { FilePlus, Users, Clock, Copy, Save, Download, ChevronLeft, Send } from "lucide-react";
 import { CURRENCIES } from "./types";
 
 type Tab = "editor" | "clients" | "history";
@@ -14,12 +14,13 @@ interface SidebarProps {
   onNewInvoice: () => void;
   onDuplicate: () => void;
   onSave: () => void;
+  onSendEmail: () => void;
   onExportCSV: () => void;
   clientCount: number;
   invoiceCount: number;
 }
 
-export function InvoiceSidebar({ activeTab, setActiveTab, currency, setCurrency, onNewInvoice, onDuplicate, onSave, onExportCSV, clientCount, invoiceCount }: SidebarProps) {
+export function InvoiceSidebar({ activeTab, setActiveTab, currency, setCurrency, onNewInvoice, onDuplicate, onSave, onSendEmail, onExportCSV, clientCount, invoiceCount }: SidebarProps) {
   const nav = (tab: Tab) => () => setActiveTab(tab);
 
   return (
@@ -61,6 +62,9 @@ export function InvoiceSidebar({ activeTab, setActiveTab, currency, setCurrency,
         </button>
         <button onClick={onSave} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm text-white/70 hover:bg-white/8 hover:text-white transition-colors mb-0.5" data-testid="sidebar-save">
           <Save className="w-4 h-4" /> Save Invoice
+        </button>
+        <button onClick={onSendEmail} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm text-white/70 hover:bg-white/8 hover:text-white transition-colors mb-0.5" data-testid="sidebar-send-email">
+          <Send className="w-4 h-4" /> Send by Email
         </button>
         <button onClick={onExportCSV} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm text-white/70 hover:bg-white/8 hover:text-white transition-colors mb-0.5" data-testid="sidebar-export-csv">
           <Download className="w-4 h-4" /> Export CSV

@@ -285,6 +285,12 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - **Year-End Tax Packet**: Added Download PDF button at top (next to disclaimer) so users don't have to scroll
 - Testing: Frontend 100% (27/27) — iteration_33
 
+### Phase 33: Send Invoice by Email (May 2026) -- DONE
+- **Resend integration**: Professional HTML invoice emails with branding, item table, totals, payment link button
+- **Backend**: `POST /api/invoices/send-email` — sends HTML email via Resend, auto-updates invoice status to "sent"
+- **Frontend**: "Send by Email" button in sidebar, modal with recipient, subject, custom message
+- **Note**: Resend in test mode — can only send to verified email (ashok8008@gmail.com). To send to any email, verify a domain at resend.com/domains
+
 ## Upcoming Tasks
 - Stripe integration for monetization (P2)
 - A/B test hero CTAs (P2)
