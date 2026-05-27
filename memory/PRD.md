@@ -96,7 +96,19 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 ### Background Jobs (APScheduler) — **NEW (2026-05-27)**
 - **Hourly** (`:15`): reminder_job — re-emails E1 to pending signers at days 3, 7, 14 after send (configurable per-document)
 - **Daily** (`00:01 UTC`): expire_documents_job — sets status=expired for docs past expires_at, notifies all parties
+- **Daily** (`00:30 UTC`): mark_invoices_overdue_job — sets invoices with `due_date < today` and status=sent to overdue
+- **Daily** (`09:00 UTC`): send_invoice_reminders_job — emails clients with overdue invoices (re-runs every 7 days max)
 - **Monthly** (`day 1, 00:05 UTC`): reset_counters_job — zeroes docs_used_this_month across all subscriptions
+
+### Analytics (/api/analytics/*) — **NEW (2026-05-27)**
+- POST `/event` (public) — log A/B experiment events to MongoDB `ab_events` collection
+- GET `/summary/{experiment}` (admin only) — variant counts + click_rate + conversion_rate
+
+### Invoice extensions — **NEW (2026-05-27)**
+- POST `/api/invoices/{id}/share` (auth) — generate `share_token` (idempotent), returns `public_url`
+- GET `/api/invoices/public/{token}` (public) — server-rendered HTML invoice with Pay Now button
+- QR code on every downloaded PDF auto-points to the public share URL
+- Cross-promo modal on PDF download → "Sign this with eSign" (and reverse on eSign completion → "Try Invoice")
 
 ## Tax Tools System (Phase 16)
 ### Hub: /tax-tools
