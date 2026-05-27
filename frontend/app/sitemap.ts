@@ -5,6 +5,9 @@ import { tools } from "@/data/tools";
 import { careerTools } from "@/data/career-tools";
 import { articles } from "@/data/articles";
 import { taxTools } from "@/data/tax-tools";
+import { PROFESSIONS } from "@/data/pseo/professions";
+import { JOBS } from "@/data/pseo/jobs";
+import { CITIES } from "@/data/pseo/cities";
 
 // Force static generation at build time
 export const dynamic = "force-static";
@@ -71,6 +74,24 @@ export default function sitemap(): MetadataRoute.Sitemap {
   // Resume & Career pSEO pages (role, score, experience, company, problem, decision)
   for (const slug of resumeCareerSlugs) {
     urls.push({ url: `${BASE}/learn/${slug}`, lastModified: now, changeFrequency: "monthly", priority: 0.8 });
+  }
+
+  // Invoice templates by profession (Phase 1a pSEO)
+  urls.push({ url: `${BASE}/invoice-template`, lastModified: now, changeFrequency: "weekly", priority: 0.9 });
+  for (const p of PROFESSIONS) {
+    urls.push({ url: `${BASE}/invoice-template/${p.slug}`, lastModified: now, changeFrequency: "monthly", priority: 0.7 });
+  }
+
+  // Salary pages: hub + job hub + city hub + leaf (Phase 2a + 3a pSEO)
+  urls.push({ url: `${BASE}/salary`, lastModified: now, changeFrequency: "weekly", priority: 0.9 });
+  for (const j of JOBS) {
+    urls.push({ url: `${BASE}/salary/${j.slug}`, lastModified: now, changeFrequency: "monthly", priority: 0.8 });
+    for (const c of CITIES) {
+      urls.push({ url: `${BASE}/salary/${j.slug}/${c.slug}`, lastModified: now, changeFrequency: "monthly", priority: 0.7 });
+    }
+  }
+  for (const c of CITIES) {
+    urls.push({ url: `${BASE}/salary/in/${c.slug}`, lastModified: now, changeFrequency: "monthly", priority: 0.7 });
   }
 
   return urls;

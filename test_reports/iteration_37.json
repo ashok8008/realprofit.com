@@ -1,0 +1,46 @@
+{
+  "summary": "Smoke-tested Phase 1 pSEO salary pages (top hub, job hub, 200 leaf pages, city hubs) and confirmed backend regression endpoints. 14/14 pytest cases pass. All 231 new SSG pages render correctly with proper data, JSON-LD schemas, sorting (SF before NY on SE job hub), city-specific FAQs (NY state income tax), 404 handling for invalid slugs, and sitemap inclusion (1812 URLs verified to be >1800). Backend /api/health, /api/billing/plans (Free/Pro/Business), and /api/auth/login admin all healthy.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "/salary (top hub) hero copy",
+        "issues": [
+          "Hero text reads 'sourced from BLS OEWS May 2024 BLS OEWS data' — duplicated 'BLS OEWS' because SALARY_DATA_VINTAGE constant already contains 'BLS OEWS' and the sentence template prepends 'BLS OEWS' again. Cosmetic only. Suggested fix: change template to 'sourced from {SALARY_DATA_VINTAGE} data' (drop the leading 'BLS OEWS') OR change vintage constant to just 'May 2024'."
+        ]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_smoke_iter37.py",
+    "/app/test_reports/pytest/iter37_results.xml"
+  ],
+  "action_items": [
+    "Optional: Fix duplicated 'BLS OEWS' phrase in /salary hero (and any other place rendering 'BLS OEWS ' + SALARY_DATA_VINTAGE)."
+  ],
+  "critical_code_review_comments": [
+    "Auth login endpoint returns user object only; auth is via httpOnly cookie (per playbook). Test was updated to accept cookie-based auth.",
+    "All 200 leaf pages are SSG via generateStaticParams returning 20 jobs × 10 cities = 200, plus 20 job hubs, 10 city hubs, 1 top hub = 231 new pages, confirmed.",
+    "Sitemap.xml correctly includes /salary, /salary/[job], /salary/[job]/[city], /salary/in/[city], /invoice-template/* — total >1800 URLs.",
+    "[city] page correctly uses static segment 'in' to avoid collision with [job] dynamic segment. Next.js routing precedence preserves both.",
+    "Salary leaf page has all 5 required sections: answer card (p25/p50/p75/p90/YoY), experience-level cards, comparison bars (city vs national vs COL-adjusted), 5-year trend bars, market context with related jobs + related cities, FAQ. ✓"
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_smoke_iter37.py (NEW pytest suite — 14 tests)"
+  ],
+  "success_rate": {
+    "backend": "100% (3/3 smoke endpoints)",
+    "frontend": "100% (11/11 SSG page tests)"
+  },
+  "test_credentials": "admin@realprofits.com / RealProfits2026! — works, returns httpOnly cookie + user profile.",
+  "seed_data_creation": "None. All data is static from /app/frontend/src/data/pseo/.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Phase 1 pSEO (250 invoice templates + 200 salary leaves + 20 job hubs + 10 city hubs + 1 top hub) is fully tested and working. Reuse /app/backend/tests/test_smoke_iter37.py as the regression suite. Auth uses httpOnly cookies — do NOT assert on 'token' field in response body; check r.cookies or just confirm status 200 + user data.",
+  "rca of the issue": "N/A — no blocking issues found. The only finding is a cosmetic copy duplication ('BLS OEWS BLS OEWS') in the /salary hero, caused by SALARY_DATA_VINTAGE constant already containing 'BLS OEWS' while the surrounding sentence also says 'BLS OEWS'. Trivial 1-line fix."
+}
