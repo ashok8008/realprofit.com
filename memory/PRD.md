@@ -364,3 +364,36 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 ## Upcoming Tasks
 - Stripe integration for monetization (P2)
 - A/B test hero CTAs (P2)
+
+### Phase 35: pSEO Master Plan — Phase 1 (Feb 2026) -- DONE
+- **481 new pSEO pages** built per `RealProfits_pSEO_Plan.docx` Phase 1 (1a + 2a + 3a)
+- **1a Invoice Templates** (already DONE in prior session): 250 profession-specific landing pages at `/invoice-template/[profession]` — hand-curated line items for top 30, auto-generated for 220 more. Hub at `/invoice-template`.
+- **2a Salary Pages** (this session): 200 deep leaf pages at `/salary/[job]/[city]` (20 BLS-mapped jobs × 10 priority metros). Each page includes:
+  - Answer card with median + p25/p75/p90 + YoY change
+  - Salary by experience (Entry/Mid/Senior/Lead)
+  - Comparison bars (city vs national vs COL-adjusted purchasing power)
+  - 5-year salary trend visualization
+  - Market context paragraph + estimated employed count
+  - 5 cross-linked related jobs + 5 cross-linked other cities
+  - FAQ schema (5 Q&A) + BreadcrumbList schema
+  - Internal links to paycheck calculator + "Am I underpaid" tool
+- **3a Hub Pages** (this session):
+  - Top hub `/salary` with browse-by-job (sorted by national median), browse-by-city, browse-by-industry sections
+  - Job hubs `/salary/[job]` (20 pages) — H1 answer, 4-stat hero, cities table sorted DESC by median, career outlook sidebar, related-jobs grid, FAQ
+  - City hubs `/salary/in/[city]` (10 pages) — quick stats grid (population/COL/avg/MSA code), 20-row job salary table, similar-cities grid, city-specific FAQ (state income tax logic)
+  - Static segment `in` used to avoid collision with `[job]` dynamic
+- **Sitemap.ts** updated: now serves **1,812 URLs** (up from ~1,325). Includes `/invoice-template/*`, `/salary`, `/salary/[job]`, `/salary/[job]/[city]`, `/salary/in/[city]`.
+- All pages SSG-prerendered via `generateStaticParams` — full Next.js build completes in 42.9s.
+- Data foundations:
+  - `/app/frontend/src/data/pseo/jobs.ts` — 20 JOBS (BLS SOC codes, 10-yr growth %, daily tasks, entry path)
+  - `/app/frontend/src/data/pseo/cities.ts` — 10 CITIES (BLS MSA codes, COL index, market summary)
+  - `/app/frontend/src/data/pseo/salary-data.ts` — 200-row map (median, p25/p75/p90, entry/senior, YoY, employed)
+  - `/app/frontend/src/data/pseo/professions.ts` — 250 PROFESSIONS (line items, hourly rate ranges, tax tips)
+- Testing: Backend 100% (3/3 regression — health, billing plans, auth login), Frontend 100% (11/11 SSG page checks) — iteration_37
+
+## Upcoming Tasks
+- pSEO Master Plan Phase 1b+: salary comparisons (e.g., "$70K vs $90K"), more cities (target: 50 cities → 1,000 leaf pages), more jobs (target: 500 → 25,000 leaf pages) toward the 75K goal (P1)
+- pSEO Master Plan Phase 3: eSign contract templates `/contract-template/[type]/[industry]` (50 contracts × 30 industries = 1,500 pages) (P1)
+- Resend domain switch (`sign@realprofits.com`) — needs user DNS verification first (P1)
+- Stripe live keys (P2)
+- A/B test hero CTAs visibility analytics (P2)

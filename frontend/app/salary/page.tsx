@@ -7,7 +7,7 @@ import { SALARY_DATA, SALARY_DATA_VINTAGE } from "@/data/pseo/salary-data";
 
 export const metadata: Metadata = {
   title: "US Salary Database — Real Pay by Job & City | RealProfits",
-  description: `Compare median, entry, and senior salaries for ${JOBS.length} top jobs across ${CITIES.length} major US metros. Sourced from BLS OEWS ${SALARY_DATA_VINTAGE} data, adjusted for cost of living.`,
+  description: `Compare median, entry, and senior salaries for ${JOBS.length} top jobs across ${CITIES.length} major US metros. Sourced from ${SALARY_DATA_VINTAGE} data, adjusted for cost of living.`,
   alternates: { canonical: "/salary" },
 };
 
@@ -47,7 +47,7 @@ export default function SalaryHub() {
             How much does <span className="text-[#C8A96E]">your job</span> pay in <span className="text-[#C8A96E]">your city</span>?
           </h1>
           <p className="text-lg text-stone-300 max-w-2xl">
-            Median, entry-level and senior salaries for {JOBS.length} top jobs across {CITIES.length} major US metros — sourced from BLS OEWS {SALARY_DATA_VINTAGE} data and adjusted for cost of living.
+            Median, entry-level and senior salaries for {JOBS.length} top jobs across {CITIES.length} major US metros — sourced from {SALARY_DATA_VINTAGE} data and adjusted for cost of living.
           </p>
           <div className="flex flex-wrap gap-3 mt-7 text-sm">
             <Link href="/calculators/paycheck-calculator" data-testid="salary-hub-paycheck-cta"
