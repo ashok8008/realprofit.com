@@ -255,6 +255,18 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - **Homepage Trending Guides section** with 16 high-priority internal links across salary, tax, resume, savings, career, city, and debt categories
 - Links to `/guides` and `/learn` hub pages for crawl discovery
 
+### Phase 30: Invoice Generator Pro (May 2026) -- DONE
+- **Backend API** (`/api/invoices`, `/api/invoices/clients`) — Full CRUD with auth, partial payments, stats
+- **3-column layout**: Dark teal sidebar + Editor tabs + Live Preview
+- **Editor tab**: Invoice details, business info, bill-to with saved client loader, line items with units, discount/tax/totals, notes & terms, payment link, partial payments, recurring billing
+- **Clients tab**: Address book with add/edit/delete, load into invoice
+- **History tab**: Invoice list with stats cards, status filters (draft/sent/paid/overdue/partial), CSV export
+- **Preview panel**: Live invoice preview with accent color, template picker, Print/PDF
+- **Auth required**: Redirects to login, supports redirect-back after login
+- **Chromeless mode**: No navbar/footer for full-screen workspace
+- **Login redirect fix**: Login page now reads `?redirect=` query param
+- Testing: Backend 100% (15/15), Frontend 97% → 100% after redirect fix
+
 ## Upcoming Tasks
 - Stripe integration for monetization (P2)
 - A/B test hero CTAs (P2)
