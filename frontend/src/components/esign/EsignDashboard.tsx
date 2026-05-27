@@ -2,10 +2,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, FileText, Send, CheckCircle2, Clock, XCircle, Download, Trash2, MoreVertical } from "lucide-react";
+import { Plus, FileText, Send, CheckCircle2, Clock, XCircle, Download, Trash2, MoreVertical, Sparkles } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { esignApi, type DocumentListItem, type EsignStatus } from "./api";
+
+const API = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 const STATUS_META: Record<EsignStatus, { label: string; color: string; bg: string; icon: any }> = {
   draft: { label: "Draft", color: "#6E6B63", bg: "#F1EFEA", icon: FileText },
@@ -25,6 +27,15 @@ export function EsignDashboard() {
   const [docs, setDocs] = useState<DocumentListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<EsignStatus | "all">("all");
+  const [billing, setBilling] = useState<{ tier: string; docs_used_this_month: number; limits: { max_docs_per_month: number | null } } | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    fetch(`${API}/api/billing/status`, { credentials: "include" })
+      .then((r) => r.json())
+      .then(setBilling)
+      .catch(() => {});
+  }, [user]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -100,6 +111,37 @@ export function EsignDashboard() {
       </header>
 
       <main className="max-w-6xl mx-auto px-6 py-8">
+        {billing && billing.tier === "free" && billing.limits.max_docs_per_month && (
+          <div data-testid="usage-banner" className="mb-6 bg-white border border-stone-200 rounded-xl p-5 flex flex-wrap items-center gap-4 shadow-sm">
+            <div className="flex-1 min-w-[200px]">
+              <div className="text-xs text-stone-500 uppercase tracking-wider mb-1">This month</div>
+              <div className="text-base font-semibold text-stone-900">
+                {billing.docs_used_this_month} / {billing.limits.max_docs_per_month} documents used
+              </div>
+              <div className="h-1.5 bg-stone-100 rounded-full overflow-hidden mt-2 max-w-md">
+                <div
+                  className="h-full transition-all"
+                  style={{
+                    width: `${Math.min(100, (billing.docs_used_this_month / billing.limits.max_docs_per_month) * 100)}%`,
+                    background: billing.docs_used_this_month >= billing.limits.max_docs_per_month
+                      ? "#B53D2F"
+                      : billing.docs_used_this_month >= billing.limits.max_docs_per_month * 0.8
+                        ? "#A0621A"
+                        : "#2A6B45",
+                  }}
+                />
+              </div>
+            </div>
+            <Link
+              href="/pricing"
+              data-testid="dashboard-upgrade-link"
+              className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-[#0B3D3D] bg-[#FAF5EE] border border-[#C8A96E] rounded-md hover:bg-[#C8A96E] hover:text-[#0B3D3D]"
+            >
+              <Sparkles className="w-4 h-4" /> Upgrade for unlimited
+            </Link>
+          </div>
+        )}
+
         <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
           {(["all", "draft", "sent", "completed"] as const).map((f) => (
             <button

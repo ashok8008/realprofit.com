@@ -40,6 +40,10 @@ from .schemas import (
     DocumentOut, DocumentListItem, DocumentUpdate, SignerOut, FieldOut,
     SignerPublicView, SignSubmission, DeclineBody,
 )
+from billing.service import (
+    assert_can_create_doc, assert_can_set_signers, increment_doc_counter,
+    is_branding_required, get_or_create_subscription,
+)
 
 router = APIRouter(prefix="/api/esign", tags=["esign"])
 
@@ -112,6 +116,10 @@ async def create_document(
 
     page_count = pdf_processor.get_page_count(content)
 
+    # Tier-gating: docs/mo, file size, page count
+    sub = await assert_can_create_doc(session, str(user["_id"]), len(content), page_count)
+    branding_required = is_branding_required(sub.tier)
+
     doc = Document(
         owner_id=str(user["_id"]),
         title=title.strip()[:255],
@@ -122,7 +130,7 @@ async def create_document(
         settings={
             "uuid_enabled": True,
             "qr_enabled": True,
-            "brand_enabled": True,
+            "brand_enabled": branding_required or True,  # free can't disable; paid defaults on
             "email_owner_on_view": False,
             "reminder_days": [3, 7, 14],
         },
@@ -134,8 +142,9 @@ async def create_document(
     doc.original_key = rel_key
     doc.doc_hash = sha
 
+    await increment_doc_counter(session, sub)
     await _add_audit(session, doc.id, None, "document_created", request,
-                     metadata={"title": title, "page_count": page_count})
+                     metadata={"title": title, "page_count": page_count, "tier": sub.tier})
     await session.commit()
     await session.refresh(doc, attribute_names=["signers", "fields"])
     return doc
@@ -192,10 +201,17 @@ async def update_document(doc_id: str, body: DocumentUpdate, request: Request,
     if body.expires_at is not None:
         doc.expires_at = body.expires_at
     if body.settings is not None:
-        doc.settings = body.settings.model_dump()
+        # Enforce branding: free users cannot disable
+        sub = await get_or_create_subscription(session, str(user["_id"]))
+        new_settings = body.settings.model_dump()
+        if is_branding_required(sub.tier):
+            new_settings["brand_enabled"] = True
+        doc.settings = new_settings
 
     # Replace signers if provided
     if body.signers is not None:
+        # Tier-gate signer count
+        await assert_can_set_signers(session, str(user["_id"]), len(body.signers))
         # Wipe existing signers + fields (CASCADE on signer→fields)
         await session.execute(delete(SignatureField).where(SignatureField.document_id == doc.id))
         await session.execute(delete(Signer).where(Signer.document_id == doc.id))

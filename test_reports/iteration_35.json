@@ -1,0 +1,63 @@
+{
+  "summary": "Phase 2 RealProfits eSign tested end-to-end: 17/17 Phase-1 regression PASSED, 14/15 Phase-2 backend tests PASSED, all 5 frontend flows PASSED. APScheduler boot log confirmed in backend.out.log. Only one backend bug: /api/billing/webhook returns 503 when STRIPE_API_KEY=sk_test_emergent because _stripe_key() is invoked at the top of the handler — defeats the whsec_test local-test idempotency path.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "POST /api/billing/webhook",
+        "issue": "Handler calls _stripe_key() at the very top, which raises 503 STRIPE_KEYS_NEEDED whenever STRIPE_API_KEY=sk_test_emergent. This blocks idempotency testing and any local webhook simulation even though STRIPE_WEBHOOK_SECRET=whsec_test is meant to bypass signature verification. Fix: only call _stripe_key() inside the `if webhook_secret and webhook_secret != 'whsec_test'` branch (or defer the stripe.api_key assignment until the dispatch needs a Stripe API call). Currently the entire local-test webhook flow returns 503."
+      }
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_phase2_billing.py",
+    "/app/backend/tests/test_esign_api.py",
+    "/app/test_reports/pytest/phase2_results.xml",
+    "/app/test_reports/pytest/esign_regression.xml"
+  ],
+  "action_items": [
+    "Fix billing webhook 503 trap: move _stripe_key() invocation inside the signed-only branch in /app/backend/billing/routes.py::stripe_webhook so local idempotency (whsec_test) works without real Stripe keys."
+  ],
+  "critical_code_review_comments": [
+    "billing/routes.py: stripe_webhook eagerly calls _stripe_key() at entry — breaks the documented whsec_test bypass and prevents subscription_events idempotency from being exercised without real keys. Move the call after the JSON-parse branch.",
+    "billing/routes.py: Test-mode auto-creation of Stripe Product/Price (lines 82–91) is convenient but should be guarded behind an env flag or admin-only path to avoid surprise Stripe object creation in production.",
+    "billing/routes.py: portal endpoint returns 400 before 503 when no stripe_customer_id exists, which masks the 'Stripe not configured' state for users without a customer yet. Consider checking _stripe_key() first so the UX is consistent (got 503 in our test only because admin already had a customer_id from a previous run? — actually got 503, but order is fragile).",
+    "esign/routes.py line ~133: `branding_required or True` always evaluates True — works for free, but for paid tiers the intent (default True, user-overridable) is hidden. Replace with explicit boolean logic.",
+    "billing/saved_signature.py: 500KB limit is checked against the data-URL length (base64), not raw bytes; OK but document it."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_phase2_billing.py (new)"
+  ],
+  "success_rate": {"backend": "97% (31/32 — webhook 503 trap)", "frontend": "100% (5/5 flows)"},
+  "test_credentials": "admin@realprofits.com / RealProfits2026! (from /app/memory/test_credentials.md)",
+  "seed_data_creation": "Test docs TEST_TG_*, TEST_TooManySigners, TEST_Branding cleaned up via teardown. Reset subscriptions.docs_used_this_month to 0 at finish.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Phase 2 scope: billing + scheduler + saved sig + verify landing. All scoped functionality works EXCEPT the webhook handler's premature _stripe_key() call. After fix, re-run `pytest tests/test_phase2_billing.py::TestWebhookIdempotency -v` — it expects a 200 on first POST and 200+duplicate=true on second POST with same event id. Reset docs counter with: su - postgres -c \"psql -d realprofits_esign -c 'UPDATE subscriptions SET docs_used_this_month = 0;'\" before tier-gating retests. Scheduler boot log confirmed: '[scheduler] Started: reminders (hourly), expire_docs (daily), reset_counters (monthly)' in /var/log/supervisor/backend.out.log.",
+  "verified_features": [
+    "GET /api/billing/plans returns 3 plans (free/pro/business) with $9/$79 and $29/$249 prices",
+    "GET /api/billing/status auth-required, returns tier='free', limits.max_docs=5, max_signers=5, show_branding=true",
+    "POST /api/billing/checkout returns 503 with detail.code='STRIPE_KEYS_NEEDED'",
+    "POST /api/billing/portal returns 503 STRIPE_KEYS_NEEDED",
+    "POST /api/esign/documents tier-gating: 6th doc returns 403 LIMIT_REACHED",
+    "PATCH /api/esign/documents signers tier-gating: 6 signers returns 403 TOO_MANY_SIGNERS",
+    "Free user cannot disable brand_enabled — server forces brand_enabled=true",
+    "GET /api/esign/signature returns {image_data:null} when empty, requires auth",
+    "PUT /api/esign/signature saves valid data-URL, 400 on non-data-url, 413 on >500KB",
+    "DELETE /api/esign/signature wipes row",
+    "APScheduler boot logged in backend.out.log",
+    "All 17 Phase-1 regression tests pass",
+    "Postgres has 7 tables (documents, signers, signature_fields, audit_events, saved_signatures, subscriptions, subscription_events)",
+    "Frontend /pricing renders plan-card-free/pro/business with interval-month/year toggle ($9 -> $79)",
+    "Frontend /verify renders verify-doc-id-input + verify-search-btn; valid UUID routes to /verify/{uuid}; unknown UUID shows 'Document not found'",
+    "Frontend /tools/esign/dashboard shows usage-banner with progress + dashboard-upgrade-link (free tier)",
+    "Frontend /account/billing shows Current Plan (Free) card + usage card with progress + Your Plan Includes stats + upgrade-link",
+    "Frontend Pricing 'Upgrade to Pro' click (logged-in) shows clean red 'Checkout error' toast with full STRIPE_KEYS_NEEDED message — no white screen"
+  ],
+  "rca of the issue": "Webhook 503: stripe_webhook() at /app/backend/billing/routes.py line ~247 calls `stripe.api_key = _stripe_key()` before any branching. _stripe_key() raises HTTP 503 STRIPE_KEYS_NEEDED whenever STRIPE_API_KEY=='sk_test_emergent'. This short-circuits the JSON-parse + idempotency path that was designed to work in local-test mode (STRIPE_WEBHOOK_SECRET=whsec_test). Mitigation: only set stripe.api_key when actually calling Stripe SDK (e.g., inside _sync_subscription or signature-verification branch). Reproduction: POST /api/billing/webhook with body '{\"id\":\"evt_x\",\"type\":\"customer.subscription.updated\",\"data\":{\"object\":{\"customer\":\"cus_nope\",\"id\":\"sub_x\"}}}' and Content-Type application/json — currently returns 503; should return 200 + log SubscriptionEvent row."
+}

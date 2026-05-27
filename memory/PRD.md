@@ -58,15 +58,16 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 
 ### eSign (/api/esign/*) — **NEW (2026-05-27)**
 **Owner (auth required):**
-- POST `/documents` (multipart PDF upload, 25MB max, magic-byte validated)
+- POST `/documents` (multipart PDF upload, 25MB max, magic-byte validated, **tier-gated**)
 - GET `/documents` (list with signed_count + signer_count)
 - GET `/documents/{id}` (detail with signers + fields)
-- PATCH `/documents/{id}` (update title, signing_order, expires_at, settings, signers array, fields array)
+- PATCH `/documents/{id}` (update title, signing_order, expires_at, settings, signers array, fields array; **tier-gated** for signer count + branding)
 - DELETE `/documents/{id}`
 - POST `/documents/{id}/send` (creates per-signer JWTs, emails E1, sets status=sent)
 - POST `/documents/{id}/void` (sets status=voided, emails E10 to all signers)
 - GET `/documents/{id}/original` (download original PDF)
 - GET `/documents/{id}/signed` (download signed PDF with audit page)
+- GET/PUT/DELETE `/signature` (saved-signature per user — for reuse across documents)
 
 **Public (token-based, no auth):**
 - GET `/sign/{token}` (records 'viewed' event, returns SignerPublicView)
@@ -75,11 +76,27 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - POST `/sign/{token}/decline` (reason → emails E9 to owner + signers)
 - GET `/verify/{doc_id}` (public verification with masked emails + SHA-256)
 
-**Key behaviors:**
-- Tokens are RS256-compatible JWTs (currently HS256), stored as SHA-256 hash, single-use
-- Sequential signing supported (next signer notified after previous completes)
-- Final PDF = original + signature overlays (pypdf + reportlab) + audit-trail page with QR
-- Audit events recorded on every state change (document_sent, viewed, signed, declined, voided, completed)
+### Billing (/api/billing/*) — **NEW (2026-05-27)**
+- GET `/plans` (public — list Free/Pro/Business with monthly + annual pricing)
+- GET `/status` (auth — current tier, usage, limits, period_end)
+- POST `/checkout` (auth — creates Stripe Checkout Session for plan+interval, returns hosted URL)
+- POST `/portal` (auth — Stripe Billing Portal session)
+- GET `/checkout-status/{session_id}` (auth — poll after Stripe redirect)
+- POST `/webhook` (Stripe webhook — checkout.session.completed, subscription.updated/deleted, invoice.payment_succeeded/failed; idempotent via subscription_events.stripe_event_id unique)
+- POST `/cancel` (auth — set cancel_at_period_end=true via Stripe)
+
+**Tier limits (free → pro → business):**
+- MAX_DOCS_PER_MONTH: 5 / ∞ / ∞
+- MAX_SIGNERS: 5 / 10 / 20
+- MAX_FILE_SIZE_MB: 10 / 50 / 100
+- MAX_PAGES: 20 / ∞ / ∞
+- SHOW_BRANDING: true / false / false
+- BULK_SEND + API_ACCESS + WHITE_LABEL: business only
+
+### Background Jobs (APScheduler) — **NEW (2026-05-27)**
+- **Hourly** (`:15`): reminder_job — re-emails E1 to pending signers at days 3, 7, 14 after send (configurable per-document)
+- **Daily** (`00:01 UTC`): expire_documents_job — sets status=expired for docs past expires_at, notifies all parties
+- **Monthly** (`day 1, 00:05 UTC`): reset_counters_job — zeroes docs_used_this_month across all subscriptions
 
 ## Tax Tools System (Phase 16)
 ### Hub: /tax-tools

@@ -24,6 +24,7 @@ async def get_session() -> AsyncSession:
 
 async def init_esign_db():
     """Create all tables (idempotent)."""
-    from . import models  # noqa: F401 — ensure models are registered
+    from . import models  # noqa: F401 — ensure eSign models are registered
+    from billing import models as billing_models  # noqa: F401 — billing tables
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)

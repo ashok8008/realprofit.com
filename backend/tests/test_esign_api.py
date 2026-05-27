@@ -57,6 +57,16 @@ def auth_session():
         r = s.post(f"{API}{path}", json=payload, timeout=15)
         last = (path, r.status_code, r.text[:200])
         if r.status_code == 200:
+            # Reset usage counters so tier-gating doesn't interfere with tests
+            try:
+                import subprocess
+                subprocess.run(
+                    ["su", "-", "postgres", "-c",
+                     "psql -d realprofits_esign -c 'UPDATE subscriptions SET docs_used_this_month = 0;'"],
+                    capture_output=True, timeout=10,
+                )
+            except Exception:
+                pass
             return s
     pytest.skip(f"Admin login failed: {last}")
 

@@ -15,6 +15,9 @@ from user_data import router as user_data_router
 from invoices import router as invoices_router
 from esign.routes import router as esign_router
 from esign.database import init_esign_db
+from billing.routes import router as billing_router
+from billing.saved_signature import router as saved_sig_router
+from scheduler_jobs import start_scheduler, stop_scheduler
 
 app = FastAPI(title="RealProfits API")
 
@@ -37,6 +40,8 @@ app.include_router(auth_router)
 app.include_router(user_data_router)
 app.include_router(invoices_router)
 app.include_router(esign_router)
+app.include_router(billing_router)
+app.include_router(saved_sig_router)
 
 
 @app.on_event("startup")
@@ -45,9 +50,21 @@ async def startup():
     await seed_admin()
     try:
         await init_esign_db()
-        print("[startup] eSign Postgres schema initialised")
+        print("[startup] eSign + Billing Postgres schema initialised")
     except Exception as e:
         print(f"[startup] eSign DB init failed: {e}")
+    try:
+        start_scheduler()
+    except Exception as e:
+        print(f"[startup] Scheduler start failed: {e}")
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    try:
+        stop_scheduler()
+    except Exception:
+        pass
 
 # ============================================================
 # Models
