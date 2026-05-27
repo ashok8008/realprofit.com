@@ -1,0 +1,380 @@
+"use client";
+// Public signing page — no auth required. Token-driven.
+import { useEffect, useState, useMemo } from "react";
+import { CheckCircle2, AlertTriangle, FileSignature, X } from "lucide-react";
+import { signApi, type Field } from "./api";
+import { usePdfRenderer, PageCanvas } from "./PdfRenderer";
+import { SignatureCreator } from "./SignatureCreator";
+
+interface Props {
+  token: string;
+}
+
+export function SigningPage({ token }: Props) {
+  const [view, setView] = useState<Awaited<ReturnType<typeof signApi.view>> | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
+  const [currentSignature, setCurrentSignature] = useState<string | null>(null);
+  const [activeFieldId, setActiveFieldId] = useState<string | null>(null);
+
+  const [consent, setConsent] = useState(false);
+  const [confirmName, setConfirmName] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [completed, setCompleted] = useState(false);
+  const [declined, setDeclined] = useState(false);
+  const [declineReason, setDeclineReason] = useState("");
+  const [showDeclineModal, setShowDeclineModal] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const v = await signApi.view(token);
+        setView(v);
+        setConfirmName(v.signer_name);
+        if (v.fields.length > 0) {
+          setActiveFieldId(v.fields[0].id);
+        }
+      } catch (e: any) {
+        setError(e.message || "Unable to load this signing link.");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [token]);
+
+  const pdfUrl = useMemo(() => signApi.pdfUrl(token), [token]);
+  const { pages, loading: pdfLoading } = usePdfRenderer(pdfUrl, 1.5);
+
+  const requiredCount = view?.fields.filter((f) => f.required).length || 0;
+  const filledCount = view?.fields.filter((f) => f.required && fieldValues[f.id]).length || 0;
+  const allRequiredFilled = filledCount === requiredCount;
+
+  const applyToField = (fieldId: string, field: Field) => {
+    if (field.field_type === "signature" || field.field_type === "initials" || field.field_type === "stamp") {
+      if (!currentSignature) return;
+      setFieldValues({ ...fieldValues, [fieldId]: currentSignature });
+    } else if (field.field_type === "date") {
+      setFieldValues({ ...fieldValues, [fieldId]: new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }) });
+    }
+    // Auto-advance to next empty field
+    const next = view?.fields.find((f) => f.id !== fieldId && !fieldValues[f.id]);
+    if (next) setActiveFieldId(next.id);
+  };
+
+  const submit = async () => {
+    if (!view || !consent) return;
+    setSubmitting(true);
+    try {
+      await signApi.submit(token, {
+        signer_name: confirmName,
+        field_values: Object.entries(fieldValues).map(([field_id, value]) => ({ field_id, value })),
+        consent: true,
+      });
+      setCompleted(true);
+    } catch (e: any) {
+      setError(e.message || "Submission failed");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const submitDecline = async () => {
+    try {
+      await signApi.decline(token, declineReason);
+      setDeclined(true);
+      setShowDeclineModal(false);
+    } catch (e: any) {
+      setError(e.message || "Could not decline");
+    }
+  };
+
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center bg-[#F5F3EE] text-stone-600">Loading document…</div>;
+  }
+
+  if (error || !view) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F5F3EE] px-6">
+        <div className="bg-white border border-stone-200 rounded-xl p-10 max-w-md text-center shadow-sm">
+          <AlertTriangle className="w-12 h-12 mx-auto text-[#B53D2F] mb-4" />
+          <h1 className="text-xl font-semibold text-stone-900 mb-2">Unable to open document</h1>
+          <p className="text-sm text-stone-600">{error || "This signing link is invalid or has expired."}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (completed) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F5F3EE] px-6">
+        <div className="bg-white border border-stone-200 rounded-xl p-10 max-w-md text-center shadow-sm">
+          <CheckCircle2 className="w-14 h-14 mx-auto text-[#2A6B45] mb-4" />
+          <h1 className="text-2xl font-semibold text-stone-900 mb-2">Thank you!</h1>
+          <p className="text-stone-600 mb-1">You've signed <b>{view.document_title}</b>.</p>
+          <p className="text-sm text-stone-500 mt-4">A signed copy will be emailed to you once all parties complete signing.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (declined) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F5F3EE] px-6">
+        <div className="bg-white border border-stone-200 rounded-xl p-10 max-w-md text-center shadow-sm">
+          <X className="w-14 h-14 mx-auto text-stone-500 mb-4" />
+          <h1 className="text-2xl font-semibold text-stone-900 mb-2">Declined</h1>
+          <p className="text-stone-600">The document owner has been notified.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (view.already_signed) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F5F3EE] px-6">
+        <div className="bg-white border border-stone-200 rounded-xl p-10 max-w-md text-center shadow-sm">
+          <CheckCircle2 className="w-14 h-14 mx-auto text-[#2A6B45] mb-4" />
+          <h1 className="text-2xl font-semibold text-stone-900 mb-2">Already signed</h1>
+          <p className="text-stone-600">You've already completed this document.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#F5F3EE]">
+      {/* Header */}
+      <header className="bg-[#0B3D3D] text-white sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div>
+            <div className="text-[10px] tracking-[0.2em] text-[#C8A96E] uppercase font-medium">RealProfits eSign</div>
+            <h1 className="text-base font-semibold mt-0.5">{view.document_title}</h1>
+          </div>
+          <div className="text-right text-xs text-stone-300">
+            <div>Signing as <b className="text-white">{view.signer_name}</b></div>
+            <div className="text-stone-400">{view.signer_email}</div>
+          </div>
+        </div>
+        <div className="bg-[#165252] px-6 py-2">
+          <div className="max-w-7xl mx-auto flex items-center justify-between text-xs">
+            <div className="text-stone-200">
+              {filledCount} of {requiredCount} required fields completed
+            </div>
+            <div className="flex-1 mx-4 h-1.5 bg-[#0B3D3D] rounded-full overflow-hidden">
+              <div
+                className="h-full bg-[#C8A96E] transition-all"
+                style={{ width: requiredCount ? `${(filledCount / requiredCount) * 100}%` : "0%" }}
+              />
+            </div>
+            <button
+              onClick={() => setShowDeclineModal(true)}
+              data-testid="decline-btn"
+              className="text-stone-300 hover:text-white"
+            >
+              Decline to sign
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-6 py-6 grid grid-cols-12 gap-6">
+        {/* PDF column */}
+        <div className="col-span-12 lg:col-span-8 space-y-4">
+          {pdfLoading && <div className="text-stone-500">Loading document…</div>}
+          {pages.map((p) => {
+            const myFields = view.fields.filter((f) => f.page === p.pageNumber);
+            return (
+              <PageCanvas key={p.pageNumber} info={p}>
+                {myFields.map((f) => {
+                  const isActive = f.id === activeFieldId;
+                  const isFilled = !!fieldValues[f.id];
+                  return (
+                    <button
+                      key={f.id}
+                      onClick={() => setActiveFieldId(f.id)}
+                      data-testid={`signing-field-${f.id}`}
+                      style={{
+                        position: "absolute",
+                        left: `${f.x * 100}%`,
+                        top: `${f.y * 100}%`,
+                        width: `${f.width * 100}%`,
+                        height: `${f.height * 100}%`,
+                      }}
+                      className={`border-2 rounded transition-all flex items-center justify-center overflow-hidden ${
+                        isFilled
+                          ? "border-[#2A6B45] bg-[#2A6B45]/10"
+                          : isActive
+                            ? "border-[#C8A96E] bg-[#C8A96E]/20 animate-pulse"
+                            : "border-dashed border-[#0B3D3D] bg-[#C8A96E]/10 hover:bg-[#C8A96E]/20"
+                      }`}
+                    >
+                      {isFilled ? (
+                        f.field_type === "signature" || f.field_type === "initials" || f.field_type === "stamp" ? (
+                          <img src={fieldValues[f.id]} alt="signature" className="max-h-full max-w-full" />
+                        ) : (
+                          <span className="text-xs px-1 truncate" style={{ fontSize: "min(14px, 90%)" }}>
+                            {fieldValues[f.id]}
+                          </span>
+                        )
+                      ) : (
+                        <span className="text-[10px] uppercase tracking-wider font-semibold text-[#0B3D3D]">
+                          {f.field_type}
+                          {f.required && " *"}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </PageCanvas>
+            );
+          })}
+        </div>
+
+        {/* Side panel */}
+        <aside className="col-span-12 lg:col-span-4 space-y-4">
+          <div className="bg-white border border-stone-200 rounded-xl p-5 shadow-sm sticky top-32">
+            {(() => {
+              const activeField = view.fields.find((f) => f.id === activeFieldId);
+              if (!activeField) {
+                return <div className="text-stone-500 text-sm">Click a field on the document to fill it.</div>;
+              }
+              if (activeField.field_type === "text") {
+                return (
+                  <div>
+                    <h3 className="text-sm font-semibold text-stone-900 mb-3">
+                      {activeField.label || "Text field"}
+                    </h3>
+                    <input
+                      type="text"
+                      value={fieldValues[activeField.id] || ""}
+                      onChange={(e) => setFieldValues({ ...fieldValues, [activeField.id]: e.target.value })}
+                      data-testid={`text-input-${activeField.id}`}
+                      className="w-full px-3 py-2 border border-stone-300 rounded-md text-sm focus:outline-none focus:border-[#0B3D3D]"
+                      placeholder="Type here…"
+                    />
+                  </div>
+                );
+              }
+              if (activeField.field_type === "checkbox") {
+                return (
+                  <div>
+                    <h3 className="text-sm font-semibold text-stone-900 mb-3">
+                      {activeField.label || "Checkbox"}
+                    </h3>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={fieldValues[activeField.id] === "checked"}
+                        onChange={(e) =>
+                          setFieldValues({ ...fieldValues, [activeField.id]: e.target.checked ? "checked" : "" })
+                        }
+                        data-testid={`checkbox-input-${activeField.id}`}
+                        className="w-4 h-4 accent-[#0B3D3D]"
+                      />
+                      <span className="text-sm">I agree</span>
+                    </label>
+                  </div>
+                );
+              }
+              if (activeField.field_type === "date") {
+                return (
+                  <div>
+                    <h3 className="text-sm font-semibold text-stone-900 mb-3">Date field</h3>
+                    <button
+                      onClick={() => applyToField(activeField.id, activeField)}
+                      data-testid={`apply-date-${activeField.id}`}
+                      className="w-full px-4 py-2.5 text-sm font-semibold text-white bg-[#0B3D3D] rounded-md hover:bg-[#165252]"
+                    >
+                      Stamp today's date
+                    </button>
+                  </div>
+                );
+              }
+              // signature/initials/stamp
+              return (
+                <div>
+                  <h3 className="text-sm font-semibold text-stone-900 mb-3">
+                    Create your {activeField.field_type}
+                  </h3>
+                  <SignatureCreator
+                    onChange={setCurrentSignature}
+                    initialName={view.signer_name}
+                  />
+                  <button
+                    onClick={() => applyToField(activeField.id, activeField)}
+                    disabled={!currentSignature}
+                    data-testid={`apply-signature-${activeField.id}`}
+                    className="w-full mt-3 px-4 py-2.5 text-sm font-semibold text-white bg-[#0B3D3D] rounded-md hover:bg-[#165252] disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Apply
+                  </button>
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Complete card */}
+          <div className="bg-white border border-stone-200 rounded-xl p-5 shadow-sm">
+            <h3 className="text-sm font-semibold text-stone-900 mb-3">Finish signing</h3>
+            <label className="flex items-start gap-2 cursor-pointer mb-3" data-testid="consent-label">
+              <input
+                type="checkbox"
+                checked={consent}
+                onChange={(e) => setConsent(e.target.checked)}
+                data-testid="consent-checkbox"
+                className="mt-1 w-4 h-4 accent-[#0B3D3D]"
+              />
+              <span className="text-xs text-stone-700 leading-relaxed">
+                I agree to sign this document electronically under the U.S. ESIGN Act / UETA /
+                eIDAS standards, and that my electronic signature is legally binding.
+              </span>
+            </label>
+            <button
+              onClick={submit}
+              disabled={!consent || !allRequiredFilled || submitting}
+              data-testid="complete-signing-btn"
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold text-white bg-[#0B3D3D] rounded-md hover:bg-[#165252] disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <FileSignature className="w-4 h-4" />
+              {submitting ? "Submitting…" : allRequiredFilled ? "Complete signing" : `Fill ${requiredCount - filledCount} more`}
+            </button>
+          </div>
+        </aside>
+      </main>
+
+      {showDeclineModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-6 z-50">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl">
+            <h3 className="text-lg font-semibold text-stone-900 mb-2">Decline to sign?</h3>
+            <p className="text-sm text-stone-600 mb-4">The sender will be notified that you declined.</p>
+            <textarea
+              value={declineReason}
+              onChange={(e) => setDeclineReason(e.target.value)}
+              placeholder="Optional reason (visible to the sender)"
+              data-testid="decline-reason-input"
+              className="w-full h-24 px-3 py-2 border border-stone-300 rounded-md text-sm focus:outline-none focus:border-[#0B3D3D] resize-none"
+            />
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                onClick={() => setShowDeclineModal(false)}
+                data-testid="decline-cancel-btn"
+                className="px-4 py-2 text-sm text-stone-700 rounded-md hover:bg-stone-100"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitDecline}
+                data-testid="decline-confirm-btn"
+                className="px-4 py-2 text-sm font-semibold text-white bg-[#B53D2F] rounded-md hover:bg-[#9F3326]"
+              >
+                Decline
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

@@ -13,6 +13,8 @@ from db import init_db
 from auth import router as auth_router, seed_admin
 from user_data import router as user_data_router
 from invoices import router as invoices_router
+from esign.routes import router as esign_router
+from esign.database import init_esign_db
 
 app = FastAPI(title="RealProfits API")
 
@@ -34,12 +36,18 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(user_data_router)
 app.include_router(invoices_router)
+app.include_router(esign_router)
 
 
 @app.on_event("startup")
 async def startup():
     await init_db()
     await seed_admin()
+    try:
+        await init_esign_db()
+        print("[startup] eSign Postgres schema initialised")
+    except Exception as e:
+        print(f"[startup] eSign DB init failed: {e}")
 
 # ============================================================
 # Models

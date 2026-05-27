@@ -6,6 +6,7 @@ import { tools } from "@/data/tools";
 import { ArrowRight, Wrench, FileText, PieChart, Users, Wallet, TrendingUp, Receipt } from "lucide-react";
 
 const toolIcons: Record<string, { icon: React.ReactNode; color: string }> = {
+  "esign": { icon: <FileText className="w-5 h-5" />, color: "bg-teal-100 text-teal-700" },
   "freelance-invoice": { icon: <FileText className="w-5 h-5" />, color: "bg-amber-100 text-amber-600" },
   "subscription-analyzer": { icon: <PieChart className="w-5 h-5" />, color: "bg-rose-100 text-rose-600" },
   "bill-split": { icon: <Users className="w-5 h-5" />, color: "bg-blue-100 text-blue-600" },

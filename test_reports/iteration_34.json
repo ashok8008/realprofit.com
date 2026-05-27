@@ -1,0 +1,59 @@
+{
+  "summary": "Tested eSign module end-to-end (backend + frontend). Created /app/backend/tests/test_esign_api.py with 17 pytest cases covering auth, CRUD, PDF magic-byte validation, multi-signer parallel signing flow (view → submit → completed → signed PDF download), invalid token handling, verify endpoint with masked emails, void, and delete. ALL 17 BACKEND TESTS PASS. Frontend tested: landing, tools-hub card, dashboard (anon redirect + auth list with status filters), wizard (5 steps), public signing route, public verify route. All major flows functional; 2 minor UX polish issues found.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "Public verify page /verify/[docId]",
+        "issue": "When document not found, the page renders a friendly 'Document not found' heading BUT also shows the raw JSON body '{\"detail\":\"Document not found\"}' below it. This raw error envelope leaks to end users on a public route and looks unpolished.",
+        "selector": "/verify/00000000-0000-0000-0000-000000000000",
+        "priority": "MEDIUM"
+      },
+      {
+        "component": "Public signing page /sign/[token]",
+        "issue": "Invalid token renders 'Unable to open document' followed by the raw error code string 'AUTH_REQUIRED'. End users will be confused by the technical token. Suggest mapping AUTH_REQUIRED -> friendlier sentence (e.g., 'This signing link is invalid or has been revoked. Please contact the sender.').",
+        "selector": "/sign/invalid.token.here",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "Wizard /tools/esign/new",
+        "issues": ["Page is accessible without authentication — anonymous users can view step 1 (Upload). This is likely intentional since the upload API call is the auth gate, but consider an early redirect-to-login for UX clarity if not desired."]
+      }
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_esign_api.py",
+    "/app/test_reports/pytest/esign_results.xml"
+  ],
+  "action_items": [
+    "(Optional UX) On /verify/[docId], suppress raw JSON body when showing 'Document not found' — keep only the friendly heading.",
+    "(Optional UX) On /sign/[token] invalid-token state, replace raw 'AUTH_REQUIRED' string with a user-friendly explanation."
+  ],
+  "critical_code_review_comments": [
+    "routes.py line 151 uses __import__('sqlalchemy').Integer inside a func.cast — this works but is unidiomatic; import sqlalchemy.Integer at top of module for readability.",
+    "routes.py uses transient attribute 's.__send_token' on ORM objects to pass raw tokens to background tasks. Works but is fragile (SQLAlchemy may complain on refresh); consider returning a list of (signer, token) tuples instead.",
+    "routes.py /sign/{token}/submit catches `signer.token_used` after _resolve_token but a completed document still allows _resolve_token to succeed (no 410 on status=='completed'). Currently 'Already signed' (403) is raised via token_used flag — works, but adding an explicit 410 when doc.status=='completed' would be cleaner.",
+    "schemas.py SignerOut.email is plain `str` but the model stores lowercased email — fine, but expose the verified shape.",
+    "Email service uses Resend onboarding@resend.dev sender — clearly noted as mocked-delivery; production will need a verified domain sender."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_esign_api.py (new)",
+    "/app/test_reports/pytest/esign_results.xml (new)"
+  ],
+  "success_rate": {
+    "backend": "100% (17/17)",
+    "frontend": "~95% (all routes load and work; 2 minor UX polish items)"
+  },
+  "test_credentials": "admin@realprofits.com / RealProfits2026!",
+  "seed_data_creation": "Tests auto-create 'TEST_'-prefixed documents and delete them in teardown. Note: one previously created 'E2E Test Contract' (Completed, by main agent) and one 'Test Contract' (Draft) are persisted in PostgreSQL from prior manual testing — left intact.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Backend is solid. The signing-completion logic correctly transitions status to 'completed', populates signed_key, recomputes doc_hash, and the signed PDF downloads as %PDF-1.x. Sequential signing branch is NOT yet covered by automated tests (only parallel) — if regression-testing, add a sequential test by setting signing_order='sequential' on PATCH and verifying only the first signer's token is initially active. The PDF.js worker loads from cdnjs CDN; if the wizard step 3 (Place Fields) needs deeper testing, requires uploading a real PDF and waiting for canvas render (~3-5s). PostgreSQL tables: documents, signers, signature_fields, audit_events — inspect via `su - postgres -c \"psql -d realprofits_esign -c '\\dt'\"`.",
+  "rca of the issue": "N/A — no functional bugs found. The two reported UI polish items are cosmetic: error states show raw API envelope/code strings to public users on /verify and /sign error paths; recommend mapping to friendlier copy in the respective Next.js pages."
+}

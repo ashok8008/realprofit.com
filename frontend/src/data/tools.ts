@@ -7,6 +7,7 @@ export interface ToolDef {
 }
 
 export const tools: ToolDef[] = [
+  { id: "esign", name: "RealProfits eSign", slug: "esign", description: "Free electronic signature tool. Upload a PDF, add signers, get legally binding signatures with audit trail.", category: "income" },
   { id: "freelance-invoice", name: "Invoice Generator Pro", slug: "freelance-invoice-generator", description: "Create, manage, and track professional invoices with client management, partial payments, and PDF export.", category: "income" },
   { id: "subscription-analyzer", name: "Subscription Cost Analyzer", slug: "subscription-cost-analyzer", description: "Track and analyze your monthly subscription spending.", category: "budget" },
   { id: "bill-split", name: "Bill Split Tool", slug: "bill-split-tool", description: "Split bills fairly among friends or roommates.", category: "budget" },
