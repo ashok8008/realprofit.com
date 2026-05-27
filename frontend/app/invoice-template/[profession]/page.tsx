@@ -13,7 +13,7 @@ export async function generateMetadata({ params }: { params: Promise<{ professio
   const p = getProfession(profession);
   if (!p) return { title: "Invoice Template" };
   return {
-    title: `Free ${p.name} Invoice Template — Download or Use Online | RealProfits`,
+    title: `Free ${p.name} Invoice Template — Download or Use Online`,
     description: `Professional ${p.name.toLowerCase()} invoice template with pre-filled line items, suggested rates of $${p.hourlyRateLow}–$${p.hourlyRateHigh}/hr, and instant PDF download. 100% free, no signup.`,
     keywords: `${p.name.toLowerCase()} invoice template, ${p.name.toLowerCase()} invoice, freelance ${p.name.toLowerCase()} invoice, ${p.name.toLowerCase()} billing template, free invoice template`,
     alternates: { canonical: `/invoice-template/${p.slug}` },

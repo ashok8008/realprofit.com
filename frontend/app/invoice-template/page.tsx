@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { PROFESSIONS, PROFESSION_CATEGORIES } from "@/data/pseo/professions";
 
 export const metadata: Metadata = {
-  title: "Free Invoice Templates for Freelancers & Small Businesses | RealProfits",
+  title: "Free Invoice Templates for Freelancers & Small Businesses",
   description: "Browse 250+ free invoice templates organized by profession. Pre-filled line items, suggested rates, instant PDF download. No signup required.",
   alternates: { canonical: "/invoice-template" },
 };

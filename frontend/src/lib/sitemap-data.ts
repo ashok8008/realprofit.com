@@ -9,6 +9,8 @@ import { taxTools } from "@/data/tax-tools";
 import { PROFESSIONS } from "@/data/pseo/professions";
 import { JOBS } from "@/data/pseo/jobs";
 import { CITIES } from "@/data/pseo/cities";
+import { CONTRACT_TYPES } from "@/data/pseo/contracts";
+import { INDUSTRIES } from "@/data/pseo/industries";
 
 export const SITEMAP_BASE: string =
   process.env.NEXT_PUBLIC_SITE_URL ||
@@ -30,6 +32,7 @@ export type SitemapId =
   | "guides"
   | "salary"
   | "invoice-templates"
+  | "contract-templates"
   | "articles"
   | "tax";
 
@@ -41,12 +44,13 @@ export interface SitemapSectionMeta {
 
 // Section defaults — match the SEO playbook agreed with the user.
 export const SITEMAP_SECTIONS: SitemapSectionMeta[] = [
-  { id: "core",              defaultChangefreq: "daily",   defaultPriority: 1.0 },
-  { id: "salary",            defaultChangefreq: "monthly", defaultPriority: 0.8 },
-  { id: "invoice-templates", defaultChangefreq: "monthly", defaultPriority: 0.8 },
-  { id: "guides",            defaultChangefreq: "weekly",  defaultPriority: 0.7 },
-  { id: "articles",          defaultChangefreq: "weekly",  defaultPriority: 0.6 },
-  { id: "tax",               defaultChangefreq: "monthly", defaultPriority: 0.7 },
+  { id: "core",               defaultChangefreq: "daily",   defaultPriority: 1.0 },
+  { id: "salary",             defaultChangefreq: "monthly", defaultPriority: 0.8 },
+  { id: "invoice-templates",  defaultChangefreq: "monthly", defaultPriority: 0.8 },
+  { id: "contract-templates", defaultChangefreq: "monthly", defaultPriority: 0.8 },
+  { id: "guides",             defaultChangefreq: "weekly",  defaultPriority: 0.7 },
+  { id: "articles",           defaultChangefreq: "weekly",  defaultPriority: 0.6 },
+  { id: "tax",                defaultChangefreq: "monthly", defaultPriority: 0.7 },
 ];
 
 function nowIso(): string {
@@ -83,6 +87,7 @@ export function getCoreEntries(): SitemapEntry[] {
     entry("/learn", m, { priority: 0.9 }),
     entry("/invoice-template", m, { priority: 0.9 }),
     entry("/salary", m, { priority: 0.9 }),
+    entry("/contract-template", m, { priority: 0.9 }),
     entry("/what-if", m, { changefreq: "monthly", priority: 0.8 }),
     entry("/search", m, { changefreq: "monthly", priority: 0.5 }),
     entry("/about", m, { changefreq: "monthly", priority: 0.4 }),
@@ -127,6 +132,19 @@ export function getInvoiceTemplateEntries(): SitemapEntry[] {
   return PROFESSIONS.map((p) => entry(`/invoice-template/${p.slug}`, m));
 }
 
+/** Contract templates: type hubs (30) + leaf (30 x 20 = 600). */
+export function getContractTemplateEntries(): SitemapEntry[] {
+  const m = meta("contract-templates");
+  const out: SitemapEntry[] = [];
+  for (const c of CONTRACT_TYPES) {
+    out.push(entry(`/contract-template/${c.slug}`, m));
+    for (const i of INDUSTRIES) {
+      out.push(entry(`/contract-template/${c.slug}/${i.slug}`, m, { priority: 0.7 }));
+    }
+  }
+  return out;
+}
+
 /** Editorial articles. */
 export function getArticlesEntries(): SitemapEntry[] {
   const m = meta("articles");
@@ -146,6 +164,7 @@ export const SECTION_LOADERS: Record<SitemapId, () => SitemapEntry[]> = {
   guides: getGuidesEntries,
   salary: getSalaryEntries,
   "invoice-templates": getInvoiceTemplateEntries,
+  "contract-templates": getContractTemplateEntries,
   articles: getArticlesEntries,
   tax: getTaxEntries,
 };
