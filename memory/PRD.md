@@ -267,6 +267,15 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - **Login redirect fix**: Login page now reads `?redirect=` query param
 - Testing: Backend 100% (15/15), Frontend 97% → 100% after redirect fix
 
+### Phase 31: QA Audit Bug Fixes (May 2026) -- DONE
+- **Paycheck Calculator**: Blocked negative values for all fields, added Reset button
+- **Net Worth Calculator**: Blocked negative values for assets/liabilities
+- **Offer Comparison**: Fixed unique IDs so Offer 1 doesn't auto-fill Offer 2, blocked negative values
+- **Email Templates**: Generated email now clears when switching template tabs
+- **Resume Builder**: Phone field limits to 15 chars with phone-only characters, "Add Industry" button now functional (shows custom input)
+- **Invoice Redirect**: Old `/tools/freelance-invoice-generator` redirects to new `/tools/invoice`
+- Testing: Backend 100%, Frontend 100% (18/18) — iteration_32
+
 ## Upcoming Tasks
 - Stripe integration for monetization (P2)
 - A/B test hero CTAs (P2)
