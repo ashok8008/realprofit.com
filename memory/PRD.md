@@ -276,6 +276,15 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - **Invoice Redirect**: Old `/tools/freelance-invoice-generator` redirects to new `/tools/invoice`
 - Testing: Backend 100%, Frontend 100% (18/18) — iteration_32
 
+### Phase 32: QA Bug Fixes Round 2 (May 2026) -- DONE
+- **Salary Calculator 404**: Created new `SalaryCalculator` component with annual/monthly/bi-weekly/hourly breakdown + deduction chart
+- **Rent vs Buy Calculator**: Added empty state when values are 0, added full "If You Buy vs If You Rent + Invest" analysis with wealth comparison
+- **Retirement Growth Calculator**: Age fields now clearable (allows empty → retype new value)
+- **Bill Split Tool**: Fixed multiplier=0 when subtotal=0 (was causing wrong calculations), tip now shows dollar amount + percentage
+- **Freelancer Tax Planner**: Fixed stat card overflow with break-all + reduced font sizes
+- **Year-End Tax Packet**: Added Download PDF button at top (next to disclaimer) so users don't have to scroll
+- Testing: Frontend 100% (27/27) — iteration_33
+
 ## Upcoming Tasks
 - Stripe integration for monetization (P2)
 - A/B test hero CTAs (P2)
