@@ -3,8 +3,11 @@ import os
 import asyncio
 import logging
 import base64
+import secrets as _secrets
+from pathlib import Path
 import resend
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request, UploadFile, File
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import List, Optional
 from datetime import datetime, timezone
@@ -15,6 +18,11 @@ from auth import get_current_user
 logger = logging.getLogger(__name__)
 resend.api_key = os.environ.get("RESEND_API_KEY", "")
 SENDER_EMAIL = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
+INVOICE_STORAGE_DIR = Path(os.environ.get("INVOICE_STORAGE_DIR", "/app/backend/uploads/invoices"))
+INVOICE_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
+
+# Cap each invoice's total attachments at 25 MB (Resend allows 40 MB).
+MAX_INVOICE_ATTACHMENT_TOTAL = 25 * 1024 * 1024
 
 router = APIRouter(prefix="/api/invoices", tags=["invoices"])
 
@@ -30,6 +38,13 @@ class PaymentRecord(BaseModel):
     amount: float
     date: str = ""
     note: str = ""
+
+class Attachment(BaseModel):
+    id: str
+    filename: str
+    mime: str
+    size: int
+    uploaded_at: str
 
 class InvoiceCreate(BaseModel):
     invoice_number: str = ""
@@ -71,6 +86,7 @@ class InvoiceCreate(BaseModel):
     tax_amount: float = 0
     total: float = 0
     payments: List[PaymentRecord] = []
+    attachments: List[Attachment] = []
 
 class ClientCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=120)
@@ -198,6 +214,18 @@ async def send_invoice_email(body: SendInvoiceEmailRequest, request: Request):
     doc = await db.invoices.find_one({"_id": ObjectId(body.invoice_id), "user_id": str(user["_id"])})
     if not doc:
         raise HTTPException(404, "Invoice not found")
+
+    # Pre-flight: Resend sandbox can only send to the account owner.
+    if SENDER_EMAIL == "onboarding@resend.dev":
+        owner = (os.environ.get("RESEND_VERIFIED_TO") or "").strip().lower()
+        if not owner or owner != body.recipient_email.strip().lower():
+            hint = (
+                "Resend is in sandbox mode and can only deliver to the email tied to your "
+                "Resend account. Verify a domain at https://resend.com/domains and update "
+                "SENDER_EMAIL in backend/.env (e.g. sign@yourdomain.com) to send to clients."
+            )
+            raise HTTPException(400, hint)
+
     inv_num = doc.get("invoice_number", "INV-000")
     client_name = doc.get("client_name", "Client")
     total = doc.get("total", 0)
@@ -221,6 +249,39 @@ async def send_invoice_email(body: SendInvoiceEmailRequest, request: Request):
         rate = item.get("rate", 0)
         amt = qty * rate
         items_rows += f'<tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">{desc}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;">{qty} {unit}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right;">{sym}{rate:,.2f}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right;font-weight:600;">{sym}{amt:,.2f}</td></tr>'
+
+    # Totals breakdown for email body
+    discount_amount = float(doc.get("discount_amount", 0) or 0)
+    tax_amount = float(doc.get("tax_amount", 0) or 0)
+    tax_label = doc.get("tax_label") or "Tax"
+    payments_list = doc.get("payments", []) or []
+    paid_total = sum(float(p.get("amount", 0) or 0) for p in payments_list)
+    outstanding = max(0.0, float(total) - paid_total)
+
+    totals_rows = ""
+    if discount_amount > 0:
+        totals_rows += f'<tr><td style="padding:3px 0;color:#666">Discount</td><td style="padding:3px 0;text-align:right;color:#B53D2F">-{sym}{discount_amount:,.2f}</td></tr>'
+    if tax_amount > 0:
+        totals_rows += f'<tr><td style="padding:3px 0;color:#666">{tax_label}</td><td style="padding:3px 0;text-align:right">{sym}{tax_amount:,.2f}</td></tr>'
+
+    payments_block = ""
+    if payments_list:
+        rows_p = "".join(
+            f'<tr><td style="padding:4px 0;color:#666">{(p.get("date") or "")}</td>'
+            f'<td style="padding:4px 0;text-align:right;color:#2A6B45;font-weight:600">'
+            f'{sym}{float(p.get("amount", 0) or 0):,.2f}</td></tr>'
+            for p in payments_list
+        )
+        payments_block = (
+            f'<div style="margin-top:18px;padding:12px 16px;background:#F7FBF8;border-radius:8px;font-size:13px">'
+            f'<div style="font-weight:700;color:#2A6B45;margin-bottom:6px">Payments received</div>'
+            f'<table style="width:100%;font-size:12px">{rows_p}</table>'
+            f'<div style="margin-top:8px;display:flex;justify-content:space-between;border-top:1px solid #D8E8DE;padding-top:6px">'
+            f'<span style="color:#666">Outstanding balance</span>'
+            f'<span style="font-weight:700;color:{"#A0621A" if outstanding > 0 else "#2A6B45"}">{sym}{outstanding:,.2f}</span>'
+            f'</div></div>'
+        )
+
     payment_btn = ""
     if payment_link:
         payment_btn = f'<div style="text-align:center;margin:24px 0;"><a href="{payment_link}" style="background:{accent};color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:16px;display:inline-block;">Pay Now</a></div>'
@@ -248,10 +309,12 @@ async def send_invoice_email(body: SendInvoiceEmailRequest, request: Request):
           </tr></thead>
           <tbody>{items_rows}</tbody>
         </table>
-        <div style="text-align:right;margin-top:16px;padding-top:16px;border-top:2px solid {accent};">
+        <table style="width:100%;margin-top:14px;font-size:13px;color:#555">{totals_rows}</table>
+        <div style="text-align:right;margin-top:8px;padding-top:12px;border-top:2px solid {accent};">
           <span style="font-size:14px;color:#555;">Total Due: </span>
           <span style="font-size:24px;font-weight:700;color:{accent};">{sym}{total:,.2f}</span>
         </div>
+        {payments_block}
         {payment_btn}
         {"<div style='background:#f9f8f5;border-radius:8px;padding:12px 16px;margin-top:16px;font-size:13px;color:#666;'><strong>Notes:</strong> " + notes + "</div>" if notes else ""}
         <hr style="border:none;border-top:1px solid #eee;margin:24px 0;" />
@@ -260,18 +323,134 @@ async def send_invoice_email(body: SendInvoiceEmailRequest, request: Request):
       </div>
     </div>
     """
+
+    # Load any attachments stored on disk for this invoice and pass them to Resend.
+    resend_attachments = []
+    for a in doc.get("attachments", []) or []:
+        fpath = INVOICE_STORAGE_DIR / str(doc["_id"]) / f'{a["id"]}_{a["filename"]}'
+        try:
+            data = await asyncio.to_thread(fpath.read_bytes)
+            resend_attachments.append({
+                "filename": a["filename"],
+                "content": base64.b64encode(data).decode(),
+            })
+        except FileNotFoundError:
+            logger.warning("Attachment file missing for invoice %s: %s", doc["_id"], fpath)
+
     try:
         params = {"from": SENDER_EMAIL, "to": [body.recipient_email], "subject": subject, "html": html}
+        if resend_attachments:
+            params["attachments"] = resend_attachments
         email_result = await asyncio.to_thread(resend.Emails.send, params)
-        await db.invoices.update_one({"_id": ObjectId(body.invoice_id)}, {"$set": {"status": "sent", "updated_at": datetime.now(timezone.utc).isoformat()}})
-        return {"status": "sent", "email_id": email_result.get("id", ""), "message": f"Invoice sent to {body.recipient_email}"}
+        await db.invoices.update_one(
+            {"_id": ObjectId(body.invoice_id)},
+            {"$set": {"status": "sent", "updated_at": datetime.now(timezone.utc).isoformat()}},
+        )
+        return {
+            "status": "sent",
+            "email_id": email_result.get("id", ""),
+            "message": f"Invoice sent to {body.recipient_email}",
+            "attachments_count": len(resend_attachments),
+        }
     except Exception as e:
-        logger.error(f"Failed to send invoice email: {e}")
-        raise HTTPException(500, f"Failed to send email: {str(e)}")
+        msg = str(e)
+        logger.error("Failed to send invoice email: %s", msg)
+        # Surface Resend's most common errors as user-friendly text.
+        lower = msg.lower()
+        if "you can only send testing emails" in lower or "verify" in lower and "domain" in lower:
+            raise HTTPException(
+                400,
+                "Resend only allows test emails to your account owner address. "
+                "Verify a domain at https://resend.com/domains and update SENDER_EMAIL in backend/.env.",
+            )
+        if "invalid" in lower and "api" in lower:
+            raise HTTPException(500, "Email provider rejected the API key. Check RESEND_API_KEY in backend/.env.")
+        raise HTTPException(500, f"Failed to send email: {msg}")
+
+
+# ── Invoice attachments (saved on the invoice itself) ───
+
+@router.post("/{invoice_id}/attachments")
+async def upload_attachment(invoice_id: str, request: Request, file: UploadFile = File(...)):
+    user = await get_current_user(request)
+    db = get_db()
+    doc = await db.invoices.find_one({"_id": ObjectId(invoice_id), "user_id": str(user["_id"])})
+    if not doc:
+        raise HTTPException(404, "Invoice not found")
+
+    content = await file.read()
+    size = len(content)
+    if size == 0:
+        raise HTTPException(400, "Empty file")
+
+    existing_total = sum(int(a.get("size", 0) or 0) for a in doc.get("attachments", []) or [])
+    if existing_total + size > MAX_INVOICE_ATTACHMENT_TOTAL:
+        raise HTTPException(
+            413,
+            f"Total attachment size would exceed 25 MB limit. "
+            f"Current: {existing_total / 1024 / 1024:.1f} MB, this file: {size / 1024 / 1024:.1f} MB.",
+        )
+
+    folder = INVOICE_STORAGE_DIR / invoice_id
+    folder.mkdir(parents=True, exist_ok=True)
+    att_id = _secrets.token_urlsafe(12)
+    safe_name = "".join(c for c in (file.filename or "file") if c.isalnum() or c in ("-", "_", ".")) or "file"
+    target = folder / f"{att_id}_{safe_name}"
+    await asyncio.to_thread(target.write_bytes, content)
+
+    att = {
+        "id": att_id,
+        "filename": safe_name,
+        "mime": file.content_type or "application/octet-stream",
+        "size": size,
+        "uploaded_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.invoices.update_one(
+        {"_id": ObjectId(invoice_id)},
+        {"$push": {"attachments": att}, "$set": {"updated_at": att["uploaded_at"]}},
+    )
+    return att
+
+
+@router.delete("/{invoice_id}/attachments/{attachment_id}")
+async def delete_attachment(invoice_id: str, attachment_id: str, request: Request):
+    user = await get_current_user(request)
+    db = get_db()
+    doc = await db.invoices.find_one({"_id": ObjectId(invoice_id), "user_id": str(user["_id"])})
+    if not doc:
+        raise HTTPException(404, "Invoice not found")
+    att = next((a for a in doc.get("attachments", []) or [] if a.get("id") == attachment_id), None)
+    if not att:
+        raise HTTPException(404, "Attachment not found")
+    fpath = INVOICE_STORAGE_DIR / invoice_id / f'{att["id"]}_{att["filename"]}'
+    try:
+        await asyncio.to_thread(fpath.unlink)
+    except FileNotFoundError:
+        pass
+    await db.invoices.update_one(
+        {"_id": ObjectId(invoice_id)},
+        {"$pull": {"attachments": {"id": attachment_id}},
+         "$set": {"updated_at": datetime.now(timezone.utc).isoformat()}},
+    )
+    return {"status": "deleted"}
+
+
+@router.get("/{invoice_id}/attachments/{attachment_id}")
+async def download_attachment(invoice_id: str, attachment_id: str, request: Request):
+    user = await get_current_user(request)
+    db = get_db()
+    doc = await db.invoices.find_one({"_id": ObjectId(invoice_id), "user_id": str(user["_id"])})
+    if not doc:
+        raise HTTPException(404, "Invoice not found")
+    att = next((a for a in doc.get("attachments", []) or [] if a.get("id") == attachment_id), None)
+    if not att:
+        raise HTTPException(404, "Attachment not found")
+    fpath = INVOICE_STORAGE_DIR / invoice_id / f'{att["id"]}_{att["filename"]}'
+    if not fpath.exists():
+        raise HTTPException(404, "File not found on disk")
+    return FileResponse(path=fpath, filename=att["filename"], media_type=att.get("mime") or "application/octet-stream")
 
 # ── Public client portal ────────────────────────────────
-
-import secrets
 
 def _portal_html(doc: dict) -> str:
     """Render a clean public invoice view + Pay button if payment_link is set."""
@@ -286,13 +465,80 @@ def _portal_html(doc: dict) -> str:
         rate = it.get("rate", 0)
         amt = qty * rate
         rows += f'<tr><td style="padding:10px 12px;border-bottom:1px solid #eee;">{desc}</td><td style="padding:10px 12px;border-bottom:1px solid #eee;text-align:center;">{qty} {unit}</td><td style="padding:10px 12px;border-bottom:1px solid #eee;text-align:right;">{sym}{rate:,.2f}</td><td style="padding:10px 12px;border-bottom:1px solid #eee;text-align:right;font-weight:600;">{sym}{amt:,.2f}</td></tr>'
+
+    # Subtotal / discount / tax breakdown
+    subtotal = float(doc.get("subtotal", 0) or 0)
+    discount_amount = float(doc.get("discount_amount", 0) or 0)
+    tax_amount = float(doc.get("tax_amount", 0) or 0)
+    tax_label = doc.get("tax_label") or "Tax"
+    breakdown = (
+        f'<tr><td style="padding:4px 0;color:#6E6B63">Subtotal</td>'
+        f'<td style="padding:4px 0;text-align:right">{sym}{subtotal:,.2f}</td></tr>'
+    )
+    if discount_amount > 0:
+        breakdown += (
+            f'<tr><td style="padding:4px 0;color:#6E6B63">Discount</td>'
+            f'<td style="padding:4px 0;text-align:right;color:#B53D2F">-{sym}{discount_amount:,.2f}</td></tr>'
+        )
+    if tax_amount > 0:
+        breakdown += (
+            f'<tr><td style="padding:4px 0;color:#6E6B63">{tax_label}</td>'
+            f'<td style="padding:4px 0;text-align:right">{sym}{tax_amount:,.2f}</td></tr>'
+        )
+
+    # Payments + outstanding
+    payments_list = doc.get("payments", []) or []
+    paid_total = sum(float(p.get("amount", 0) or 0) for p in payments_list)
+    total = float(doc.get("total", 0) or 0)
+    outstanding = max(0.0, total - paid_total)
+    payments_block = ""
+    if payments_list:
+        rows_p = "".join(
+            f'<tr><td style="padding:6px 0;color:#6E6B63;font-size:12px">{(p.get("date") or "")}</td>'
+            f'<td style="padding:6px 0;text-align:right;color:#2A6B45;font-weight:600;font-size:13px">'
+            f'{sym}{float(p.get("amount", 0) or 0):,.2f}</td></tr>'
+            for p in payments_list
+        )
+        payments_block = (
+            f'<div style="background:#F7FBF8;border-radius:8px;padding:14px 18px;margin-top:18px">'
+            f'<div style="font-weight:700;color:#2A6B45;font-size:13px;margin-bottom:8px">'
+            f'Payments received ({len(payments_list)})</div>'
+            f'<table style="width:100%">{rows_p}</table>'
+            f'<div style="display:flex;justify-content:space-between;border-top:1px solid #D8E8DE;'
+            f'padding-top:8px;margin-top:8px;font-size:13px">'
+            f'<span style="color:#6E6B63">Outstanding balance</span>'
+            f'<span style="font-weight:700;color:{"#A0621A" if outstanding > 0 else "#2A6B45"}">'
+            f'{sym}{outstanding:,.2f}</span></div></div>'
+        )
+
+    # Attachments
+    attachments = doc.get("attachments", []) or []
+    attachments_block = ""
+    if attachments:
+        att_links = ""
+        share_token = doc.get("share_token", "")
+        for a in attachments:
+            label = a.get("filename", "file")
+            size_kb = max(1, int((a.get("size", 0) or 0) / 1024))
+            href = f'/api/invoices/public/{share_token}/attachments/{a.get("id", "")}' if share_token else "#"
+            att_links += (
+                f'<li style="margin:4px 0"><a href="{href}" style="color:#0B3D3D;text-decoration:none;'
+                f'font-weight:600">📎 {label}</a> '
+                f'<span style="color:#9A968B;font-size:11px">({size_kb} KB)</span></li>'
+            )
+        attachments_block = (
+            f'<div style="background:#FAF5EE;border-radius:8px;padding:14px 18px;margin-top:18px">'
+            f'<div style="font-weight:700;font-size:13px;margin-bottom:6px">Attachments</div>'
+            f'<ul style="list-style:none;padding:0;margin:0;font-size:13px">{att_links}</ul></div>'
+        )
+
     pay_btn = ""
     pl = doc.get("payment_link", "")
     accent = doc.get("accent_color", "#0B3D3D")
     if pl and doc.get("status") != "paid":
-        pay_btn = f'<a href="{pl}" data-testid="public-pay-btn" target="_blank" rel="noopener" style="display:inline-block;background:{accent};color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;">Pay Now {sym}{doc.get("total",0):,.2f}</a>'
+        pay_btn = f'<a href="{pl}" data-testid="public-pay-btn" target="_blank" rel="noopener" style="display:inline-block;background:{accent};color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;">Pay Now {sym}{outstanding if outstanding > 0 else total:,.2f}</a>'
     status = doc.get("status", "sent")
-    status_color = {"paid": "#2A6B45", "overdue": "#B53D2F", "sent": "#A0621A"}.get(status, "#6E6B63")
+    status_color = {"paid": "#2A6B45", "overdue": "#B53D2F", "sent": "#A0621A", "partial": "#A0621A"}.get(status, "#6E6B63")
     return f"""<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Invoice {doc.get("invoice_number","")} from {doc.get("business_name","")}</title>
@@ -308,7 +554,8 @@ body{{margin:0;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Arial,sans-
 .pill{{display:inline-block;padding:4px 10px;border-radius:99px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;}}
 table{{width:100%;border-collapse:collapse;font-size:13px;}}
 thead th{{background:#f9f8f5;padding:10px 12px;text-align:left;color:#6E6B63;font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:0.05em;}}
-.totals{{margin-top:18px;padding-top:18px;border-top:2px solid {accent};text-align:right;}}
+.breakdown{{margin-top:18px;padding-top:18px;border-top:1px solid #eee;font-size:13px;}}
+.totals{{margin-top:14px;padding-top:14px;border-top:2px solid {accent};text-align:right;}}
 .totals .big{{font-size:28px;font-weight:700;color:{accent};}}
 .cta{{text-align:center;margin:32px 0 8px;}}
 .foot{{text-align:center;padding:18px;font-size:11px;color:#6E6B63;}}
@@ -329,7 +576,10 @@ thead th{{background:#f9f8f5;padding:10px 12px;text-align:left;color:#6E6B63;fon
 </div>
 <table><thead><tr><th>Description</th><th style="text-align:center">Qty</th><th style="text-align:right">Rate</th><th style="text-align:right">Amount</th></tr></thead>
 <tbody>{rows}</tbody></table>
-<div class="totals"><div style="font-size:12px;color:#6E6B63">Total due</div><div class="big">{sym}{doc.get("total",0):,.2f}</div></div>
+<table class="breakdown">{breakdown}</table>
+<div class="totals"><div style="font-size:12px;color:#6E6B63">Total due</div><div class="big">{sym}{total:,.2f}</div></div>
+{payments_block}
+{attachments_block}
 <div class="cta">{pay_btn}</div>
 {"<div style='background:#FAF5EE;border-radius:8px;padding:14px 18px;margin-top:12px;font-size:13px'><b>Notes:</b> "+(doc.get("notes",""))+"</div>" if doc.get("notes") else ""}
 </div>
@@ -347,7 +597,7 @@ async def share_invoice(invoice_id: str, request: Request):
         raise HTTPException(404, "Invoice not found")
     token = doc.get("share_token")
     if not token:
-        token = secrets.token_urlsafe(24)
+        token = _secrets.token_urlsafe(24)
         await db.invoices.update_one(
             {"_id": ObjectId(invoice_id)},
             {"$set": {"share_token": token, "updated_at": datetime.now(timezone.utc).isoformat()}},
@@ -365,6 +615,22 @@ async def public_invoice(token: str):
     if not doc:
         raise HTTPException(404, "Invoice not found")
     return HTMLResponse(content=_portal_html(doc), status_code=200)
+
+
+@router.get("/public/{token}/attachments/{attachment_id}")
+async def public_download_attachment(token: str, attachment_id: str):
+    """Public download for an attachment via the invoice share token."""
+    db = get_db()
+    doc = await db.invoices.find_one({"share_token": token})
+    if not doc:
+        raise HTTPException(404, "Invoice not found")
+    att = next((a for a in doc.get("attachments", []) or [] if a.get("id") == attachment_id), None)
+    if not att:
+        raise HTTPException(404, "Attachment not found")
+    fpath = INVOICE_STORAGE_DIR / str(doc["_id"]) / f'{att["id"]}_{att["filename"]}'
+    if not fpath.exists():
+        raise HTTPException(404, "File not found on disk")
+    return FileResponse(path=fpath, filename=att["filename"], media_type=att.get("mime") or "application/octet-stream")
 
 
 # ── Parameterized routes ────────────────────────────────

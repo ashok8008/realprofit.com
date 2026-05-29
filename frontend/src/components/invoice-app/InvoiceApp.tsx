@@ -69,6 +69,7 @@ export function InvoiceApp() {
     setInv({ ...defaultInvoice, invoice_number: nextNum });
     setEditingId(null);
     setActiveTab("editor");
+    toast({ title: "New invoice", description: "Form cleared — start fresh." });
   };
 
   const handleSave = async () => {
@@ -173,7 +174,13 @@ export function InvoiceApp() {
     if (!editingId) { toast({ title: "Save invoice first" }); return; }
     try {
       await invoiceApi.recordPayment(editingId, { amount, date, note });
-      setInv(prev => ({ ...prev, payments: [...prev.payments, { amount, date, note }] }));
+      setInv(prev => {
+        const newPayments = [...prev.payments, { amount, date, note }];
+        const totals = calcTotals(prev);
+        const paid = newPayments.reduce((s, p) => s + p.amount, 0);
+        const newStatus: InvoiceData["status"] = paid >= totals.total ? "paid" : "partial";
+        return { ...prev, payments: newPayments, status: newStatus };
+      });
       setPaymentModal(false);
       toast({ title: "Payment recorded" });
       loadData();
@@ -211,18 +218,40 @@ export function InvoiceApp() {
         setEmailModal(false);
         toast({ title: "Invoice sent!", description: `Email sent to ${recipientEmail}` });
         loadData();
-      } catch {
-        toast({ title: "Failed to send", variant: "destructive" });
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : "Failed to send";
+        toast({ title: "Failed to send", description: msg, variant: "destructive" });
       }
       return;
     }
     try {
       await invoiceApi.sendEmail({ invoice_id: editingId, recipient_email: recipientEmail, subject, message });
       setEmailModal(false);
+      setInv(prev => ({ ...prev, status: "sent" }));
       toast({ title: "Invoice sent!", description: `Email sent to ${recipientEmail}` });
       loadData();
-    } catch {
-      toast({ title: "Failed to send email", variant: "destructive" });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Failed to send email";
+      toast({ title: "Failed to send email", description: msg, variant: "destructive" });
+    }
+  };
+
+  const handleUploadAttachment = async (file: File) => {
+    if (!editingId) throw new Error("Save the invoice first");
+    const att = await invoiceApi.uploadAttachment(editingId, file);
+    setInv(prev => ({ ...prev, attachments: [...prev.attachments, att] }));
+    toast({ title: "Attachment added", description: file.name });
+  };
+
+  const handleDeleteAttachment = async (attachmentId: string) => {
+    if (!editingId) return;
+    try {
+      await invoiceApi.deleteAttachment(editingId, attachmentId);
+      setInv(prev => ({ ...prev, attachments: prev.attachments.filter(a => a.id !== attachmentId) }));
+      toast({ title: "Attachment removed" });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Failed to remove attachment";
+      toast({ title: "Failed", description: msg, variant: "destructive" });
     }
   };
 
@@ -329,6 +358,38 @@ export function InvoiceApp() {
       doc.text("TOTAL", tx, y + 5);
       const ts = `${sym}${totals.total.toFixed(2)}`;
       doc.text(ts, vx - doc.getTextWidth(ts), y + 5);
+      y += 14;
+
+      // Payments received + outstanding (Issue #6)
+      const paidTotal = inv.payments.reduce((s, p) => s + p.amount, 0);
+      const outstanding = Math.max(0, totals.total - paidTotal);
+      if (inv.payments.length > 0) {
+        doc.setFont("helvetica", "bold"); doc.setFontSize(9);
+        doc.setTextColor(BRAND.accent[0], BRAND.accent[1], BRAND.accent[2]);
+        doc.text("PAYMENTS RECEIVED", LM, y); y += 5;
+        doc.setFont("helvetica", "normal"); doc.setFontSize(8);
+        doc.setTextColor(BRAND.dark[0], BRAND.dark[1], BRAND.dark[2]);
+        inv.payments.forEach(p => {
+          const lbl = `${p.date || "—"}${p.note ? ` · ${p.note}` : ""}`;
+          const amt = `${sym}${p.amount.toFixed(2)}`;
+          doc.text(lbl.substring(0, 60), LM, y);
+          doc.setTextColor(42, 107, 69);
+          doc.text(amt, vx - doc.getTextWidth(amt), y);
+          doc.setTextColor(BRAND.dark[0], BRAND.dark[1], BRAND.dark[2]);
+          y += 5;
+        });
+        y += 2;
+        doc.setDrawColor(BRAND.muted[0], BRAND.muted[1], BRAND.muted[2]);
+        doc.line(LM, y, LM + PW, y);
+        y += 4;
+        doc.setFont("helvetica", "bold"); doc.setFontSize(10);
+        doc.setTextColor(BRAND.dark[0], BRAND.dark[1], BRAND.dark[2]);
+        doc.text("Outstanding Balance", LM, y);
+        const os = `${sym}${outstanding.toFixed(2)}`;
+        doc.setTextColor(outstanding > 0 ? 160 : 42, outstanding > 0 ? 98 : 107, outstanding > 0 ? 26 : 69);
+        doc.text(os, vx - doc.getTextWidth(os), y);
+        y += 8;
+      }
 
       drawFooter(doc);
 
@@ -395,7 +456,24 @@ export function InvoiceApp() {
 
           {/* Tab content */}
           {activeTab === "editor" && (
-            <InvoiceEditor inv={inv} setInv={setInv} clients={clients} onSaveAsClient={handleSaveAsClient} onRecordPayment={() => setPaymentModal(true)} onLogoUpload={handleLogoUpload} />
+            <InvoiceEditor
+              inv={inv}
+              setInv={setInv}
+              clients={clients}
+              editingId={editingId}
+              onSaveAsClient={handleSaveAsClient}
+              onRecordPayment={() => setPaymentModal(true)}
+              onLogoUpload={handleLogoUpload}
+              onUploadAttachment={handleUploadAttachment}
+              onDeleteAttachment={handleDeleteAttachment}
+              onNewInvoice={handleNewInvoice}
+              onDuplicate={handleDuplicate}
+              onSave={handleSave}
+              onSendEmail={() => setEmailModal(true)}
+              onShare={handleShare}
+              onExportCSV={handleExportCSV}
+              onDownloadPDF={handleDownloadPDF}
+            />
           )}
           {activeTab === "clients" && (
             <ClientsTab

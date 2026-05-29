@@ -14,6 +14,14 @@ export interface PaymentRecord {
   recorded_at?: string;
 }
 
+export interface InvoiceAttachment {
+  id: string;
+  filename: string;
+  mime: string;
+  size: number;
+  uploaded_at: string;
+}
+
 export interface InvoiceData {
   id?: string;
   invoice_number: string;
@@ -49,6 +57,7 @@ export interface InvoiceData {
   tax_amount: number;
   total: number;
   payments: PaymentRecord[];
+  attachments: InvoiceAttachment[];
 }
 
 export interface ClientData {
@@ -104,6 +113,7 @@ export const defaultInvoice: InvoiceData = {
   tax_amount: 0,
   total: 0,
   payments: [],
+  attachments: [],
 };
 
 export function getCurrencySymbol(code: string): string {

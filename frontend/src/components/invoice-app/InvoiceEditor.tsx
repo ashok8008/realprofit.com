@@ -1,16 +1,27 @@
 "use client";
-import React from "react";
-import { Plus, Trash2, Upload, X } from "lucide-react";
-import type { InvoiceData, ClientData, LineItem } from "./types";
+import React, { useState } from "react";
+import { Plus, Trash2, Upload, X, Paperclip, FileText, Save, Send, Link2, Copy, Download, FilePlus } from "lucide-react";
+import type { InvoiceData, ClientData, LineItem, InvoiceAttachment } from "./types";
 import { UNITS, getCurrencySymbol, calcTotals } from "./types";
 
 interface EditorProps {
   inv: InvoiceData;
   setInv: React.Dispatch<React.SetStateAction<InvoiceData>>;
   clients: ClientData[];
+  editingId: string | null;
   onSaveAsClient: () => void;
   onRecordPayment: () => void;
   onLogoUpload: (file: File) => void;
+  onUploadAttachment: (file: File) => Promise<void>;
+  onDeleteAttachment: (attachmentId: string) => Promise<void>;
+  // Top-right action toolbar handlers (Issue #7)
+  onNewInvoice: () => void;
+  onDuplicate: () => void;
+  onSave: () => void;
+  onSendEmail: () => void;
+  onShare: () => void;
+  onExportCSV: () => void;
+  onDownloadPDF: () => void;
 }
 
 const lbl = "text-[11px] font-semibold text-[#6E6B63] uppercase tracking-wider mb-1 block";
@@ -18,9 +29,16 @@ const inp = "w-full bg-[#F9F8F5] border border-[#E2DDD4] rounded-md px-3 py-2 te
 const fst = "text-[11px] font-bold text-[#0B3D3D] uppercase tracking-widest mb-3 flex items-center gap-2";
 const section = "bg-white border border-[#E2DDD4] rounded-xl p-5 mb-3.5";
 
-export function InvoiceEditor({ inv, setInv, clients, onSaveAsClient, onRecordPayment, onLogoUpload }: EditorProps) {
+export function InvoiceEditor({
+  inv, setInv, clients, editingId,
+  onSaveAsClient, onRecordPayment, onLogoUpload,
+  onUploadAttachment, onDeleteAttachment,
+  onNewInvoice, onDuplicate, onSave, onSendEmail, onShare, onExportCSV, onDownloadPDF,
+}: EditorProps) {
   const sym = getCurrencySymbol(inv.currency);
   const totals = calcTotals(inv);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [attachmentError, setAttachmentError] = useState("");
 
   const set = (field: keyof InvoiceData, value: unknown) => setInv(prev => ({ ...prev, [field]: value }));
   const setItem = (id: string, field: keyof LineItem, value: unknown) => setInv(prev => ({ ...prev, items: prev.items.map(i => i.id === id ? { ...i, [field]: value } : i) }));
@@ -32,12 +50,8 @@ export function InvoiceEditor({ inv, setInv, clients, onSaveAsClient, onRecordPa
     if (c) setInv(prev => ({ ...prev, client_id: c.id || "", client_name: c.name, client_company: c.company, client_email: c.email, client_address: c.address }));
   };
 
-  const cycleStatus = () => {
-    const order: InvoiceData["status"][] = ["draft", "sent", "paid", "overdue", "partial"];
-    const idx = order.indexOf(inv.status);
-    set("status", order[(idx + 1) % order.length]);
-  };
-
+  // Status is now a passive label — it auto-updates on real actions
+  // (sent on email send, paid/partial on record-payment, overdue on cron).
   const statusColors: Record<string, string> = {
     draft: "bg-gray-200 text-gray-700",
     sent: "bg-blue-100 text-blue-700",
@@ -48,14 +62,55 @@ export function InvoiceEditor({ inv, setInv, clients, onSaveAsClient, onRecordPa
 
   const paidTotal = inv.payments.reduce((s, p) => s + p.amount, 0);
   const outstanding = Math.max(0, totals.total - paidTotal);
+  const attachmentTotalBytes = inv.attachments.reduce((s, a) => s + a.size, 0);
+  const attachmentLimitBytes = 25 * 1024 * 1024;
+  const attachmentRemaining = Math.max(0, attachmentLimitBytes - attachmentTotalBytes);
+
+  const handleAttachmentChoose = async (file: File | null | undefined) => {
+    if (!file) return;
+    setAttachmentError("");
+    if (!editingId) {
+      setAttachmentError("Save the invoice first, then add attachments.");
+      return;
+    }
+    if (file.size > attachmentRemaining) {
+      setAttachmentError(`File too large. Remaining: ${(attachmentRemaining / 1024 / 1024).toFixed(1)} MB.`);
+      return;
+    }
+    setUploadingAttachment(true);
+    try {
+      await onUploadAttachment(file);
+    } catch (e) {
+      setAttachmentError(e instanceof Error ? e.message : "Upload failed");
+    } finally {
+      setUploadingAttachment(false);
+    }
+  };
+
+  const fmtSize = (b: number): string => b < 1024 ? `${b} B` : b < 1048576 ? `${(b / 1024).toFixed(0)} KB` : `${(b / 1048576).toFixed(1)} MB`;
+
+  const toolbarBtn = "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md border transition-colors";
 
   return (
     <div className="max-w-2xl mx-auto py-6 px-4" data-testid="invoice-editor">
+      {/* Top-right action toolbar (Issue #7) */}
+      <div className="flex flex-wrap items-center justify-end gap-2 mb-4" data-testid="invoice-top-toolbar">
+        <button onClick={onNewInvoice} className={`${toolbarBtn} text-[#0B3D3D] bg-white border-[#E2DDD4] hover:bg-[#F9F8F5]`} data-testid="toolbar-new-invoice"><FilePlus className="w-3.5 h-3.5" /> New</button>
+        <button onClick={onDuplicate} className={`${toolbarBtn} text-[#0B3D3D] bg-white border-[#E2DDD4] hover:bg-[#F9F8F5]`} data-testid="toolbar-duplicate"><Copy className="w-3.5 h-3.5" /> Duplicate</button>
+        <button onClick={onSave} className={`${toolbarBtn} text-white bg-[#0B3D3D] border-[#0B3D3D] hover:bg-[#165252]`} data-testid="toolbar-save"><Save className="w-3.5 h-3.5" /> Save</button>
+        <button onClick={onSendEmail} className={`${toolbarBtn} text-white bg-[#0B3D3D] border-[#0B3D3D] hover:bg-[#165252]`} data-testid="toolbar-send"><Send className="w-3.5 h-3.5" /> Send</button>
+        <button onClick={onShare} className={`${toolbarBtn} text-[#0B3D3D] bg-white border-[#E2DDD4] hover:bg-[#F9F8F5]`} data-testid="toolbar-share"><Link2 className="w-3.5 h-3.5" /> Copy link</button>
+        <button onClick={onDownloadPDF} className={`${toolbarBtn} text-[#0B3D3D] bg-white border-[#E2DDD4] hover:bg-[#F9F8F5]`} data-testid="toolbar-pdf"><Download className="w-3.5 h-3.5" /> PDF</button>
+        <button onClick={onExportCSV} className={`${toolbarBtn} text-[#0B3D3D] bg-white border-[#E2DDD4] hover:bg-[#F9F8F5]`} data-testid="toolbar-csv"><Download className="w-3.5 h-3.5" /> CSV</button>
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
-        <h1 className="text-2xl font-bold text-[#1C1B18] tracking-tight">Create Invoice</h1>
+        <h1 className="text-2xl font-bold text-[#1C1B18] tracking-tight">{editingId ? "Edit Invoice" : "Create Invoice"}</h1>
         <div className="flex items-center gap-2">
-          <button onClick={cycleStatus} className={`px-3 py-1 rounded-full text-xs font-bold cursor-pointer ${statusColors[inv.status]}`} data-testid="status-toggle">{inv.status.charAt(0).toUpperCase() + inv.status.slice(1)}</button>
+          <span className={`px-3 py-1 rounded-full text-xs font-bold ${statusColors[inv.status]}`} data-testid="status-label" title="Status changes automatically based on send and payment actions">
+            {inv.status.charAt(0).toUpperCase() + inv.status.slice(1)}
+          </span>
         </div>
       </div>
 
@@ -210,6 +265,69 @@ export function InvoiceEditor({ inv, setInv, clients, onSaveAsClient, onRecordPa
           <span className="text-sm font-bold">Outstanding: <span className={outstanding > 0 ? "text-amber-700" : "text-emerald-700"}>{sym}{outstanding.toFixed(2)}</span></span>
           <button onClick={onRecordPayment} className="bg-[#0B3D3D] text-white text-xs font-bold px-4 py-2 rounded-md hover:bg-[#165252] transition-colors" data-testid="record-payment-btn">Record Payment</button>
         </div>
+      </div>
+
+      {/* Attachments (Issue #3) */}
+      <div className={section}>
+        <p className={fst}><Paperclip className="w-3.5 h-3.5" /> Attachments</p>
+        <p className="text-xs text-[#6E6B63] mb-3">
+          Attach contracts, work proofs, PDFs or images that should be emailed along with this invoice. Max 25 MB total.
+        </p>
+
+        {!editingId && (
+          <div className="bg-[#FAF5EE] border border-[#C8A96E]/40 rounded-md px-3 py-2 text-xs text-[#6E6B63] mb-3">
+            💡 Save the invoice first to enable attachments.
+          </div>
+        )}
+
+        {inv.attachments.length > 0 && (
+          <div className="space-y-1.5 mb-3" data-testid="attachment-list">
+            {inv.attachments.map((a: InvoiceAttachment) => (
+              <div key={a.id} className="flex items-center justify-between bg-[#F9F8F5] rounded-md px-3 py-2 text-sm" data-testid={`attachment-${a.id}`}>
+                <div className="flex items-center gap-2 min-w-0">
+                  <FileText className="w-4 h-4 text-[#0B3D3D] flex-shrink-0" />
+                  <span className="font-medium truncate text-[#1C1B18]">{a.filename}</span>
+                  <span className="text-[11px] text-[#9A968B] flex-shrink-0">{fmtSize(a.size)}</span>
+                </div>
+                <button
+                  onClick={() => onDeleteAttachment(a.id)}
+                  className="text-red-500 hover:text-red-700 ml-2 flex-shrink-0"
+                  data-testid={`attachment-delete-${a.id}`}
+                  aria-label={`Remove ${a.filename}`}
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex items-center gap-3">
+          <label
+            className={`inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-md cursor-pointer transition-colors ${
+              editingId
+                ? "text-[#0B3D3D] bg-white border border-[#0B3D3D] hover:bg-[#F9F8F5]"
+                : "text-[#9A968B] bg-[#F9F8F5] border border-[#E2DDD4] cursor-not-allowed"
+            }`}
+            data-testid="attachment-upload-label"
+          >
+            <Upload className="w-3.5 h-3.5" /> {uploadingAttachment ? "Uploading…" : "Add Attachment"}
+            <input
+              type="file"
+              accept=".pdf,.png,.jpg,.jpeg,.webp,.heic,.gif,.docx,.xlsx,.csv,.txt"
+              className="hidden"
+              disabled={!editingId || uploadingAttachment}
+              onChange={e => handleAttachmentChoose(e.target.files?.[0])}
+              data-testid="attachment-input"
+            />
+          </label>
+          <span className="text-[11px] text-[#9A968B]">
+            {fmtSize(attachmentTotalBytes)} / 25 MB used
+          </span>
+        </div>
+        {attachmentError && (
+          <p className="text-xs text-red-600 mt-2" data-testid="attachment-error">{attachmentError}</p>
+        )}
       </div>
 
       {/* Recurring */}

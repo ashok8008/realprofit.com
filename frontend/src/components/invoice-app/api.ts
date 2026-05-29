@@ -36,6 +36,19 @@ export const invoiceApi = {
   stats: () => f("/api/invoices/stats/summary"),
   sendEmail: (data: { invoice_id: string; recipient_email: string; subject?: string; message?: string }) => f("/api/invoices/send-email", { method: "POST", body: JSON.stringify(data) }),
   share: (id: string) => f(`/api/invoices/${id}/share`, { method: "POST" }),
+  uploadAttachment: async (id: string, file: File) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    const res = await fetch(`${API}/api/invoices/${id}/attachments`, { method: "POST", credentials: "include", body: fd });
+    if (!res.ok) {
+      let msg = `${res.status} ${res.statusText}`;
+      try { const b = await res.json(); if (typeof b?.detail === "string") msg = b.detail; } catch {}
+      throw new Error(msg);
+    }
+    return res.json();
+  },
+  deleteAttachment: (id: string, attachmentId: string) =>
+    f(`/api/invoices/${id}/attachments/${attachmentId}`, { method: "DELETE" }),
 };
 
 export const clientApi = {
