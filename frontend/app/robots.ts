@@ -1,5 +1,8 @@
 import type { MetadataRoute } from "next";
 
+// Required when next.config.ts has `output: "export"`
+export const dynamic = "force-static";
+
 const BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "https://realprofits.com";
 
 export default function robots(): MetadataRoute.Robots {
