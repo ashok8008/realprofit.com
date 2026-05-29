@@ -435,8 +435,7 @@ export function InvoiceApp() {
       <InvoiceSidebar
         activeTab={activeTab} setActiveTab={setActiveTab}
         currency={inv.currency} setCurrency={c => setInv(prev => ({ ...prev, currency: c }))}
-        onNewInvoice={handleNewInvoice} onDuplicate={handleDuplicate}
-        onSave={handleSave} onSendEmail={() => setEmailModal(true)} onShare={handleShare} onExportCSV={handleExportCSV}
+        onNewInvoice={handleNewInvoice}
         clientCount={clients.length} invoiceCount={invoices.length}
       />
 

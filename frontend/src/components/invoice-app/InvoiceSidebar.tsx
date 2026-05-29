@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import Link from "next/link";
-import { FilePlus, Users, Clock, Copy, Save, Download, ChevronLeft, Send, Link2 } from "lucide-react";
+import { FilePlus, Users, Clock, ChevronLeft } from "lucide-react";
 import { CURRENCIES } from "./types";
 
 type Tab = "editor" | "clients" | "history";
@@ -12,16 +12,11 @@ interface SidebarProps {
   currency: string;
   setCurrency: (c: string) => void;
   onNewInvoice: () => void;
-  onDuplicate: () => void;
-  onSave: () => void;
-  onSendEmail: () => void;
-  onShare: () => void;
-  onExportCSV: () => void;
   clientCount: number;
   invoiceCount: number;
 }
 
-export function InvoiceSidebar({ activeTab, setActiveTab, currency, setCurrency, onNewInvoice, onDuplicate, onSave, onSendEmail, onShare, onExportCSV, clientCount, invoiceCount }: SidebarProps) {
+export function InvoiceSidebar({ activeTab, setActiveTab, currency, setCurrency, onNewInvoice, clientCount, invoiceCount }: SidebarProps) {
   const nav = (tab: Tab) => () => setActiveTab(tab);
 
   return (
@@ -56,23 +51,9 @@ export function InvoiceSidebar({ activeTab, setActiveTab, currency, setCurrency,
           {invoiceCount > 0 && <span className="bg-white/20 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{invoiceCount}</span>}
         </button>
 
-        <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest px-2 mt-5 mb-2">Actions</p>
-
-        <button onClick={onDuplicate} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm text-white/70 hover:bg-white/8 hover:text-white transition-colors mb-0.5" data-testid="sidebar-duplicate">
-          <Copy className="w-4 h-4" /> Duplicate
-        </button>
-        <button onClick={onSave} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm text-white/70 hover:bg-white/8 hover:text-white transition-colors mb-0.5" data-testid="sidebar-save">
-          <Save className="w-4 h-4" /> Save Invoice
-        </button>
-        <button onClick={onSendEmail} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm text-white/70 hover:bg-white/8 hover:text-white transition-colors mb-0.5" data-testid="sidebar-send-email">
-          <Send className="w-4 h-4" /> Send by Email
-        </button>
-        <button onClick={onShare} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm text-white/70 hover:bg-white/8 hover:text-white transition-colors mb-0.5" data-testid="sidebar-share">
-          <Link2 className="w-4 h-4" /> Copy share link
-        </button>
-        <button onClick={onExportCSV} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm text-white/70 hover:bg-white/8 hover:text-white transition-colors mb-0.5" data-testid="sidebar-export-csv">
-          <Download className="w-4 h-4" /> Export CSV
-        </button>
+        <p className="text-[10px] text-white/30 px-2 mt-6 leading-relaxed">
+          Action buttons (Save, Send, Copy link, PDF, CSV) are at the top of the editor.
+        </p>
       </nav>
 
       {/* Currency */}
