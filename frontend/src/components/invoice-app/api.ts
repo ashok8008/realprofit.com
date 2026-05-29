@@ -5,7 +5,24 @@ const API = process.env.NEXT_PUBLIC_BACKEND_URL;
 async function f(path: string, opts?: RequestInit) {
   const res = await fetch(`${API}${path}`, { credentials: "include", ...opts, headers: { "Content-Type": "application/json", ...opts?.headers } });
   if (res.status === 401) throw new Error("AUTH_REQUIRED");
-  if (!res.ok) throw new Error(await res.text());
+  if (!res.ok) {
+    let msg = `${res.status} ${res.statusText}`;
+    try {
+      const body = await res.json();
+      // FastAPI sends 422 errors as { detail: [{ loc, msg, type }] }
+      if (Array.isArray(body?.detail)) {
+        msg = body.detail.map((d: { loc?: unknown[]; msg?: string }) => {
+          const field = Array.isArray(d.loc) ? d.loc[d.loc.length - 1] : "field";
+          return `${field}: ${d.msg || "invalid"}`;
+        }).join(", ");
+      } else if (typeof body?.detail === "string") {
+        msg = body.detail;
+      }
+    } catch {
+      // body wasn't JSON; keep default msg
+    }
+    throw new Error(msg);
+  }
   return res.json();
 }
 

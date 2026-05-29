@@ -120,13 +120,18 @@ export function InvoiceApp() {
   };
 
   const handleSaveAsClient = async () => {
-    if (!inv.client_name || !inv.client_email) { toast({ title: "Client name and email required" }); return; }
+    const trimmedName = (inv.client_name || "").trim();
+    const trimmedEmail = (inv.client_email || "").trim();
+    const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(trimmedEmail);
+    if (!trimmedName) { toast({ title: "Client name is required", variant: "destructive" }); return; }
+    if (!emailValid) { toast({ title: "Enter a valid client email before saving", variant: "destructive" }); return; }
     try {
-      await clientApi.create({ name: inv.client_name, company: inv.client_company, email: inv.client_email, address: inv.client_address });
+      await clientApi.create({ name: trimmedName, company: (inv.client_company || "").trim(), email: trimmedEmail, address: (inv.client_address || "").trim() });
       toast({ title: "Client saved" });
       loadData();
-    } catch {
-      toast({ title: "Failed to save client", variant: "destructive" });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Failed to save client";
+      toast({ title: msg, variant: "destructive" });
     }
   };
 
@@ -147,8 +152,9 @@ export function InvoiceApp() {
       }
       setClientModal({ open: false, editing: null });
       loadData();
-    } catch {
-      toast({ title: "Failed to save client", variant: "destructive" });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Failed to save client";
+      toast({ title: msg, variant: "destructive" });
     }
   };
 
@@ -486,21 +492,44 @@ function ClientModal({ editing, onSave, onClose }: { editing: ClientData | null;
   const [company, setCompany] = useState(editing?.company || "");
   const [email, setEmail] = useState(editing?.email || "");
   const [address, setAddress] = useState(editing?.address || "");
+  const [submitted, setSubmitted] = useState(false);
   const inp = "w-full bg-[#F9F8F5] border border-[#E2DDD4] rounded-md px-3 py-2 text-sm focus:border-[#0B3D3D] focus:outline-none";
+  const inpErr = "w-full bg-[#FEF2F2] border border-red-400 rounded-md px-3 py-2 text-sm focus:border-red-600 focus:outline-none";
+
+  const trimmedName = name.trim();
+  const trimmedEmail = email.trim();
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(trimmedEmail);
+  const nameError = submitted && !trimmedName ? "Name is required" : "";
+  const emailError = submitted && !trimmedEmail ? "Email is required" : submitted && !emailValid ? "Enter a valid email address" : "";
+  const canSubmit = !!trimmedName && emailValid;
+
+  const handleSave = () => {
+    setSubmitted(true);
+    if (!canSubmit) return;
+    onSave({ name: trimmedName, company: company.trim(), email: trimmedEmail, address: address.trim() }, editing?.id);
+  };
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl" data-testid="client-modal">
         <h3 className="text-lg font-bold text-[#1C1B18] mb-4">{editing ? "Edit Client" : "Add Client"}</h3>
         <div className="space-y-3">
-          <div><label className="text-xs font-semibold text-[#6E6B63] uppercase mb-1 block">Full Name *</label><input className={inp} value={name} onChange={e => setName(e.target.value)} data-testid="modal-client-name" /></div>
+          <div>
+            <label className="text-xs font-semibold text-[#6E6B63] uppercase mb-1 block">Full Name *</label>
+            <input className={nameError ? inpErr : inp} value={name} onChange={e => setName(e.target.value)} data-testid="modal-client-name" />
+            {nameError && <p className="text-xs text-red-600 mt-1" data-testid="modal-client-name-error">{nameError}</p>}
+          </div>
           <div><label className="text-xs font-semibold text-[#6E6B63] uppercase mb-1 block">Company</label><input className={inp} value={company} onChange={e => setCompany(e.target.value)} /></div>
-          <div><label className="text-xs font-semibold text-[#6E6B63] uppercase mb-1 block">Email *</label><input type="email" className={inp} value={email} onChange={e => setEmail(e.target.value)} data-testid="modal-client-email" /></div>
+          <div>
+            <label className="text-xs font-semibold text-[#6E6B63] uppercase mb-1 block">Email *</label>
+            <input type="email" className={emailError ? inpErr : inp} value={email} onChange={e => setEmail(e.target.value)} data-testid="modal-client-email" />
+            {emailError && <p className="text-xs text-red-600 mt-1" data-testid="modal-client-email-error">{emailError}</p>}
+          </div>
           <div><label className="text-xs font-semibold text-[#6E6B63] uppercase mb-1 block">Address</label><textarea className={inp + " min-h-[60px]"} value={address} onChange={e => setAddress(e.target.value)} /></div>
         </div>
         <div className="flex justify-end gap-2 mt-5">
           <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-[#6E6B63] border border-[#E2DDD4] rounded-md hover:bg-[#F9F8F5]">Cancel</button>
-          <button onClick={() => { if (!name || !email) return; onSave({ name, company, email, address }, editing?.id); }} className="px-4 py-2 text-sm font-bold text-white bg-[#0B3D3D] rounded-md hover:bg-[#165252]" data-testid="modal-save-client">Save Client</button>
+          <button onClick={handleSave} disabled={submitted && !canSubmit} className="px-4 py-2 text-sm font-bold text-white bg-[#0B3D3D] rounded-md hover:bg-[#165252] disabled:bg-[#0B3D3D]/50 disabled:cursor-not-allowed" data-testid="modal-save-client">Save Client</button>
         </div>
       </div>
     </div>

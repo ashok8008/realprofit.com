@@ -5,7 +5,7 @@ import logging
 import base64
 import resend
 from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import List, Optional
 from datetime import datetime, timezone
 from bson import ObjectId
@@ -73,10 +73,22 @@ class InvoiceCreate(BaseModel):
     payments: List[PaymentRecord] = []
 
 class ClientCreate(BaseModel):
-    name: str
+    name: str = Field(..., min_length=1, max_length=120)
     company: str = ""
-    email: str
+    email: EmailStr
     address: str = ""
+
+    @field_validator("name", "company", "address", mode="before")
+    @classmethod
+    def _strip(cls, v: object) -> object:
+        return v.strip() if isinstance(v, str) else v
+
+    @field_validator("name")
+    @classmethod
+    def _name_not_blank(cls, v: str) -> str:
+        if not v:
+            raise ValueError("Name is required")
+        return v
 
 class SendInvoiceEmailRequest(BaseModel):
     invoice_id: str
