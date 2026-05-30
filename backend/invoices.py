@@ -20,11 +20,34 @@ logger = logging.getLogger(__name__)
 # Env vars are read at SEND TIME, not import time — so a late dotenv load
 # or env-var change doesn't lock us into a stale/empty value.
 def _resend_key() -> str:
-    return os.environ.get("RESEND_API_KEY", "")
+    return (os.environ.get("RESEND_API_KEY", "") or "").strip()
 
 
 def _sender_email() -> str:
-    return os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
+    """Return SENDER_EMAIL with whitespace and stray quotes stripped.
+    Resend rejects 'foo@bar.com ' (trailing space) or '"foo@bar.com"' (quoted)."""
+    raw = os.environ.get("SENDER_EMAIL", "") or ""
+    return raw.strip().strip('"').strip("'") or "onboarding@resend.dev"
+
+
+import re
+_EMAIL_RE = re.compile(r"^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$")
+_FROM_FIELD_RE = re.compile(r"^[^<>]+<[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+>$")
+
+
+def _validate_from_field(value: str) -> Optional[str]:
+    """Validate a Resend 'from' value. Returns error message or None if OK."""
+    if not value:
+        return "SENDER_EMAIL is empty"
+    if _EMAIL_RE.match(value):
+        return None
+    if _FROM_FIELD_RE.match(value):
+        return None
+    return (
+        f"SENDER_EMAIL={value!r} is not in 'name@domain.com' or "
+        "'Name <name@domain.com>' format. Common causes: trailing whitespace, "
+        "wrapping quotes, or comments in backend/.env."
+    )
 
 
 INVOICE_STORAGE_DIR = Path(os.environ.get("INVOICE_STORAGE_DIR", "/app/backend/uploads/invoices"))
@@ -227,7 +250,7 @@ async def send_invoice_email(body: SendInvoiceEmailRequest, request: Request):
     api_key = _resend_key()
     sender = _sender_email()
     logger.info(
-        "[invoice-send] invoice=%s recipient=%s sender=%s api_key=%s",
+        "[invoice-send] invoice=%s recipient=%s sender=%r api_key=%s",
         body.invoice_id, body.recipient_email, sender,
         "SET(len=%d)" % len(api_key) if api_key else "EMPTY",
     )
@@ -239,6 +262,11 @@ async def send_invoice_email(body: SendInvoiceEmailRequest, request: Request):
             "Email service is not configured (RESEND_API_KEY missing in backend/.env). "
             "Set the key and restart the backend.",
         )
+
+    sender_err = _validate_from_field(sender)
+    if sender_err:
+        logger.error("[invoice-send] %s", sender_err)
+        raise HTTPException(500, sender_err)
 
     # Apply the API key just-in-time so a late-loaded .env still works.
     resend.api_key = api_key
@@ -393,6 +421,13 @@ async def send_invoice_email(body: SendInvoiceEmailRequest, request: Request):
         logger.exception("[invoice-send] resend.Emails.send raised: %s", msg)
         # Surface Resend's most common errors as user-friendly text.
         lower = msg.lower()
+        if "invalid `from`" in lower or ("invalid" in lower and "from" in lower and "field" in lower):
+            raise HTTPException(
+                500,
+                f"SENDER_EMAIL is rejected by Resend: {msg}. Current value: {sender!r}. "
+                "Check backend/.env for stray whitespace, quotes, or invalid characters. "
+                "Format must be 'name@yourdomain.com' or 'Display Name <name@yourdomain.com>'.",
+            )
         if "you can only send testing emails" in lower or ("verify" in lower and "domain" in lower):
             raise HTTPException(
                 400,
