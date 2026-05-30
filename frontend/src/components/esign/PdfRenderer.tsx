@@ -3,9 +3,9 @@
 // Used by both the field-placement step (owner) and the signing page (signer).
 import { useEffect, useRef, useState } from "react";
 
-// pdfjs worker is loaded via CDN to avoid bundler config friction.
-const PDFJS_VERSION = "5.6.205";
-const PDFJS_WORKER = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/pdf.worker.min.mjs`;
+// pdfjs worker is self-hosted (copied from node_modules by prebuild script).
+// This avoids cdnjs 404s for versions they haven't synced (e.g. 5.6.205).
+const PDFJS_WORKER = "/pdfjs/pdf.worker.min.mjs";
 
 export interface PageRenderInfo {
   pageNumber: number;

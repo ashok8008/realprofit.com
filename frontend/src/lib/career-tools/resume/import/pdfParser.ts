@@ -10,8 +10,8 @@ export async function parsePdf(file: File): Promise<ParsedResume> {
   // Dynamic import to avoid SSR issues
   const pdfjsLib = await import("pdfjs-dist");
 
-  // Set worker source to CDN
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
+  // Worker is self-hosted in /public/pdfjs/ (copied from node_modules by prebuild script).
+  pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdfjs/pdf.worker.min.mjs";
 
   const buffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;

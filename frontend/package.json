@@ -6,6 +6,7 @@
   "scripts": {
     "start": "next start -H 0.0.0.0",
     "dev": "next dev -p 3000 -H 0.0.0.0",
+    "prebuild": "mkdir -p public/pdfjs && cp node_modules/pdfjs-dist/build/pdf.worker.min.mjs public/pdfjs/pdf.worker.min.mjs",
     "build": "next build",
     "postbuild": "tsx --env-file=.env scripts/post-build-ping.ts",
     "serve": "next start -p 3000 -H 0.0.0.0"
