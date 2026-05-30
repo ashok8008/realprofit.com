@@ -16,8 +16,17 @@ from db import get_db
 from auth import get_current_user
 
 logger = logging.getLogger(__name__)
-resend.api_key = os.environ.get("RESEND_API_KEY", "")
-SENDER_EMAIL = os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
+
+# Env vars are read at SEND TIME, not import time — so a late dotenv load
+# or env-var change doesn't lock us into a stale/empty value.
+def _resend_key() -> str:
+    return os.environ.get("RESEND_API_KEY", "")
+
+
+def _sender_email() -> str:
+    return os.environ.get("SENDER_EMAIL", "onboarding@resend.dev")
+
+
 INVOICE_STORAGE_DIR = Path(os.environ.get("INVOICE_STORAGE_DIR", "/app/backend/uploads/invoices"))
 INVOICE_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -215,8 +224,27 @@ async def send_invoice_email(body: SendInvoiceEmailRequest, request: Request):
     if not doc:
         raise HTTPException(404, "Invoice not found")
 
+    api_key = _resend_key()
+    sender = _sender_email()
+    logger.info(
+        "[invoice-send] invoice=%s recipient=%s sender=%s api_key=%s",
+        body.invoice_id, body.recipient_email, sender,
+        "SET(len=%d)" % len(api_key) if api_key else "EMPTY",
+    )
+
+    if not api_key:
+        logger.error("[invoice-send] RESEND_API_KEY missing — backend cannot send email")
+        raise HTTPException(
+            500,
+            "Email service is not configured (RESEND_API_KEY missing in backend/.env). "
+            "Set the key and restart the backend.",
+        )
+
+    # Apply the API key just-in-time so a late-loaded .env still works.
+    resend.api_key = api_key
+
     # Pre-flight: Resend sandbox can only send to the account owner.
-    if SENDER_EMAIL == "onboarding@resend.dev":
+    if sender == "onboarding@resend.dev":
         owner = (os.environ.get("RESEND_VERIFIED_TO") or "").strip().lower()
         if not owner or owner != body.recipient_email.strip().lower():
             hint = (
@@ -224,6 +252,7 @@ async def send_invoice_email(body: SendInvoiceEmailRequest, request: Request):
                 "Resend account. Verify a domain at https://resend.com/domains and update "
                 "SENDER_EMAIL in backend/.env (e.g. sign@yourdomain.com) to send to clients."
             )
+            logger.warning("[invoice-send] sandbox-mode block — %s", hint)
             raise HTTPException(400, hint)
 
     inv_num = doc.get("invoice_number", "INV-000")
@@ -338,26 +367,33 @@ async def send_invoice_email(body: SendInvoiceEmailRequest, request: Request):
             logger.warning("Attachment file missing for invoice %s: %s", doc["_id"], fpath)
 
     try:
-        params = {"from": SENDER_EMAIL, "to": [body.recipient_email], "subject": subject, "html": html}
+        params = {"from": sender, "to": [body.recipient_email], "subject": subject, "html": html}
         if resend_attachments:
             params["attachments"] = resend_attachments
+        logger.info(
+            "[invoice-send] calling resend.Emails.send → from=%s to=%s subject=%r attachments=%d",
+            sender, body.recipient_email, subject, len(resend_attachments),
+        )
         email_result = await asyncio.to_thread(resend.Emails.send, params)
+        logger.info("[invoice-send] resend response → %s", email_result)
         await db.invoices.update_one(
             {"_id": ObjectId(body.invoice_id)},
             {"$set": {"status": "sent", "updated_at": datetime.now(timezone.utc).isoformat()}},
         )
         return {
             "status": "sent",
-            "email_id": email_result.get("id", ""),
+            "email_id": email_result.get("id", "") if isinstance(email_result, dict) else "",
             "message": f"Invoice sent to {body.recipient_email}",
             "attachments_count": len(resend_attachments),
         }
+    except HTTPException:
+        raise
     except Exception as e:
         msg = str(e)
-        logger.error("Failed to send invoice email: %s", msg)
+        logger.exception("[invoice-send] resend.Emails.send raised: %s", msg)
         # Surface Resend's most common errors as user-friendly text.
         lower = msg.lower()
-        if "you can only send testing emails" in lower or "verify" in lower and "domain" in lower:
+        if "you can only send testing emails" in lower or ("verify" in lower and "domain" in lower):
             raise HTTPException(
                 400,
                 "Resend only allows test emails to your account owner address. "

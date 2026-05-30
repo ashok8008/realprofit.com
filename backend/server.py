@@ -1,7 +1,11 @@
 from dotenv import load_dotenv
-load_dotenv()
+from pathlib import Path
+# Load .env from this file's directory — works regardless of cwd
+# (important when running under systemd which may not set WorkingDirectory).
+_DOTENV_PATH = Path(__file__).resolve().parent / ".env"
+_DOTENV_LOADED = load_dotenv(dotenv_path=_DOTENV_PATH, override=False)
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import Response
 from datetime import date
 from fastapi.middleware.cors import CORSMiddleware
@@ -48,17 +52,35 @@ app.include_router(analytics_router)
 
 @app.on_event("startup")
 async def startup():
+    # Diagnostic — confirms .env was loaded + which Resend config is active
+    import logging as _lg
+    _log = _lg.getLogger("startup")
+    _resend_key = os.environ.get("RESEND_API_KEY", "")
+    _sender = os.environ.get("SENDER_EMAIL", "")
+    _log.warning(
+        "[startup] dotenv=%s file=%s | RESEND_API_KEY=%s (len=%d) | SENDER_EMAIL=%s | APP_URL=%s",
+        _DOTENV_LOADED, _DOTENV_PATH,
+        "SET" if _resend_key else "MISSING",
+        len(_resend_key),
+        _sender or "MISSING",
+        os.environ.get("APP_URL", "MISSING"),
+    )
+    if not _resend_key:
+        _log.error("[startup] ⚠ RESEND_API_KEY is empty — outbound emails will fail silently")
+    if _sender == "onboarding@resend.dev":
+        _log.warning("[startup] ⚠ SENDER_EMAIL is sandbox default — emails only deliver to your Resend account email")
+
     await init_db()
     await seed_admin()
     try:
         await init_esign_db()
-        print("[startup] eSign + Billing Postgres schema initialised")
+        _log.info("[startup] eSign + Billing Postgres schema initialised")
     except Exception as e:
-        print(f"[startup] eSign DB init failed: {e}")
+        _log.error("[startup] eSign DB init failed: %s", e)
     try:
         start_scheduler()
     except Exception as e:
-        print(f"[startup] Scheduler start failed: {e}")
+        _log.error("[startup] Scheduler start failed: %s", e)
 
 
 @app.on_event("shutdown")
@@ -189,6 +211,52 @@ async def get_ai_response(system_message: str, user_message: str) -> str:
 @app.get("/api/health")
 async def health_check():
     return {"status": "healthy", "message": "RealProfits API is running"}
+
+
+@app.get("/api/admin/email-diag")
+async def email_diagnostics(request: Request):
+    """Admin-only Resend integration diagnostic. Requires admin auth.
+
+    Reports current env config + optionally sends a test email if ?send_to=email@example.com.
+    """
+    from auth import get_current_user
+    import resend as _resend
+    import asyncio as _aio
+    user = await get_current_user(request)
+    if not user or not user.get("is_admin"):
+        raise HTTPException(403, "Admin only")
+
+    api_key = os.environ.get("RESEND_API_KEY", "")
+    sender = os.environ.get("SENDER_EMAIL", "")
+    app_url = os.environ.get("APP_URL", "")
+    info = {
+        "dotenv_loaded": _DOTENV_LOADED,
+        "dotenv_path": str(_DOTENV_PATH),
+        "dotenv_exists": _DOTENV_PATH.exists(),
+        "resend_api_key": ("set" if api_key else "MISSING"),
+        "resend_api_key_len": len(api_key),
+        "resend_api_key_prefix": api_key[:6] if api_key else "",
+        "sender_email": sender or "MISSING",
+        "app_url": app_url or "MISSING",
+        "cwd": os.getcwd(),
+    }
+    send_to = request.query_params.get("send_to", "").strip()
+    if send_to:
+        if not api_key:
+            info["send_result"] = "skipped — RESEND_API_KEY missing"
+        else:
+            _resend.api_key = api_key
+            try:
+                res = await _aio.to_thread(_resend.Emails.send, {
+                    "from": sender or "onboarding@resend.dev",
+                    "to": [send_to],
+                    "subject": "RealProfits — Resend diagnostic test",
+                    "html": "<p>If you see this, Resend is correctly wired up on prod.</p>",
+                })
+                info["send_result"] = res
+            except Exception as e:
+                info["send_result"] = {"error": str(e)}
+    return info
 
 @app.post("/api/career-tools/improve-bullet", response_model=BulletPointResponse)
 async def improve_bullet_point(request: BulletPointRequest):

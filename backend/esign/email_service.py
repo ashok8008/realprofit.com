@@ -1,7 +1,10 @@
 """Resend-based email service for eSign notifications."""
 import os
+import logging
 import httpx
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 RESEND_API = "https://api.resend.com/emails"
 
@@ -27,11 +30,17 @@ def _app_url() -> str:
 
 async def _send(to: str, subject: str, html: str, attachments: list | None = None) -> bool:
     api_key = _api_key()
+    sender = _sender()
+    logger.info(
+        "[esign-email] preparing send → to=%s subject=%r sender=%s api_key=%s",
+        to, subject, sender,
+        "SET(len=%d)" % len(api_key) if api_key else "EMPTY",
+    )
     if not api_key:
-        print("[esign-email] RESEND_API_KEY not set — skipping send")
+        logger.error("[esign-email] RESEND_API_KEY missing — refusing to send")
         return False
     payload = {
-        "from": f"RealProfits eSign <{_sender()}>",
+        "from": f"RealProfits eSign <{sender}>",
         "to": [to],
         "subject": subject,
         "html": html,
@@ -43,11 +52,16 @@ async def _send(to: str, subject: str, html: str, attachments: list | None = Non
             r = await client.post(RESEND_API, json=payload,
                                   headers={"Authorization": f"Bearer {api_key}"})
             if r.status_code >= 400:
-                print(f"[esign-email] Resend error {r.status_code}: {r.text[:300]}")
+                logger.error(
+                    "[esign-email] Resend rejected → status=%d body=%s",
+                    r.status_code, r.text[:500],
+                )
                 return False
+            logger.info("[esign-email] Resend accepted → status=%d body=%s",
+                        r.status_code, r.text[:200])
             return True
     except Exception as e:
-        print(f"[esign-email] send failed: {e}")
+        logger.exception("[esign-email] send failed: %s", e)
         return False
 
 
