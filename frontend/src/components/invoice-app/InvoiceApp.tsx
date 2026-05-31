@@ -173,16 +173,15 @@ export function InvoiceApp() {
   const handleRecordPayment = async (amount: number, date: string, note: string) => {
     if (!editingId) { toast({ title: "Save invoice first" }); return; }
     try {
-      await invoiceApi.recordPayment(editingId, { amount, date, note });
-      setInv(prev => {
-        const newPayments = [...prev.payments, { amount, date, note }];
-        const totals = calcTotals(prev);
-        const paid = newPayments.reduce((s, p) => s + p.amount, 0);
-        const newStatus: InvoiceData["status"] = paid >= totals.total ? "paid" : "partial";
-        return { ...prev, payments: newPayments, status: newStatus };
-      });
+      const res = await invoiceApi.recordPayment(editingId, { amount, date, note });
+      // Backend now returns authoritative invoice_status — trust it.
+      setInv(prev => ({
+        ...prev,
+        payments: [...prev.payments, { amount, date, note }],
+        status: (res.invoice_status || prev.status) as InvoiceData["status"],
+      }));
       setPaymentModal(false);
-      toast({ title: "Payment recorded" });
+      toast({ title: "Payment recorded", description: res.invoice_status === "paid" ? "Invoice marked as paid" : res.invoice_status === "partial" ? "Invoice marked as partial" : undefined });
       loadData();
     } catch {
       toast({ title: "Failed to record payment", variant: "destructive" });
@@ -256,8 +255,15 @@ export function InvoiceApp() {
         return;
       }
       const today = new Date().toISOString().split("T")[0];
-      await invoiceApi.recordPayment(id, { amount: outstanding, date: today, note: "Marked paid from invoices list" });
-      toast({ title: "Marked as paid", description: `${outstanding.toFixed(2)} recorded` });
+      const res = await invoiceApi.recordPayment(id, { amount: outstanding, date: today, note: "Marked paid from invoices list" });
+      toast({
+        title: res.invoice_status === "paid" ? "Marked as paid" : "Payment recorded",
+        description: `${outstanding.toFixed(2)} recorded${res.invoice_status === "paid" ? "" : ` (status: ${res.invoice_status})`}`,
+      });
+      // If user has this invoice currently open in editor, sync local state too
+      if (editingId === id) {
+        setInv(prev => ({ ...prev, status: (res.invoice_status || prev.status) as InvoiceData["status"] }));
+      }
       loadData();
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Failed";
@@ -450,6 +456,22 @@ export function InvoiceApp() {
         doc.setTextColor(outstanding > 0 ? 160 : 42, outstanding > 0 ? 98 : 107, outstanding > 0 ? 26 : 69);
         doc.text(os, vx - doc.getTextWidth(os), y);
         y += 8;
+      }
+
+      // Payment terms + Notes block in PDF (Issue #2)
+      const blocks: Array<{ title: string; text: string }> = [];
+      if (inv.payment_terms) blocks.push({ title: "Payment terms", text: inv.payment_terms });
+      if (inv.notes) blocks.push({ title: "Notes", text: inv.notes });
+      for (const b of blocks) {
+        if (y > 250) { doc.addPage(); y = 20; }
+        doc.setFont("helvetica", "bold"); doc.setFontSize(8);
+        doc.setTextColor(BRAND.accent[0], BRAND.accent[1], BRAND.accent[2]);
+        doc.text(b.title.toUpperCase(), LM, y); y += 4;
+        doc.setFont("helvetica", "normal"); doc.setFontSize(8);
+        doc.setTextColor(BRAND.dark[0], BRAND.dark[1], BRAND.dark[2]);
+        const lines = doc.splitTextToSize(b.text, PW);
+        doc.text(lines, LM, y);
+        y += lines.length * 4 + 4;
       }
 
       drawFooter(doc);

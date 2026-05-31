@@ -298,6 +298,7 @@ async def send_invoice_email(body: SendInvoiceEmailRequest, request: Request):
     accent = doc.get("accent_color", "#0B3D3D")
     items = doc.get("items", [])
     notes = doc.get("notes", "")
+    payment_terms = doc.get("payment_terms", "")
     payment_link = doc.get("payment_link", "")
     sym_map = {"USD": "$", "EUR": "€", "GBP": "£", "INR": "₹", "CAD": "C$", "AUD": "A$"}
     sym = sym_map.get(currency, "$")
@@ -378,6 +379,7 @@ async def send_invoice_email(body: SendInvoiceEmailRequest, request: Request):
         </div>
         {payments_block}
         {payment_btn}
+        {"<div style='background:#f9f8f5;border-radius:8px;padding:12px 16px;margin-top:16px;font-size:13px;color:#666;'><strong>Payment terms:</strong> " + payment_terms.replace(chr(10), '<br>') + "</div>" if payment_terms else ""}
         {"<div style='background:#f9f8f5;border-radius:8px;padding:12px 16px;margin-top:16px;font-size:13px;color:#666;'><strong>Notes:</strong> " + notes + "</div>" if notes else ""}
         <hr style="border:none;border-top:1px solid #eee;margin:24px 0;" />
         <p style="font-size:12px;color:#999;text-align:center;">Sent via <a href="https://realprofits.com" style="color:{accent};text-decoration:none;">RealProfits</a> Invoice Generator</p>
@@ -671,6 +673,7 @@ thead th{{background:#f9f8f5;padding:10px 12px;text-align:left;color:#6E6B63;fon
 {payments_block}
 {attachments_block}
 <div class="cta">{pay_btn}</div>
+{"<div style='background:#FAF5EE;border-radius:8px;padding:14px 18px;margin-top:12px;font-size:13px'><b>Payment terms:</b> "+(doc.get("payment_terms","")).replace(chr(10),'<br>')+"</div>" if doc.get("payment_terms") else ""}
 {"<div style='background:#FAF5EE;border-radius:8px;padding:14px 18px;margin-top:12px;font-size:13px'><b>Notes:</b> "+(doc.get("notes",""))+"</div>" if doc.get("notes") else ""}
 </div>
 <div class="foot">Sent via <a href="https://realprofits.com/tools/invoice">RealProfits Invoice Generator</a> · Need to sign too? <a href="https://realprofits.com/tools/esign">Try RealProfits eSign — free</a></div>
@@ -777,13 +780,29 @@ async def record_payment(invoice_id: str, body: PaymentRecord, request: Request)
     now = datetime.now(timezone.utc).isoformat()
     payment = body.model_dump()
     payment["recorded_at"] = now
-    result = await db.invoices.update_one(
+    # Push payment then recompute the correct status (paid / partial / unchanged)
+    doc = await db.invoices.find_one_and_update(
         {"_id": ObjectId(invoice_id), "user_id": str(user["_id"])},
-        {"$push": {"payments": payment}, "$set": {"updated_at": now}}
+        {"$push": {"payments": payment}, "$set": {"updated_at": now}},
+        return_document=True,
     )
-    if result.matched_count == 0:
+    if not doc:
         raise HTTPException(404, "Invoice not found")
-    return {"status": "payment_recorded"}
+    total = float(doc.get("total", 0) or 0)
+    paid_total = sum(float(p.get("amount", 0) or 0) for p in doc.get("payments", []) or [])
+    # Use a small epsilon for float comparison
+    if paid_total + 0.005 >= total and total > 0:
+        new_status = "paid"
+    elif paid_total > 0:
+        new_status = "partial"
+    else:
+        new_status = doc.get("status", "draft")
+    if new_status != doc.get("status"):
+        await db.invoices.update_one(
+            {"_id": ObjectId(invoice_id)},
+            {"$set": {"status": new_status, "updated_at": now}},
+        )
+    return {"status": "payment_recorded", "invoice_status": new_status, "paid_total": paid_total, "outstanding": max(0.0, total - paid_total)}
 
 
 @router.put("/clients/{client_id}")
