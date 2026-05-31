@@ -69,10 +69,6 @@ export function InvoiceEditor({
   const handleAttachmentChoose = async (file: File | null | undefined) => {
     if (!file) return;
     setAttachmentError("");
-    if (!editingId) {
-      setAttachmentError("Save the invoice first, then add attachments.");
-      return;
-    }
     if (file.size > attachmentRemaining) {
       setAttachmentError(`File too large. Remaining: ${(attachmentRemaining / 1024 / 1024).toFixed(1)} MB.`);
       return;
@@ -274,12 +270,6 @@ export function InvoiceEditor({
           Attach contracts, work proofs, PDFs or images that should be emailed along with this invoice. Max 25 MB total.
         </p>
 
-        {!editingId && (
-          <div className="bg-[#FAF5EE] border border-[#C8A96E]/40 rounded-md px-3 py-2 text-xs text-[#6E6B63] mb-3">
-            💡 Save the invoice first to enable attachments.
-          </div>
-        )}
-
         {inv.attachments.length > 0 && (
           <div className="space-y-1.5 mb-3" data-testid="attachment-list">
             {inv.attachments.map((a: InvoiceAttachment) => (
@@ -304,11 +294,7 @@ export function InvoiceEditor({
 
         <div className="flex items-center gap-3">
           <label
-            className={`inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-md cursor-pointer transition-colors ${
-              editingId
-                ? "text-[#0B3D3D] bg-white border border-[#0B3D3D] hover:bg-[#F9F8F5]"
-                : "text-[#9A968B] bg-[#F9F8F5] border border-[#E2DDD4] cursor-not-allowed"
-            }`}
+            className={`inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold rounded-md cursor-pointer transition-colors text-[#0B3D3D] bg-white border border-[#0B3D3D] hover:bg-[#F9F8F5]`}
             data-testid="attachment-upload-label"
           >
             <Upload className="w-3.5 h-3.5" /> {uploadingAttachment ? "Uploading…" : "Add Attachment"}
@@ -316,7 +302,7 @@ export function InvoiceEditor({
               type="file"
               accept=".pdf,.png,.jpg,.jpeg,.webp,.heic,.gif,.docx,.xlsx,.csv,.txt"
               className="hidden"
-              disabled={!editingId || uploadingAttachment}
+              disabled={uploadingAttachment}
               onChange={e => handleAttachmentChoose(e.target.files?.[0])}
               data-testid="attachment-input"
             />

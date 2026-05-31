@@ -1,6 +1,6 @@
 "use client";
-import React, { useState } from "react";
-import { Download, FileText, Trash2 } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
+import { Download, FileText, MoreVertical, Edit3, Copy, Send, CheckCircle2, Link2, Trash2 } from "lucide-react";
 import { getCurrencySymbol } from "./types";
 
 interface InvoiceSummary {
@@ -28,6 +28,11 @@ interface HistoryTabProps {
   onOpen: (id: string) => void;
   onDelete: (id: string) => void;
   onExportCSV: () => void;
+  onDuplicate: (id: string) => void;
+  onResend: (id: string) => void;
+  onMarkPaid: (id: string) => void;
+  onDownloadPDF: (id: string) => void;
+  onShare: (id: string) => void;
 }
 
 const statusColors: Record<string, string> = {
@@ -38,7 +43,74 @@ const statusColors: Record<string, string> = {
   partial: "bg-amber-50 text-amber-600",
 };
 
-export function HistoryTab({ invoices, stats, onOpen, onDelete, onExportCSV }: HistoryTabProps) {
+function RowMenu({
+  inv, onOpen, onDuplicate, onResend, onMarkPaid, onDownloadPDF, onShare, onDelete,
+}: {
+  inv: InvoiceSummary;
+  onOpen: (id: string) => void;
+  onDuplicate: (id: string) => void;
+  onResend: (id: string) => void;
+  onMarkPaid: (id: string) => void;
+  onDownloadPDF: (id: string) => void;
+  onShare: (id: string) => void;
+  onDelete: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  const item = (label: string, Icon: typeof Edit3, action: () => void, disabled = false, danger = false) => (
+    <button
+      onClick={e => { e.stopPropagation(); if (disabled) return; setOpen(false); action(); }}
+      disabled={disabled}
+      className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-left transition-colors ${
+        disabled
+          ? "text-stone-300 cursor-not-allowed"
+          : danger
+          ? "text-red-600 hover:bg-red-50"
+          : "text-[#1C1B18] hover:bg-[#F9F8F5]"
+      }`}
+      data-testid={`row-action-${label.toLowerCase().replace(/\s+/g, "-")}-${inv.id}`}
+    >
+      <Icon className="w-3.5 h-3.5" /> {label}
+    </button>
+  );
+
+  return (
+    <div className="relative inline-block" ref={ref}>
+      <button
+        onClick={e => { e.stopPropagation(); setOpen(!open); }}
+        className="p-1.5 rounded hover:bg-stone-200 text-[#6E6B63]"
+        data-testid={`row-menu-${inv.id}`}
+        aria-label="More actions"
+      >
+        <MoreVertical className="w-4 h-4" />
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-stone-200 rounded-lg shadow-lg z-20 py-1" onClick={e => e.stopPropagation()}>
+          {item("Edit", Edit3, () => onOpen(inv.id))}
+          {item("Duplicate", Copy, () => onDuplicate(inv.id))}
+          {item("Resend", Send, () => onResend(inv.id), inv.status === "draft")}
+          {item("Mark as paid", CheckCircle2, () => onMarkPaid(inv.id), inv.status === "paid")}
+          {item("Download PDF", Download, () => onDownloadPDF(inv.id))}
+          {item("Share link", Link2, () => onShare(inv.id))}
+          <div className="h-px bg-stone-200 my-1" />
+          {item("Delete", Trash2, () => onDelete(inv.id), false, true)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function HistoryTab({ invoices, stats, onOpen, onDelete, onExportCSV, onDuplicate, onResend, onMarkPaid, onDownloadPDF, onShare }: HistoryTabProps) {
   const [filter, setFilter] = useState("all");
   const filtered = filter === "all" ? invoices : invoices.filter(i => i.status === filter);
 
@@ -46,7 +118,7 @@ export function HistoryTab({ invoices, stats, onOpen, onDelete, onExportCSV }: H
     <div className="max-w-4xl mx-auto py-6 px-4" data-testid="history-tab">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-xl font-bold text-[#1C1B18]">Invoice History</h2>
+          <h2 className="text-xl font-bold text-[#1C1B18]">Invoices</h2>
           <p className="text-sm text-[#6E6B63]">All saved invoices</p>
         </div>
         <button onClick={onExportCSV} className="border border-[#E2DDD4] bg-white text-[#1C1B18] text-sm font-semibold px-4 py-2 rounded-lg hover:bg-[#F9F8F5] flex items-center gap-2" data-testid="export-csv-btn"><Download className="w-4 h-4" /> Export CSV</button>
@@ -87,7 +159,7 @@ export function HistoryTab({ invoices, stats, onOpen, onDelete, onExportCSV }: H
           <p className="text-sm text-[#6E6B63]">Save invoices to see them here</p>
         </div>
       ) : (
-        <div className="bg-white border border-[#E2DDD4] rounded-xl overflow-hidden">
+        <div className="bg-white border border-[#E2DDD4] rounded-xl overflow-visible">
           <table className="w-full text-sm">
             <thead className="bg-[#F9F8F5] border-b border-[#E2DDD4]">
               <tr>
@@ -107,7 +179,18 @@ export function HistoryTab({ invoices, stats, onOpen, onDelete, onExportCSV }: H
                   <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded-full text-xs font-bold ${statusColors[inv.status] || statusColors.draft}`}>{inv.status}</span></td>
                   <td className="px-4 py-3 text-right font-semibold">{getCurrencySymbol(inv.currency)}{inv.total?.toFixed(2)}</td>
                   <td className="px-4 py-3 text-right text-[#6E6B63]">{inv.date}</td>
-                  <td className="px-4 py-3 text-right"><button onClick={e => { e.stopPropagation(); onDelete(inv.id); }} className="text-[#6E6B63] hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button></td>
+                  <td className="px-4 py-3 text-right">
+                    <RowMenu
+                      inv={inv}
+                      onOpen={onOpen}
+                      onDuplicate={onDuplicate}
+                      onResend={onResend}
+                      onMarkPaid={onMarkPaid}
+                      onDownloadPDF={onDownloadPDF}
+                      onShare={onShare}
+                      onDelete={onDelete}
+                    />
+                  </td>
                 </tr>
               ))}
             </tbody>

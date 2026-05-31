@@ -10,7 +10,7 @@ import { HistoryTab } from "./HistoryTab";
 import { InvoicePreviewPanel } from "./InvoicePreviewPanel";
 import { invoiceApi, clientApi } from "./api";
 import { defaultInvoice, calcTotals } from "./types";
-import type { InvoiceData, ClientData } from "./types";
+import type { InvoiceData, ClientData, InvoiceAttachment } from "./types";
 
 export function InvoiceApp() {
   const { user, loading: authLoading } = useAuth();
@@ -206,29 +206,33 @@ export function InvoiceApp() {
     }
   };
 
-  const handleSendEmail = async (recipientEmail: string, subject: string, message: string) => {
-    if (!editingId) {
-      // Save first then send
+  const handleSendEmail = async (recipientEmail: string, subject: string, message: string, cc: string[], bcc: string[], attachmentIds: string[]) => {
+    let id = editingId;
+    if (!id) {
       const totals = calcTotals(inv);
       const data = { ...inv, ...totals };
       try {
         const res = await invoiceApi.create(data);
-        setEditingId(res.id);
-        await invoiceApi.sendEmail({ invoice_id: res.id, recipient_email: recipientEmail, subject, message });
-        setEmailModal(false);
-        toast({ title: "Invoice sent!", description: `Email sent to ${recipientEmail}` });
-        loadData();
+        id = res.id;
+        setEditingId(id);
       } catch (e: unknown) {
-        const msg = e instanceof Error ? e.message : "Failed to send";
-        toast({ title: "Failed to send", description: msg, variant: "destructive" });
+        const msg = e instanceof Error ? e.message : "Failed to save";
+        toast({ title: "Failed to save invoice", description: msg, variant: "destructive" });
+        return;
       }
+    }
+    if (!id) {
+      toast({ title: "Failed to save invoice", variant: "destructive" });
       return;
     }
     try {
-      await invoiceApi.sendEmail({ invoice_id: editingId, recipient_email: recipientEmail, subject, message });
+      await invoiceApi.sendEmail({
+        invoice_id: id, recipient_email: recipientEmail, subject, message,
+        cc, bcc, include_attachment_ids: attachmentIds,
+      });
       setEmailModal(false);
       setInv(prev => ({ ...prev, status: "sent" }));
-      toast({ title: "Invoice sent!", description: `Email sent to ${recipientEmail}` });
+      toast({ title: "Invoice sent!", description: `Email sent to ${recipientEmail}${bcc.length ? " (copy to you)" : ""}` });
       loadData();
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Failed to send email";
@@ -236,9 +240,66 @@ export function InvoiceApp() {
     }
   };
 
+  // ── Row-level actions on the Invoices (history) page ───
+  const handleRowResend = async (id: string) => {
+    await handleOpenInvoice(id);
+    setEmailModal(true);
+  };
+
+  const handleRowMarkPaid = async (id: string) => {
+    try {
+      const full = await invoiceApi.get(id);
+      const paidAlready = (full.payments || []).reduce((s: number, p: { amount: number }) => s + p.amount, 0);
+      const outstanding = Math.max(0, (full.total || 0) - paidAlready);
+      if (outstanding <= 0) {
+        toast({ title: "Already fully paid" });
+        return;
+      }
+      const today = new Date().toISOString().split("T")[0];
+      await invoiceApi.recordPayment(id, { amount: outstanding, date: today, note: "Marked paid from invoices list" });
+      toast({ title: "Marked as paid", description: `${outstanding.toFixed(2)} recorded` });
+      loadData();
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Failed";
+      toast({ title: "Failed to mark paid", description: msg, variant: "destructive" });
+    }
+  };
+
+  const handleRowDuplicate = async (id: string) => {
+    await handleOpenInvoice(id);
+    handleDuplicate();
+  };
+
+  const handleRowDownloadPDF = async (id: string) => {
+    await handleOpenInvoice(id);
+    // wait one tick so state has propagated before generating
+    setTimeout(() => handleDownloadPDF(), 80);
+  };
+
+  const handleRowShare = async (id: string) => {
+    try {
+      const res = await invoiceApi.share(id);
+      await navigator.clipboard.writeText(res.public_url);
+      toast({ title: "Share link copied", description: res.public_url });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Failed";
+      toast({ title: "Failed to share", description: msg, variant: "destructive" });
+    }
+  };
+
   const handleUploadAttachment = async (file: File) => {
-    if (!editingId) throw new Error("Save the invoice first");
-    const att = await invoiceApi.uploadAttachment(editingId, file);
+    // Issue #1: allow attachment before save — silently create the invoice first.
+    let id = editingId;
+    if (!id) {
+      const totals = calcTotals(inv);
+      const data = { ...inv, ...totals };
+      const res = await invoiceApi.create(data);
+      id = res.id;
+      setEditingId(id);
+      toast({ title: "Invoice saved — uploading attachment…" });
+    }
+    if (!id) throw new Error("Could not save invoice");
+    const att = await invoiceApi.uploadAttachment(id, file);
     setInv(prev => ({ ...prev, attachments: [...prev.attachments, att] }));
     toast({ title: "Attachment added", description: file.name });
   };
@@ -442,18 +503,7 @@ export function InvoiceApp() {
       {/* Main content */}
       <div className="flex-1 flex overflow-hidden">
         <div className="flex-1 overflow-y-auto">
-          {/* Tabs */}
-          <div className="sticky top-0 z-10 bg-[#F5F3EE] border-b border-[#E2DDD4] px-6">
-            <div className="flex gap-1">
-              {(["editor", "clients", "history"] as const).map(tab => (
-                <button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-3 text-sm font-semibold border-b-2 transition-colors ${activeTab === tab ? "text-[#0B3D3D] border-[#0B3D3D]" : "text-[#6E6B63] border-transparent hover:text-[#1C1B18]"}`} data-testid={`tab-${tab}`}>
-                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Tab content */}
+          {/* Tab content (top tab strip removed — left sidebar is the only nav) */}
           {activeTab === "editor" && (
             <InvoiceEditor
               inv={inv}
@@ -484,7 +534,18 @@ export function InvoiceApp() {
             />
           )}
           {activeTab === "history" && (
-            <HistoryTab invoices={invoices} stats={stats} onOpen={handleOpenInvoice} onDelete={handleDeleteInvoice} onExportCSV={handleExportCSV} />
+            <HistoryTab
+              invoices={invoices}
+              stats={stats}
+              onOpen={handleOpenInvoice}
+              onDelete={handleDeleteInvoice}
+              onExportCSV={handleExportCSV}
+              onDuplicate={handleRowDuplicate}
+              onResend={handleRowResend}
+              onMarkPaid={handleRowMarkPaid}
+              onDownloadPDF={handleRowDownloadPDF}
+              onShare={handleRowShare}
+            />
           )}
         </div>
 
@@ -517,6 +578,8 @@ export function InvoiceApp() {
           defaultEmail={inv.client_email}
           invoiceNumber={inv.invoice_number}
           businessName={inv.business_name}
+          attachments={inv.attachments}
+          currentUserEmail={user?.email || ""}
           onSend={handleSendEmail}
           onClose={() => setEmailModal(false)}
         />
@@ -638,29 +701,74 @@ function PaymentModal({ onRecord, onClose }: { onRecord: (amount: number, date: 
 }
 
 
-function SendEmailModal({ defaultEmail, invoiceNumber, businessName, onSend, onClose }: { defaultEmail: string; invoiceNumber: string; businessName: string; onSend: (email: string, subject: string, message: string) => void; onClose: () => void }) {
+function SendEmailModal({ defaultEmail, invoiceNumber, businessName, attachments, currentUserEmail, onSend, onClose }: { defaultEmail: string; invoiceNumber: string; businessName: string; attachments: InvoiceAttachment[]; currentUserEmail: string; onSend: (email: string, subject: string, message: string, cc: string[], bcc: string[], attachmentIds: string[]) => void; onClose: () => void }) {
   const [email, setEmail] = useState(defaultEmail);
   const [subject, setSubject] = useState(`Invoice ${invoiceNumber} from ${businessName || "RealProfits"}`);
   const [message, setMessage] = useState("");
+  const [cc, setCc] = useState("");
+  const [sendCopyToMe, setSendCopyToMe] = useState(true);
+  const [selectedAttachmentIds, setSelectedAttachmentIds] = useState<string[]>(attachments.map(a => a.id));
   const [sending, setSending] = useState(false);
   const inp = "w-full bg-[#F9F8F5] border border-[#E2DDD4] rounded-md px-3 py-2 text-sm focus:border-[#0B3D3D] focus:outline-none";
+
+  const parseEmails = (s: string): string[] =>
+    s.split(/[,;\n]+/).map(e => e.trim()).filter(e => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e));
 
   const handleSend = async () => {
     if (!email) return;
     setSending(true);
-    await onSend(email, subject, message);
+    const ccList = parseEmails(cc);
+    const bccList = sendCopyToMe && currentUserEmail ? [currentUserEmail] : [];
+    await onSend(email, subject, message, ccList, bccList, selectedAttachmentIds);
     setSending(false);
   };
 
+  const toggleAtt = (id: string) =>
+    setSelectedAttachmentIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl" data-testid="send-email-modal">
+      <div className="bg-white rounded-xl p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto" data-testid="send-email-modal">
         <h3 className="text-lg font-bold text-[#1C1B18] mb-1">Send Invoice by Email</h3>
         <p className="text-sm text-[#6E6B63] mb-4">Your client will receive a professional HTML email with invoice details.</p>
         <div className="space-y-3">
-          <div><label className="text-xs font-semibold text-[#6E6B63] uppercase mb-1 block">Recipient Email *</label><input type="email" className={inp} value={email} onChange={e => setEmail(e.target.value)} data-testid="modal-send-email" /></div>
-          <div><label className="text-xs font-semibold text-[#6E6B63] uppercase mb-1 block">Subject</label><input className={inp} value={subject} onChange={e => setSubject(e.target.value)} /></div>
-          <div><label className="text-xs font-semibold text-[#6E6B63] uppercase mb-1 block">Personal Message (optional)</label><textarea className={inp + " min-h-[80px]"} placeholder="Hi, please find your invoice attached..." value={message} onChange={e => setMessage(e.target.value)} /></div>
+          <div>
+            <label className="text-xs font-semibold text-[#6E6B63] uppercase mb-1 block">To *</label>
+            <input type="email" className={inp} value={email} onChange={e => setEmail(e.target.value)} data-testid="modal-send-email" />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-[#6E6B63] uppercase mb-1 block">CC <span className="text-[#9A968B] font-normal normal-case">(separate with commas)</span></label>
+            <input className={inp} placeholder="boss@x.com, accountant@y.com" value={cc} onChange={e => setCc(e.target.value)} data-testid="modal-cc" />
+          </div>
+          <label className="flex items-start gap-2 text-sm text-[#1C1B18] cursor-pointer select-none">
+            <input type="checkbox" checked={sendCopyToMe} onChange={e => setSendCopyToMe(e.target.checked)} className="mt-0.5 accent-[#0B3D3D]" data-testid="modal-send-copy-to-me" disabled={!currentUserEmail} />
+            <span>
+              Send a copy to me {currentUserEmail ? <span className="text-[#9A968B]">({currentUserEmail})</span> : <span className="text-[#9A968B]">(login email unavailable)</span>}
+            </span>
+          </label>
+          <div>
+            <label className="text-xs font-semibold text-[#6E6B63] uppercase mb-1 block">Subject</label>
+            <input className={inp} value={subject} onChange={e => setSubject(e.target.value)} />
+          </div>
+          <div>
+            <label className="text-xs font-semibold text-[#6E6B63] uppercase mb-1 block">Personal Message (optional)</label>
+            <textarea className={inp + " min-h-[80px]"} placeholder="Hi, please find your invoice attached..." value={message} onChange={e => setMessage(e.target.value)} />
+          </div>
+
+          {attachments.length > 0 && (
+            <div className="border border-[#E2DDD4] rounded-md p-3 bg-[#F9F8F5]">
+              <p className="text-xs font-semibold text-[#6E6B63] uppercase mb-2">Attachments to include ({selectedAttachmentIds.length}/{attachments.length})</p>
+              <div className="space-y-1.5 max-h-32 overflow-y-auto">
+                {attachments.map(a => (
+                  <label key={a.id} className="flex items-center gap-2 text-sm text-[#1C1B18] cursor-pointer hover:bg-white rounded px-1.5 py-1">
+                    <input type="checkbox" checked={selectedAttachmentIds.includes(a.id)} onChange={() => toggleAtt(a.id)} className="accent-[#0B3D3D]" data-testid={`modal-att-${a.id}`} />
+                    <span className="truncate flex-1">{a.filename}</span>
+                    <span className="text-[10px] text-[#9A968B]">{(a.size / 1024).toFixed(0)} KB</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
         <div className="flex justify-end gap-2 mt-5">
           <button onClick={onClose} className="px-4 py-2 text-sm font-semibold text-[#6E6B63] border border-[#E2DDD4] rounded-md hover:bg-[#F9F8F5]">Cancel</button>

@@ -47,7 +47,7 @@ export function InvoiceSidebar({ activeTab, setActiveTab, currency, setCurrency,
         </button>
 
         <button onClick={nav("history")} className={`w-full flex items-center justify-between gap-2.5 px-3 py-2 rounded-md text-sm transition-colors mb-0.5 ${activeTab === "history" ? "bg-white/14 text-white font-medium" : "text-white/70 hover:bg-white/8 hover:text-white"}`} data-testid="sidebar-history">
-          <span className="flex items-center gap-2.5"><Clock className="w-4 h-4" /> History</span>
+          <span className="flex items-center gap-2.5"><Clock className="w-4 h-4" /> Invoices</span>
           {invoiceCount > 0 && <span className="bg-white/20 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{invoiceCount}</span>}
         </button>
 

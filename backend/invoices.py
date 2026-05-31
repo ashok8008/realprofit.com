@@ -143,6 +143,11 @@ class SendInvoiceEmailRequest(BaseModel):
     recipient_email: str
     subject: str = ""
     message: str = ""
+    cc: List[str] = []
+    bcc: List[str] = []
+    # Attachment IDs already on the invoice that should be included.
+    # If omitted, ALL saved attachments are included by default.
+    include_attachment_ids: Optional[List[str]] = None
 
 # ── Helpers ─────────────────────────────────────────────
 
@@ -381,9 +386,13 @@ async def send_invoice_email(body: SendInvoiceEmailRequest, request: Request):
     </div>
     """
 
-    # Load any attachments stored on disk for this invoice and pass them to Resend.
+    # Load attachments stored on disk for this invoice. Honour the user's selection
+    # if `include_attachment_ids` was provided; otherwise include all.
     resend_attachments = []
+    selected_ids = body.include_attachment_ids
     for a in doc.get("attachments", []) or []:
+        if selected_ids is not None and a.get("id") not in selected_ids:
+            continue
         fpath = INVOICE_STORAGE_DIR / str(doc["_id"]) / f'{a["id"]}_{a["filename"]}'
         try:
             data = await asyncio.to_thread(fpath.read_bytes)
@@ -394,13 +403,23 @@ async def send_invoice_email(body: SendInvoiceEmailRequest, request: Request):
         except FileNotFoundError:
             logger.warning("Attachment file missing for invoice %s: %s", doc["_id"], fpath)
 
+    # Validate cc/bcc emails (Resend rejects malformed)
+    def _valid_email(e: str) -> bool:
+        return bool(_EMAIL_RE.match(e.strip()))
+    cc_list = [e.strip() for e in (body.cc or []) if _valid_email(e)]
+    bcc_list = [e.strip() for e in (body.bcc or []) if _valid_email(e)]
+
     try:
-        params = {"from": sender, "to": [body.recipient_email], "subject": subject, "html": html}
+        params: dict = {"from": sender, "to": [body.recipient_email], "subject": subject, "html": html}
+        if cc_list:
+            params["cc"] = cc_list
+        if bcc_list:
+            params["bcc"] = bcc_list
         if resend_attachments:
             params["attachments"] = resend_attachments
         logger.info(
-            "[invoice-send] calling resend.Emails.send → from=%s to=%s subject=%r attachments=%d",
-            sender, body.recipient_email, subject, len(resend_attachments),
+            "[invoice-send] calling resend.Emails.send → from=%s to=%s cc=%s bcc=%s subject=%r attachments=%d",
+            sender, body.recipient_email, cc_list, bcc_list, subject, len(resend_attachments),
         )
         email_result = await asyncio.to_thread(resend.Emails.send, params)
         logger.info("[invoice-send] resend response → %s", email_result)

@@ -18,28 +18,19 @@ export function InvoicePreviewPanel({ inv, onPrint, onDownloadPDF }: PreviewProp
   const outstanding = Math.max(0, totals.total - paidTotal);
 
   return (
-    <div className="w-[400px] flex-shrink-0 bg-[#F5F3EE] border-l border-[#E2DDD4] h-screen sticky top-0 flex flex-col overflow-hidden" data-testid="invoice-preview-panel">
+    <div className="w-[400px] flex-shrink-0 bg-[#F5F3EE] border-l border-[#E2DDD4] h-screen sticky top-0 flex flex-col overflow-hidden invoice-preview-panel" data-testid="invoice-preview-panel">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-[#E2DDD4] bg-white">
         <h3 className="text-sm font-bold text-[#1C1B18]">Preview</h3>
         <div className="flex gap-1.5">
-          <button onClick={onPrint} className="border border-[#E2DDD4] bg-white text-[#6E6B63] text-xs font-semibold px-3 py-1.5 rounded-md hover:bg-[#F9F8F5] flex items-center gap-1"><Printer className="w-3 h-3" /> Print</button>
+          <button onClick={onPrint} className="border border-[#E2DDD4] bg-white text-[#6E6B63] text-xs font-semibold px-3 py-1.5 rounded-md hover:bg-[#F9F8F5] flex items-center gap-1" data-testid="preview-print-btn"><Printer className="w-3 h-3" /> Print</button>
           <button onClick={onDownloadPDF} className="bg-[#0B3D3D] text-white text-xs font-semibold px-3 py-1.5 rounded-md hover:bg-[#165252] flex items-center gap-1"><Download className="w-3 h-3" /> PDF</button>
         </div>
       </div>
 
-      {/* Template picker */}
-      <div className="flex gap-1.5 px-4 py-2.5 border-b border-[#E2DDD4] bg-white">
-        {(["minimal", "corporate", "creative"] as const).map(t => (
-          <button key={t} className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors ${inv.template === t ? "bg-[#0B3D3D] text-white" : "bg-[#F9F8F5] text-[#6E6B63] border border-[#E2DDD4] hover:bg-white"}`} data-testid={`template-${t}`}>
-            {t.charAt(0).toUpperCase() + t.slice(1)}
-          </button>
-        ))}
-      </div>
-
       {/* Invoice Doc */}
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="bg-white rounded-lg shadow-sm border border-[#E2DDD4] p-6 text-xs" id="invoice-preview-doc" data-testid="invoice-preview-doc">
+      <div className="flex-1 overflow-y-auto p-4 print-area">
+        <div className="bg-white rounded-lg shadow-sm border border-[#E2DDD4] p-6 text-xs print-invoice" id="invoice-preview-doc" data-testid="invoice-preview-doc">
           {/* Header */}
           <div className="flex justify-between items-start mb-6">
             <div>
@@ -127,6 +118,35 @@ export function InvoicePreviewPanel({ inv, onPrint, onDownloadPDF }: PreviewProp
           )}
         </div>
       </div>
+
+      {/* Print stylesheet (Issue #2) — when user hits print, hide everything except the invoice doc */}
+      <style jsx global>{`
+        @media print {
+          @page { margin: 12mm; }
+          html, body { background: #fff !important; }
+          /* Hide everything except the invoice preview */
+          body * { visibility: hidden !important; }
+          .print-area, .print-area * { visibility: visible !important; }
+          .print-area {
+            position: absolute !important;
+            inset: 0 !important;
+            padding: 0 !important;
+            overflow: visible !important;
+            width: 100% !important;
+            height: auto !important;
+          }
+          .print-invoice {
+            border: none !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+            padding: 8mm !important;
+            max-width: 100% !important;
+            font-size: 11pt !important;
+          }
+          /* Belt-and-suspenders: hide common layout chrome */
+          .invoice-preview-panel > div:first-child { display: none !important; }
+        }
+      `}</style>
     </div>
   );
 }
