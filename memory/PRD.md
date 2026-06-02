@@ -450,6 +450,16 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - **PostgreSQL bootstrapped**: Local pod re-installed `postgresql-15` and created the `realprofits_esign` DB + `realprofits` user so the eSign module works in this fork.
 - Testing: Backend 100% (8/8 pytest), Frontend 100% (8/8 Playwright UI verifications) — iteration_39
 
+### Phase 39: eSign Signing-Time Polish (Feb 2026) -- DONE
+- **Issue A — Dashboard Void button is now icon-only**: `EsignDashboard.tsx` replaces the prominent red "Void" text button on Sent/In-Progress rows with a discreet `XCircle` icon button (still `data-testid="void-<id>"`, with `title` + `aria-label` for a11y).
+- **Issue B — Finish-signing card stays in view**: The `SigningPage` right-side `<aside>` is now sticky as a whole (`lg:sticky lg:top-24 lg:self-start lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto`). Both the Active-field card and the Finish-signing/consent card remain visible while the user scrolls through multi-page PDFs.
+- **Issues C + D — Read-only preview of earlier signers' signatures**: `GET /api/esign/sign/{token}` now returns two new fields:
+  - `other_filled_fields[]` — every field on the document whose `signer_id != current_signer.id` AND `value IS NOT NULL` (signatures, dates, text already filled by previous signers).
+  - `signers[]` — lightweight summary list (id, name, role, order_index, color, status, signed_at) for labelling.
+  The `SigningPage` overlays these as non-interactive boxes (`pointer-events-none`, owner-colored border, `data-testid="other-signed-field-<fieldId>"`) so witnesses and later signers see signatures already applied by previous signers (instead of an apparently-blank document).
+- New `SignerSummary` schema in `/app/backend/esign/schemas.py`.
+- Testing: Backend 100% (25/25 pytest — 3 new for Issue C+D + 22 regression), Frontend 100% (all 4 issues live-verified) — iteration_40.
+
 ## Upcoming Tasks
 - pSEO Master Plan Phase 1b+: salary comparisons, more cities (50 → 1,000 leaf pages), more jobs (500 → 25,000 leaf pages) toward the 75K goal (P1)
 - pSEO Master Plan Phase 3 expansion: more contract types × industries (P1)
