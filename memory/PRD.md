@@ -437,3 +437,23 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - Resend domain switch (`sign@realprofits.com`) — needs user DNS verification first (P1)
 - Stripe live keys (P2)
 - A/B test hero CTAs visibility analytics (P2)
+
+### Phase 38: UX & Logic Polish — eSign + Invoice (Feb 2026) -- DONE
+- **Issue 1 (P0) — Global auth-expiry redirect**: Both `invoice-app/api.ts` and `esign/api.ts` now dispatch a `window` event `auth:expired` on any 401 response. `AuthContext.tsx` listens globally and redirects to `/login?redirect=<currentPath>` (skips when already on `/login` etc.). Local checks in `EsignDashboard`, `EsignWizard`, and `InvoiceApp` continue to redirect on initial load.
+- **Issue 2 (P0) — Open drafts from dashboard**: New route `/tools/esign/edit/[id]/page.tsx` fetches the draft and renders `EsignWizard` in "edit mode". `EsignWizard` now accepts an `initialDoc` prop, preloads title/signers/fields/settings/expiry, and starts at step 2. The Back button cannot go below step 2 in edit mode. When signers are PATCHed (which wipes server-side IDs), existing field `signer_id`s are remapped via email lookup so users don't lose their placements. Drafts now show an `Edit` button + clickable title (`data-testid="edit-draft-<id>"`, `"open-draft-<id>"`) in `EsignDashboard`.
+- **Issue 3 (P1) — In Progress tab**: `EsignDashboard` filter bar now has 5 buttons: All / Draft / Sent / In Progress / Completed. The Sent tab counts only `sent` status; In Progress (`data-testid="filter-in_progress"`) shows the `partial` status docs (still labeled "In Progress" via STATUS_META).
+- **Issue 4 (P1) — Drag-and-drop signer reorder**: When signing_order is "sequential", each signer row gets a `GripVertical` drag handle. HTML5 native drag-and-drop (no extra library) reorders the local `signers` array; the `order_index` is written on PATCH at step-2 commit. Helper text shows when sequential mode is active.
+- **Issue 5 (P1) — Sticky field-type sidebar**: `FieldPlacer` aside now has `lg:sticky lg:top-32 lg:self-start lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto` so the Signer/Field-type/Checkbox controls stay visible while scrolling multi-page PDFs.
+- **Issue 6 (P1) — Invoice qty/description formatting**: Removed the `|| "Item"` fallback on empty descriptions in `InvoicePreviewPanel.tsx`, `InvoiceApp.tsx` PDF generator, and backend `_portal_html` in `invoices.py`. Qty now formats via a helper (`_fmt_qty` Python / inline JS) that drops `.0` from integer values (e.g., `1.0` → `1`, `2.5` → `2.5`). Unit ("hr", "item", etc.) removed from the qty column in preview, PDF, email HTML, and public portal HTML.
+- **Issue 7 (P2) — Back-to-Home on dashboard**: New `Home` link with house icon at top-left of `EsignDashboard` header (`data-testid="esign-back-home"`).
+- **Issue 8 (P2) — Removed usage progress bar**: The thin progress strip under "X / Y documents used" in the usage banner is gone; the banner now just shows the count and the Upgrade CTA.
+- **PostgreSQL bootstrapped**: Local pod re-installed `postgresql-15` and created the `realprofits_esign` DB + `realprofits` user so the eSign module works in this fork.
+- Testing: Backend 100% (8/8 pytest), Frontend 100% (8/8 Playwright UI verifications) — iteration_39
+
+## Upcoming Tasks
+- pSEO Master Plan Phase 1b+: salary comparisons, more cities (50 → 1,000 leaf pages), more jobs (500 → 25,000 leaf pages) toward the 75K goal (P1)
+- pSEO Master Plan Phase 3 expansion: more contract types × industries (P1)
+- Resend domain switch (`sign@realprofits.com`) — needs user DNS verification first (P1)
+- Stripe live keys (P2)
+- Component splitting: `EsignWizard.tsx` (637 lines) and `InvoiceApp.tsx` (810 lines) are approaching/over the 700-line guideline (P2)
+- A/B test hero CTAs visibility analytics (P2)
