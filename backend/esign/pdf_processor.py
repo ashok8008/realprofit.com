@@ -117,8 +117,13 @@ def _audit_qr_png(verify_url: str) -> Image.Image:
     return qr.make_image(fill_color="black", back_color="white").convert("RGB")
 
 
-def build_audit_page(document, signers: list, signed_hash: str, verify_url: str) -> bytes:
-    """Generate a single-page audit-trail PDF."""
+def build_audit_page(document, signers: list, signed_hash: str, verify_url: str,
+                       audit_events: list | None = None) -> bytes:
+    """Generate a multi-page audit-trail PDF.
+
+    audit_events: optional list of AuditEvent rows (chronological); rendered as
+    a tamper-evident "Activity timeline" — chain-of-custody record for legal use.
+    """
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=letter)
     width, height = letter
@@ -195,6 +200,84 @@ def build_audit_page(document, signers: list, signed_hash: str, verify_url: str)
         c.setFillColorRGB(*DARK)
         c.setFont("Helvetica", 8)
         y -= 14
+
+    # ── Activity timeline ────────────────────────────────────────────────
+    # Tamper-evident chain-of-custody record of every event recorded for this
+    # document (viewed / signed / declined / sent / completed / voided / expired).
+    if audit_events:
+        signer_by_id = {str(s.id): s for s in signers}
+        # Sort defensively in case caller didn't.
+        events = sorted(audit_events, key=lambda e: e.occurred_at)
+        if y < 200:
+            c.showPage()
+            y = height - 60
+        else:
+            y -= 6
+        c.setFillColorRGB(*DARK)
+        c.setFont("Helvetica-Bold", 10)
+        c.drawString(36, y, "Activity timeline")
+        y -= 4
+        c.setStrokeColorRGB(*GOLD)
+        c.setLineWidth(1)
+        c.line(36, y, width - 36, y)
+        y -= 14
+
+        c.setFont("Helvetica-Bold", 8)
+        c.setFillColorRGB(*MUTED)
+        for x, label in [(36, "WHEN"), (140, "EVENT"), (270, "WHO"), (430, "IP")]:
+            c.drawString(x, y, label)
+        y -= 12
+
+        # Map raw event_type → human-readable, role-aware verb.
+        def _verb(event_type: str, who_role: str) -> str:
+            et = (event_type or "").lower().strip()
+            r = (who_role or "").lower()
+            if et in ("signed", "sign"):
+                return {"witness": "Witnessed",
+                        "approver": "Approved",
+                        "cc": "Acknowledged"}.get(r, "Signed")
+            if et in ("viewed", "view"):
+                return "Viewed"
+            if et in ("declined", "decline"):
+                return "Declined"
+            if et in ("document_sent", "sent"):
+                return "Document sent"
+            if et in ("document_voided", "voided"):
+                return "Voided"
+            if et in ("completed",):
+                return "Document completed"
+            if et in ("expired",):
+                return "Expired"
+            return event_type.replace("_", " ").capitalize() if event_type else "Event"
+
+        for ev in events:
+            if y < 80:
+                c.showPage()
+                y = height - 60
+                # Re-print headers on continuation page.
+                c.setFont("Helvetica-Bold", 8)
+                c.setFillColorRGB(*MUTED)
+                for x, label in [(36, "WHEN"), (140, "EVENT"), (270, "WHO"), (430, "IP")]:
+                    c.drawString(x, y, label)
+                y -= 12
+
+            when = ev.occurred_at.strftime("%b %d %H:%M UTC") if ev.occurred_at else "—"
+            sid = str(getattr(ev, "signer_id", "") or "")
+            s = signer_by_id.get(sid)
+            who = s.name if s else "System"
+            role = (s.role if s else "") or ""
+            verb = _verb(getattr(ev, "event_type", ""), role)
+            ip = (getattr(ev, "ip_address", None) or "—")[:14]
+
+            c.setFont("Helvetica", 8)
+            c.setFillColorRGB(*DARK)
+            c.drawString(36, y, when)
+            c.drawString(140, y, verb[:22])
+            c.drawString(270, y, (who or "")[:24])
+            c.setFillColorRGB(*MUTED)
+            c.drawString(430, y, ip)
+            y -= 11
+        y -= 6
 
     # QR code & verify URL
     if y < 180:

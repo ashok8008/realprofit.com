@@ -646,7 +646,13 @@ async def _finalize_document(session: AsyncSession, doc: Document,
     final_hash = pdf_processor.sha256_bytes(merged)
     app_url = os.environ.get("APP_URL", os.environ.get("FRONTEND_URL", "http://localhost:3000"))
     verify_url = f"{app_url}/verify/{doc.id}"
-    audit = pdf_processor.build_audit_page(doc, all_signers, final_hash, verify_url)
+    # Load full chain-of-custody for the audit timeline section.
+    ev_res = await session.execute(
+        select(AuditEvent).where(AuditEvent.document_id == doc.id).order_by(AuditEvent.occurred_at)
+    )
+    audit_events = ev_res.scalars().all()
+    audit = pdf_processor.build_audit_page(doc, all_signers, final_hash, verify_url,
+                                            audit_events=audit_events)
     full = pdf_processor.append_audit_page(merged, audit)
     doc.signed_key = storage.save_signed(str(doc.id), full)
     doc.doc_hash = pdf_processor.sha256_bytes(full)

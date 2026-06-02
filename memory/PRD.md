@@ -476,6 +476,18 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - **Audit trail PDF (`pdf_processor.build_audit_page`) no longer prints "Status: signed" for witnesses**: when a row's `status == "signed"`, the label is mapped via role: `witness → witnessed`, `approver → approved`, `cc → received`. Non-signer roles also get a `Role: <role>` suffix for clarity.
 - Verified via direct script runs: 4-role email scan and 4-role audit-PDF text extraction both PASS.
 
+### Phase 39d: Audit Trail Activity Timeline (Feb 2026) -- DONE
+- **`build_audit_page` now renders a chronological "Activity timeline"** below the Signers table — one row per AuditEvent (sorted by `occurred_at`). Columns: WHEN · EVENT · WHO · IP. Event verbs are role-aware:
+  - `signed` + role=`witness` → "Witnessed"
+  - `signed` + role=`approver` → "Approved"
+  - `signed` + role=`cc` → "Acknowledged"
+  - `signed` + role=`signer` → "Signed"
+  - `viewed` / `declined` / `document_sent` / `document_voided` / `completed` / `expired` render with friendly verbs.
+- System events (no `signer_id`) display "System" in the WHO column.
+- Multi-page support: when y < 80 the page breaks and re-prints the column headers on the continuation page.
+- `_finalize_document` in `routes.py` now loads `AuditEvent` rows for the document and passes them to `pdf_processor.build_audit_page(..., audit_events=...)`.
+- Verified end-to-end via direct script: timeline section present, 6 expected verbs ("Document sent", "Viewed", "Signed", "Witnessed", "Document completed") all rendered, and signer names correctly resolved.
+
 ## Upcoming Tasks
 - pSEO Master Plan Phase 1b+: salary comparisons, more cities (50 → 1,000 leaf pages), more jobs (500 → 25,000 leaf pages) toward the 75K goal (P1)
 - pSEO Master Plan Phase 3 expansion: more contract types × industries (P1)
