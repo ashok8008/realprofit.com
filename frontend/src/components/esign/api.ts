@@ -153,6 +153,8 @@ export const signApi = {
       signer_name: string;
       signer_email: string;
       fields: Field[];
+      other_filled_fields: Field[];
+      signers: Array<{ id: string; name: string; role: string; order_index: number; color: string; status: string; signed_at: string | null }>;
       already_signed: boolean;
       expired: boolean;
     }>(`/api/esign/sign/${token}`),

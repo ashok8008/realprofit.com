@@ -208,14 +208,47 @@ export function SigningPage({ token }: Props) {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-6 grid grid-cols-12 gap-6">
+      <main className="max-w-7xl mx-auto px-6 py-6 grid grid-cols-12 gap-6 items-start">
         {/* PDF column */}
         <div className="col-span-12 lg:col-span-8 space-y-4">
           {pdfLoading && <div className="text-stone-500">Loading document…</div>}
           {pages.map((p) => {
             const myFields = view.fields.filter((f) => f.page === p.pageNumber);
+            const othersFilled = (view.other_filled_fields || []).filter((f) => f.page === p.pageNumber);
             return (
               <PageCanvas key={p.pageNumber} info={p}>
+                {/* Read-only overlays for fields already signed by other signers / witnesses preview */}
+                {othersFilled.map((f) => {
+                  const owner = view.signers?.find((s) => s.id === f.signer_id);
+                  const accent = owner?.color || "#2A6B45";
+                  const val = f.value || "";
+                  const isImg = val.startsWith("data:image");
+                  return (
+                    <div
+                      key={`other-${f.id}`}
+                      data-testid={`other-signed-field-${f.id}`}
+                      style={{
+                        position: "absolute",
+                        left: `${f.x * 100}%`,
+                        top: `${f.y * 100}%`,
+                        width: `${f.width * 100}%`,
+                        height: `${f.height * 100}%`,
+                        borderColor: accent,
+                        background: `${accent}14`,
+                      }}
+                      className="border rounded flex items-center justify-center overflow-hidden pointer-events-none"
+                      title={owner ? `Signed by ${owner.name}` : "Signed"}
+                    >
+                      {isImg ? (
+                        <img src={val} alt={`${owner?.name || "Signer"} signature`} className="max-h-full max-w-full" />
+                      ) : (
+                        <span className="text-xs px-1 truncate" style={{ fontSize: "min(14px, 90%)", color: accent }}>
+                          {val}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
                 {myFields.map((f) => {
                   const isActive = f.id === activeFieldId;
                   const isFilled = !!fieldValues[f.id];
@@ -261,9 +294,10 @@ export function SigningPage({ token }: Props) {
           })}
         </div>
 
-        {/* Side panel */}
-        <aside className="col-span-12 lg:col-span-4 space-y-4">
-          <div className="bg-white border border-stone-200 rounded-xl p-5 shadow-sm sticky top-32">
+        {/* Side panel — sticky as a whole so both Active-field card and Finish-signing card
+            stay visible while scrolling the multi-page PDF. */}
+        <aside className="col-span-12 lg:col-span-4 lg:sticky lg:top-24 lg:self-start lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto space-y-4 pr-1">
+          <div className="bg-white border border-stone-200 rounded-xl p-5 shadow-sm">
             {(() => {
               const activeField = view.fields.find((f) => f.id === activeFieldId);
               if (!activeField) {

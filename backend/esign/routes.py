@@ -38,7 +38,7 @@ from .database import get_session
 from .models import Document, Signer, SignatureField, AuditEvent
 from .schemas import (
     DocumentOut, DocumentListItem, DocumentUpdate, SignerOut, FieldOut,
-    SignerPublicView, SignSubmission, DeclineBody,
+    SignerPublicView, SignSubmission, DeclineBody, SignerSummary,
 )
 from billing.service import (
     assert_can_create_doc, assert_can_set_signers, increment_doc_counter,
@@ -380,10 +380,24 @@ async def signing_view(token: str, request: Request, session: AsyncSession = Dep
         await session.commit()
 
     fields = [f for f in doc.fields if str(f.signer_id) == str(signer.id)]
+    # Show other signers' already-filled values (read-only overlays) so the
+    # witness / next signer sees signatures that earlier signers have applied.
+    other_filled_fields = [
+        f for f in doc.fields
+        if str(f.signer_id) != str(signer.id) and f.value is not None
+    ]
+    # Lightweight signer summary list for labels / colors.
+    res_signers = await session.execute(
+        select(Signer).where(Signer.document_id == doc.id).order_by(Signer.order_index)
+    )
+    all_signers = res_signers.scalars().all()
+
     return SignerPublicView(
         document_id=doc.id, document_title=doc.title, page_count=doc.page_count,
         signer_name=signer.name, signer_email=signer.email,
         fields=[FieldOut.model_validate(f) for f in fields],
+        other_filled_fields=[FieldOut.model_validate(f) for f in other_filled_fields],
+        signers=[SignerSummary.model_validate(s) for s in all_signers],
         already_signed=signer.token_used,
         expired=False,
     )

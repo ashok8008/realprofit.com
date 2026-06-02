@@ -112,6 +112,19 @@ class DocumentListItem(BaseModel):
 # Public signing API
 
 
+class SignerSummary(BaseModel):
+    id: uuid.UUID
+    name: str
+    role: str
+    order_index: int
+    color: str
+    status: str
+    signed_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
 class SignerPublicView(BaseModel):
     document_id: uuid.UUID
     document_title: str
@@ -119,6 +132,12 @@ class SignerPublicView(BaseModel):
     signer_name: str
     signer_email: str
     fields: List[FieldOut]
+    # Fields belonging to OTHER signers that have already been filled.
+    # These are sent so the current signer / witness can preview the document
+    # with the existing signatures visible (read-only).
+    other_filled_fields: List[FieldOut] = []
+    # Lightweight list of all signers (so the UI can label other_filled_fields).
+    signers: List[SignerSummary] = []
     already_signed: bool = False
     expired: bool = False
 

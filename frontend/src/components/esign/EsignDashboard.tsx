@@ -241,10 +241,11 @@ export function EsignDashboard() {
                     <button
                       onClick={() => voidDoc(d.id)}
                       data-testid={`void-${d.id}`}
-                      className="text-xs px-2 py-1 rounded text-[#B53D2F] hover:bg-red-50"
+                      className="p-2 rounded-md text-[#B53D2F] hover:bg-red-50"
                       title="Void document"
+                      aria-label="Void document"
                     >
-                      Void
+                      <XCircle className="w-4 h-4" />
                     </button>
                   )}
                   {(d.status === "draft" || d.status === "voided" || d.status === "completed" || d.status === "expired" || d.status === "declined") && (
