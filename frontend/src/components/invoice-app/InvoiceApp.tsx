@@ -51,10 +51,13 @@ export function InvoiceApp() {
         if (settings.logo_url) setInv(prev => ({ ...prev, logo_url: settings.logo_url }));
       } catch {}
     } catch (err: unknown) {
-      if (err instanceof Error && err.message === "AUTH_REQUIRED") return;
+      if (err instanceof Error && err.message === "AUTH_REQUIRED") {
+        router.push("/login?redirect=/tools/invoice");
+        return;
+      }
       console.error("Failed to load data:", err);
     }
-  }, [user]);
+  }, [user, router]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -401,8 +404,9 @@ export function InvoiceApp() {
         if (ri % 2 === 0) { doc.setFillColor(BRAND.light[0], BRAND.light[1], BRAND.light[2]); doc.rect(LM, y - 1, PW, 7, "F"); }
         doc.setTextColor(BRAND.dark[0], BRAND.dark[1], BRAND.dark[2]);
         x = LM + 3;
-        doc.text((item.description || "Item").substring(0, 40), x, y + 4); x += cols[0];
-        doc.text(`${item.qty} ${item.unit}`, x, y + 4); x += cols[1];
+        doc.text((item.description || "").substring(0, 40), x, y + 4); x += cols[0];
+        const qtyStr = Number.isInteger(item.qty) ? String(item.qty) : String(item.qty);
+        doc.text(qtyStr, x, y + 4); x += cols[1];
         doc.text(`${sym}${item.rate.toFixed(2)}`, x, y + 4); x += cols[2];
         doc.text(`${sym}${(item.qty * item.rate).toFixed(2)}`, x, y + 4);
         y += 7;

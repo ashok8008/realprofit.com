@@ -71,14 +71,17 @@ export function InvoicePreviewPanel({ inv, onPrint, onDownloadPDF }: PreviewProp
               </tr>
             </thead>
             <tbody>
-              {inv.items.map((item, i) => (
-                <tr key={item.id} className={i % 2 === 0 ? "bg-[#F9F8F5]" : ""}>
-                  <td className="px-2 py-1.5 text-[#1C1B18]">{item.description || "Item"}</td>
-                  <td className="px-2 py-1.5 text-center text-[#6E6B63]">{item.qty} {item.unit}</td>
-                  <td className="px-2 py-1.5 text-right text-[#6E6B63]">{sym}{item.rate.toFixed(2)}</td>
-                  <td className="px-2 py-1.5 text-right font-semibold text-[#1C1B18]">{sym}{(item.qty * item.rate).toFixed(2)}</td>
-                </tr>
-              ))}
+              {inv.items.map((item, i) => {
+                const qtyStr = Number.isInteger(item.qty) ? String(item.qty) : String(item.qty);
+                return (
+                  <tr key={item.id} className={i % 2 === 0 ? "bg-[#F9F8F5]" : ""}>
+                    <td className="px-2 py-1.5 text-[#1C1B18]">{item.description}</td>
+                    <td className="px-2 py-1.5 text-center text-[#6E6B63]">{qtyStr}</td>
+                    <td className="px-2 py-1.5 text-right text-[#6E6B63]">{sym}{item.rate.toFixed(2)}</td>
+                    <td className="px-2 py-1.5 text-right font-semibold text-[#1C1B18]">{sym}{(item.qty * item.rate).toFixed(2)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
 

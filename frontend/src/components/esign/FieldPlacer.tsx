@@ -100,7 +100,7 @@ export function FieldPlacer({ pdfUrl, signers, fields, onChange, activeSignerId,
   return (
     <div className="grid grid-cols-12 gap-6">
       {/* Sidebar */}
-      <aside className="col-span-12 lg:col-span-4 xl:col-span-3 space-y-5">
+      <aside className="col-span-12 lg:col-span-4 xl:col-span-3 space-y-5 lg:sticky lg:top-32 lg:self-start lg:max-h-[calc(100vh-9rem)] lg:overflow-y-auto">
         <div className="bg-white border border-stone-200 rounded-xl p-5 shadow-sm">
           <h3 className="text-sm font-semibold text-stone-900 mb-3">Signer</h3>
           <div className="space-y-2">

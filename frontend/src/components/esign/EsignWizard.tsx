@@ -1,8 +1,8 @@
 "use client";
 // 5-step wizard: Upload → Signers → Place Fields → Settings & Review → Send
-import { useState, useCallback, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Upload, Users, MousePointer2, Settings as SettingsIcon, Send, ArrowLeft, ArrowRight, Plus, Trash2, FileText } from "lucide-react";
+import { Upload, Users, MousePointer2, Settings as SettingsIcon, Send, ArrowLeft, ArrowRight, Plus, Trash2, FileText, GripVertical } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { esignApi, SIGNER_PALETTE, type DocumentDetail, type FieldType, type Signer } from "./api";
@@ -39,24 +39,59 @@ interface FieldDraft {
   _localId?: string;
 }
 
-export function EsignWizard() {
+interface Props {
+  initialDoc?: DocumentDetail;
+}
+
+export function EsignWizard({ initialDoc }: Props = {}) {
   const { user } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
-  const [step, setStep] = useState<WizardStep>(1);
+  const [step, setStep] = useState<WizardStep>(initialDoc ? 2 : 1);
   const [file, setFile] = useState<File | null>(null);
-  const [title, setTitle] = useState("");
-  const [doc, setDoc] = useState<DocumentDetail | null>(null);
-  const [signers, setSigners] = useState<SignerDraft[]>([
-    { name: user?.name || "", email: user?.email || "", role: "signer", color: SIGNER_PALETTE[0] },
-  ]);
-  const [signingOrder, setSigningOrder] = useState<"sequential" | "parallel">("parallel");
-  const [expiryDays, setExpiryDays] = useState<number>(15);
-  const [brandEnabled, setBrandEnabled] = useState(true);
-  const [uuidEnabled, setUuidEnabled] = useState(true);
-  const [fields, setFields] = useState<FieldDraft[]>([]);
+  const [title, setTitle] = useState(initialDoc?.title || "");
+  const [doc, setDoc] = useState<DocumentDetail | null>(initialDoc || null);
+  const [signers, setSigners] = useState<SignerDraft[]>(
+    initialDoc && initialDoc.signers.length > 0
+      ? initialDoc.signers
+          .slice()
+          .sort((a, b) => a.order_index - b.order_index)
+          .map((s, idx) => ({
+            name: s.name,
+            email: s.email,
+            role: s.role,
+            color: s.color || SIGNER_PALETTE[idx % SIGNER_PALETTE.length],
+          }))
+      : [{ name: user?.name || "", email: user?.email || "", role: "signer", color: SIGNER_PALETTE[0] }]
+  );
+  const [signingOrder, setSigningOrder] = useState<"sequential" | "parallel">(
+    initialDoc?.signing_order || "parallel"
+  );
+  const initialExpiryDays = (() => {
+    if (!initialDoc?.expires_at) return 15;
+    const diff = Math.round((new Date(initialDoc.expires_at).getTime() - Date.now()) / (24 * 3600 * 1000));
+    return diff > 0 ? diff : 15;
+  })();
+  const [expiryDays, setExpiryDays] = useState<number>(initialExpiryDays);
+  const [brandEnabled, setBrandEnabled] = useState(initialDoc?.settings?.brand_enabled ?? true);
+  const [uuidEnabled, setUuidEnabled] = useState(initialDoc?.settings?.uuid_enabled ?? true);
+  const [fields, setFields] = useState<FieldDraft[]>(
+    initialDoc?.fields?.map((f) => ({
+      signer_id: f.signer_id,
+      page: f.page,
+      x: f.x,
+      y: f.y,
+      width: f.width,
+      height: f.height,
+      field_type: f.field_type,
+      required: f.required,
+      label: f.label || undefined,
+      _localId: `f-existing-${f.id}`,
+    })) || []
+  );
   const [submitting, setSubmitting] = useState(false);
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
 
   // --- Step 1: Upload ---
 
@@ -124,6 +159,10 @@ export function EsignWizard() {
     }
     setSubmitting(true);
     try {
+      // Capture old signer mapping (id → email) before backend replaces signers.
+      const oldSignerEmailById = new Map<string, string>(
+        (doc.signers || []).map((s) => [s.id, s.email.toLowerCase()])
+      );
       const updated = await esignApi.update(doc.id, {
         signing_order: signingOrder,
         signers: signers.map((s, idx) => ({
@@ -135,10 +174,27 @@ export function EsignWizard() {
         })),
       });
       setDoc(updated);
-      // Reset fields (signer IDs changed)
-      setFields([]);
+      // Remap existing fields' signer_id from old → new by matching email; drop orphans.
+      const newSignerIdByEmail = new Map<string, string>(
+        (updated.signers || []).map((s) => [s.email.toLowerCase(), s.id])
+      );
+      setFields((prev) => {
+        const remapped: FieldDraft[] = [];
+        for (const f of prev) {
+          const oldEmail = oldSignerEmailById.get(f.signer_id);
+          const newSignerId = oldEmail ? newSignerIdByEmail.get(oldEmail) : undefined;
+          if (newSignerId) {
+            remapped.push({ ...f, signer_id: newSignerId });
+          }
+        }
+        return remapped;
+      });
       setStep(3);
     } catch (e: any) {
+      if (e.message === "AUTH_REQUIRED") {
+        router.push(`/login?redirect=/tools/esign/edit/${doc.id}`);
+        return;
+      }
       toast({ title: "Could not save signers", description: e.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
@@ -193,6 +249,10 @@ export function EsignWizard() {
       toast({ title: `Sent to ${res.recipients} signer(s)`, description: "Email invitations are on the way." });
       router.push("/tools/esign/dashboard");
     } catch (e: any) {
+      if (e.message === "AUTH_REQUIRED") {
+        router.push(`/login?redirect=/tools/esign/edit/${doc.id}`);
+        return;
+      }
       toast({ title: "Could not send", description: e.message, variant: "destructive" });
     } finally {
       setSubmitting(false);
@@ -210,7 +270,8 @@ export function EsignWizard() {
 
   // --- Render ---
 
-  const canBack = step > 1 && !submitting;
+  const minStep: WizardStep = initialDoc ? 2 : 1;
+  const canBack = step > minStep && !submitting;
   const canForward = ((): boolean => {
     if (submitting) return false;
     if (step === 1) return !!file && !!title.trim();
@@ -322,51 +383,94 @@ export function EsignWizard() {
 
             <div className="bg-white border border-stone-200 rounded-xl p-6 shadow-sm">
               <div className="space-y-3">
-                {signers.map((s, i) => (
-                  <div key={i} className="grid grid-cols-12 gap-3 items-center" data-testid={`signer-row-${i}`}>
+                {signers.map((s, i) => {
+                  const reorderable = signingOrder === "sequential";
+                  return (
                     <div
-                      className="col-span-1 w-8 h-8 rounded-full text-white text-xs font-bold flex items-center justify-center"
-                      style={{ background: s.color }}
+                      key={i}
+                      className={`grid grid-cols-12 gap-3 items-center rounded-md transition-colors ${
+                        dragIdx === i ? "opacity-40" : ""
+                      }`}
+                      data-testid={`signer-row-${i}`}
+                      draggable={reorderable}
+                      onDragStart={(e) => {
+                        if (!reorderable) return;
+                        setDragIdx(i);
+                        e.dataTransfer.effectAllowed = "move";
+                      }}
+                      onDragOver={(e) => {
+                        if (!reorderable || dragIdx === null) return;
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = "move";
+                      }}
+                      onDrop={(e) => {
+                        if (!reorderable || dragIdx === null || dragIdx === i) return;
+                        e.preventDefault();
+                        const next = signers.slice();
+                        const [moved] = next.splice(dragIdx, 1);
+                        next.splice(i, 0, moved);
+                        setSigners(next);
+                        setDragIdx(null);
+                      }}
+                      onDragEnd={() => setDragIdx(null)}
                     >
-                      {i + 1}
+                      <div className="col-span-1 flex items-center gap-1">
+                        {reorderable && (
+                          <button
+                            type="button"
+                            data-testid={`signer-drag-handle-${i}`}
+                            className="p-1 text-stone-400 hover:text-stone-700 cursor-grab active:cursor-grabbing"
+                            aria-label={`Drag signer ${i + 1} to reorder`}
+                            title="Drag to reorder"
+                          >
+                            <GripVertical className="w-4 h-4" />
+                          </button>
+                        )}
+                        <div
+                          className="w-8 h-8 rounded-full text-white text-xs font-bold flex items-center justify-center"
+                          style={{ background: s.color }}
+                        >
+                          {i + 1}
+                        </div>
+                      </div>
+                      <input
+                        type="text"
+                        value={s.name}
+                        onChange={(e) => updateSigner(i, { name: e.target.value })}
+                        placeholder="Full name"
+                        data-testid={`signer-name-${i}`}
+                        className="col-span-4 px-3 py-2 border border-stone-300 rounded-md text-sm focus:outline-none focus:border-[#0B3D3D]"
+                      />
+                      <input
+                        type="email"
+                        value={s.email}
+                        onChange={(e) => updateSigner(i, { email: e.target.value })}
+                        placeholder="email@company.com"
+                        data-testid={`signer-email-${i}`}
+                        className="col-span-4 px-3 py-2 border border-stone-300 rounded-md text-sm focus:outline-none focus:border-[#0B3D3D]"
+                      />
+                      <select
+                        value={s.role}
+                        onChange={(e) => updateSigner(i, { role: e.target.value as any })}
+                        data-testid={`signer-role-${i}`}
+                        className="col-span-2 px-2 py-2 border border-stone-300 rounded-md text-xs focus:outline-none focus:border-[#0B3D3D]"
+                      >
+                        <option value="signer">Signer</option>
+                        <option value="approver">Approver</option>
+                        <option value="cc">CC</option>
+                        <option value="witness">Witness</option>
+                      </select>
+                      <button
+                        onClick={() => removeSigner(i)}
+                        disabled={signers.length <= 1}
+                        data-testid={`signer-remove-${i}`}
+                        className="col-span-1 p-2 rounded-md text-stone-400 hover:text-[#B53D2F] hover:bg-stone-50 disabled:opacity-30 disabled:hover:bg-transparent"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
-                    <input
-                      type="text"
-                      value={s.name}
-                      onChange={(e) => updateSigner(i, { name: e.target.value })}
-                      placeholder="Full name"
-                      data-testid={`signer-name-${i}`}
-                      className="col-span-4 px-3 py-2 border border-stone-300 rounded-md text-sm focus:outline-none focus:border-[#0B3D3D]"
-                    />
-                    <input
-                      type="email"
-                      value={s.email}
-                      onChange={(e) => updateSigner(i, { email: e.target.value })}
-                      placeholder="email@company.com"
-                      data-testid={`signer-email-${i}`}
-                      className="col-span-5 px-3 py-2 border border-stone-300 rounded-md text-sm focus:outline-none focus:border-[#0B3D3D]"
-                    />
-                    <select
-                      value={s.role}
-                      onChange={(e) => updateSigner(i, { role: e.target.value as any })}
-                      data-testid={`signer-role-${i}`}
-                      className="col-span-1 px-2 py-2 border border-stone-300 rounded-md text-xs focus:outline-none focus:border-[#0B3D3D]"
-                    >
-                      <option value="signer">Signer</option>
-                      <option value="approver">Approver</option>
-                      <option value="cc">CC</option>
-                      <option value="witness">Witness</option>
-                    </select>
-                    <button
-                      onClick={() => removeSigner(i)}
-                      disabled={signers.length <= 1}
-                      data-testid={`signer-remove-${i}`}
-                      className="col-span-1 p-2 rounded-md text-stone-400 hover:text-[#B53D2F] hover:bg-stone-50 disabled:opacity-30 disabled:hover:bg-transparent"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               <button
@@ -383,7 +487,7 @@ export function EsignWizard() {
                   <div className="flex gap-2">
                     {[
                       { id: "parallel" as const, label: "Anyone, any order", desc: "All signers notified at once" },
-                      { id: "sequential" as const, label: "In order", desc: "One at a time, top to bottom" },
+                      { id: "sequential" as const, label: "In order", desc: "One at a time — drag rows to reorder" },
                     ].map((o) => (
                       <button
                         key={o.id}
@@ -400,6 +504,11 @@ export function EsignWizard() {
                       </button>
                     ))}
                   </div>
+                  {signingOrder === "sequential" && (
+                    <p className="mt-3 text-xs text-stone-500" data-testid="reorder-hint">
+                      Drag the <GripVertical className="w-3 h-3 inline -mt-0.5" /> handle on any signer row to change the order.
+                    </p>
+                  )}
                 </div>
               )}
             </div>
@@ -487,7 +596,7 @@ export function EsignWizard() {
       <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 shadow-lg">
         <div className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
           <button
-            onClick={() => setStep((Math.max(1, step - 1)) as WizardStep)}
+            onClick={() => setStep((Math.max(minStep, step - 1)) as WizardStep)}
             disabled={!canBack}
             data-testid="wizard-back"
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-stone-700 rounded-md hover:bg-stone-100 disabled:opacity-40 disabled:cursor-not-allowed"

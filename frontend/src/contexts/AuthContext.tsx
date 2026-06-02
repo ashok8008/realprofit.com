@@ -60,6 +60,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     checkSession();
   }, [checkSession]);
 
+  // Global listener: when API clients dispatch "auth:expired" (401 response),
+  // clear local user and redirect to login preserving the current path.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onExpired = () => {
+      setUser(null);
+      const path = window.location.pathname + window.location.search;
+      // Avoid redirect loops on public/auth pages.
+      if (path.startsWith("/login") || path.startsWith("/register") || path.startsWith("/forgot-password")) return;
+      window.location.href = `/login?redirect=${encodeURIComponent(path)}`;
+    };
+    window.addEventListener("auth:expired", onExpired);
+    return () => window.removeEventListener("auth:expired", onExpired);
+  }, []);
+
   const login = async (email: string, password: string) => {
     const res = await fetch(`${API}/api/auth/login`, {
       method: "POST",

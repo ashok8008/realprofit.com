@@ -74,7 +74,12 @@ async function json<T>(path: string, opts?: RequestInit): Promise<T> {
     ...opts,
     headers: { "Content-Type": "application/json", ...(opts?.headers || {}) },
   });
-  if (res.status === 401) throw new Error("AUTH_REQUIRED");
+  if (res.status === 401) {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("auth:expired", { detail: { source: "esign" } }));
+    }
+    throw new Error("AUTH_REQUIRED");
+  }
   if (!res.ok) {
     const text = await res.text();
     try {
@@ -100,7 +105,12 @@ export const esignApi = {
       credentials: "include",
       body: fd,
     });
-    if (res.status === 401) throw new Error("AUTH_REQUIRED");
+    if (res.status === 401) {
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("auth:expired", { detail: { source: "esign" } }));
+      }
+      throw new Error("AUTH_REQUIRED");
+    }
     if (!res.ok) throw new Error(await res.text());
     return res.json();
   },

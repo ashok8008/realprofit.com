@@ -4,7 +4,12 @@ const API = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 async function f(path: string, opts?: RequestInit) {
   const res = await fetch(`${API}${path}`, { credentials: "include", ...opts, headers: { "Content-Type": "application/json", ...opts?.headers } });
-  if (res.status === 401) throw new Error("AUTH_REQUIRED");
+  if (res.status === 401) {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("auth:expired", { detail: { source: "invoice-app" } }));
+    }
+    throw new Error("AUTH_REQUIRED");
+  }
   if (!res.ok) {
     let msg = `${res.status} ${res.statusText}`;
     try {

@@ -305,13 +305,18 @@ async def send_invoice_email(body: SendInvoiceEmailRequest, request: Request):
     subject = body.subject or f"Invoice {inv_num} from {biz_name}"
     custom_msg = body.message or ""
     items_rows = ""
+    def _fmt_qty(q):
+        try:
+            f = float(q)
+            return str(int(f)) if f == int(f) else (f"{f:g}")
+        except Exception:
+            return str(q)
     for item in items:
-        desc = item.get("description", "Item")
+        desc = item.get("description", "") or ""
         qty = item.get("qty", 1)
-        unit = item.get("unit", "hr")
         rate = item.get("rate", 0)
         amt = qty * rate
-        items_rows += f'<tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">{desc}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;">{qty} {unit}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right;">{sym}{rate:,.2f}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right;font-weight:600;">{sym}{amt:,.2f}</td></tr>'
+        items_rows += f'<tr><td style="padding:8px 12px;border-bottom:1px solid #eee;">{desc}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:center;">{_fmt_qty(qty)}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right;">{sym}{rate:,.2f}</td><td style="padding:8px 12px;border-bottom:1px solid #eee;text-align:right;font-weight:600;">{sym}{amt:,.2f}</td></tr>'
 
     # Totals breakdown for email body
     discount_amount = float(doc.get("discount_amount", 0) or 0)
@@ -550,13 +555,18 @@ def _portal_html(doc: dict) -> str:
     sym = sym_map.get(doc.get("currency", "USD"), "$")
     items = doc.get("items", [])
     rows = ""
+    def _fmt_qty2(q):
+        try:
+            f = float(q)
+            return str(int(f)) if f == int(f) else (f"{f:g}")
+        except Exception:
+            return str(q)
     for it in items:
-        desc = (it.get("description") or "Item")[:200]
+        desc = (it.get("description") or "")[:200]
         qty = it.get("qty", 1)
-        unit = it.get("unit", "hr")
         rate = it.get("rate", 0)
         amt = qty * rate
-        rows += f'<tr><td style="padding:10px 12px;border-bottom:1px solid #eee;">{desc}</td><td style="padding:10px 12px;border-bottom:1px solid #eee;text-align:center;">{qty} {unit}</td><td style="padding:10px 12px;border-bottom:1px solid #eee;text-align:right;">{sym}{rate:,.2f}</td><td style="padding:10px 12px;border-bottom:1px solid #eee;text-align:right;font-weight:600;">{sym}{amt:,.2f}</td></tr>'
+        rows += f'<tr><td style="padding:10px 12px;border-bottom:1px solid #eee;">{desc}</td><td style="padding:10px 12px;border-bottom:1px solid #eee;text-align:center;">{_fmt_qty2(qty)}</td><td style="padding:10px 12px;border-bottom:1px solid #eee;text-align:right;">{sym}{rate:,.2f}</td><td style="padding:10px 12px;border-bottom:1px solid #eee;text-align:right;font-weight:600;">{sym}{amt:,.2f}</td></tr>'
 
     # Subtotal / discount / tax breakdown
     subtotal = float(doc.get("subtotal", 0) or 0)

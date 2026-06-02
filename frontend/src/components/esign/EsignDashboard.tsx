@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Plus, FileText, Send, CheckCircle2, Clock, XCircle, Download, Trash2, MoreVertical, Sparkles } from "lucide-react";
+import { Plus, FileText, Send, CheckCircle2, Clock, XCircle, Download, Trash2, Sparkles, Home, Pencil } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { esignApi, type DocumentListItem, type EsignStatus } from "./api";
@@ -26,7 +26,7 @@ export function EsignDashboard() {
 
   const [docs, setDocs] = useState<DocumentListItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<EsignStatus | "all">("all");
+  const [filter, setFilter] = useState<EsignStatus | "all" | "in_progress">("all");
   const [billing, setBilling] = useState<{ tier: string; docs_used_this_month: number; limits: { max_docs_per_month: number | null } } | null>(null);
 
   useEffect(() => {
@@ -79,12 +79,17 @@ export function EsignDashboard() {
     }
   };
 
-  const filtered = filter === "all" ? docs : docs.filter((d) => d.status === filter);
+  const filtered = filter === "all"
+    ? docs
+    : filter === "in_progress"
+      ? docs.filter((d) => d.status === "partial")
+      : docs.filter((d) => d.status === filter);
 
   const counts = {
     all: docs.length,
     draft: docs.filter((d) => d.status === "draft").length,
-    sent: docs.filter((d) => d.status === "sent" || d.status === "partial").length,
+    sent: docs.filter((d) => d.status === "sent").length,
+    in_progress: docs.filter((d) => d.status === "partial").length,
     completed: docs.filter((d) => d.status === "completed").length,
   };
 
@@ -96,9 +101,20 @@ export function EsignDashboard() {
     <div className="min-h-screen bg-[#F5F3EE]">
       <header className="bg-white border-b border-stone-200">
         <div className="max-w-6xl mx-auto px-6 py-6 flex items-center justify-between">
-          <div>
-            <div className="text-[10px] tracking-[0.2em] text-[#C8A96E] uppercase font-medium">RealProfits eSign</div>
-            <h1 className="text-2xl font-semibold text-stone-900 mt-1">Documents</h1>
+          <div className="flex items-center gap-4">
+            <Link
+              href="/"
+              data-testid="esign-back-home"
+              className="flex items-center gap-1.5 text-xs font-medium text-stone-500 hover:text-[#0B3D3D] transition-colors"
+              title="Back to RealProfits home"
+            >
+              <Home className="w-4 h-4" /> Home
+            </Link>
+            <div className="h-6 w-px bg-stone-200" />
+            <div>
+              <div className="text-[10px] tracking-[0.2em] text-[#C8A96E] uppercase font-medium">RealProfits eSign</div>
+              <h1 className="text-2xl font-semibold text-stone-900 mt-1">Documents</h1>
+            </div>
           </div>
           <Link
             href="/tools/esign/new"
@@ -118,19 +134,6 @@ export function EsignDashboard() {
               <div className="text-base font-semibold text-stone-900">
                 {billing.docs_used_this_month} / {billing.limits.max_docs_per_month} documents used
               </div>
-              <div className="h-1.5 bg-stone-100 rounded-full overflow-hidden mt-2 max-w-md">
-                <div
-                  className="h-full transition-all"
-                  style={{
-                    width: `${Math.min(100, (billing.docs_used_this_month / billing.limits.max_docs_per_month) * 100)}%`,
-                    background: billing.docs_used_this_month >= billing.limits.max_docs_per_month
-                      ? "#B53D2F"
-                      : billing.docs_used_this_month >= billing.limits.max_docs_per_month * 0.8
-                        ? "#A0621A"
-                        : "#2A6B45",
-                  }}
-                />
-              </div>
             </div>
             <Link
               href="/pricing"
@@ -143,18 +146,24 @@ export function EsignDashboard() {
         )}
 
         <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
-          {(["all", "draft", "sent", "completed"] as const).map((f) => (
+          {([
+            { id: "all", label: "All" },
+            { id: "draft", label: "Draft" },
+            { id: "sent", label: "Sent" },
+            { id: "in_progress", label: "In Progress" },
+            { id: "completed", label: "Completed" },
+          ] as const).map((f) => (
             <button
-              key={f}
-              onClick={() => setFilter(f === "sent" ? "sent" : f as any)}
-              data-testid={`filter-${f}`}
+              key={f.id}
+              onClick={() => setFilter(f.id as any)}
+              data-testid={`filter-${f.id}`}
               className={`px-4 py-2 text-sm font-medium rounded-md whitespace-nowrap transition-all ${
-                filter === f
+                filter === f.id
                   ? "bg-[#0B3D3D] text-white"
                   : "bg-white text-stone-700 border border-stone-200 hover:border-stone-400"
               }`}
             >
-              {f.charAt(0).toUpperCase() + f.slice(1)} <span className="ml-1 text-xs opacity-80">{counts[f]}</span>
+              {f.label} <span className="ml-1 text-xs opacity-80">{counts[f.id]}</span>
             </button>
           ))}
         </div>
@@ -179,6 +188,11 @@ export function EsignDashboard() {
         <div className="space-y-2">
           {filtered.map((d) => {
             const meta = STATUS_META[d.status];
+            const editable = d.status === "draft";
+            const TitleWrap: any = editable ? Link : "div";
+            const titleProps: any = editable
+              ? { href: `/tools/esign/edit/${d.id}`, "data-testid": `open-draft-${d.id}` }
+              : {};
             return (
               <div
                 key={d.id}
@@ -188,12 +202,12 @@ export function EsignDashboard() {
                 <div className="w-10 h-12 bg-stone-100 rounded flex items-center justify-center flex-shrink-0">
                   <FileText className="w-5 h-5 text-stone-500" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-stone-900 truncate">{d.title}</div>
+                <TitleWrap {...titleProps} className={`flex-1 min-w-0 ${editable ? "cursor-pointer group" : ""}`}>
+                  <div className={`font-semibold text-stone-900 truncate ${editable ? "group-hover:text-[#0B3D3D]" : ""}`}>{d.title}</div>
                   <div className="text-xs text-stone-500 mt-0.5">
                     {d.signed_count}/{d.signer_count} signed · {d.page_count} page{d.page_count !== 1 ? "s" : ""} · Created {new Date(d.created_at).toLocaleDateString()}
                   </div>
-                </div>
+                </TitleWrap>
                 <span
                   className="px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5"
                   style={{ background: meta.bg, color: meta.color }}
@@ -201,6 +215,16 @@ export function EsignDashboard() {
                   <meta.icon className="w-3 h-3" /> {meta.label}
                 </span>
                 <div className="flex items-center gap-1">
+                  {editable && (
+                    <Link
+                      href={`/tools/esign/edit/${d.id}`}
+                      data-testid={`edit-draft-${d.id}`}
+                      className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-[#0B3D3D] border border-[#0B3D3D] rounded-md hover:bg-[#0B3D3D] hover:text-white transition-colors"
+                      title="Continue editing"
+                    >
+                      <Pencil className="w-3.5 h-3.5" /> Edit
+                    </Link>
+                  )}
                   {d.status === "completed" && (
                     <a
                       href={esignApi.signedUrl(d.id)}
