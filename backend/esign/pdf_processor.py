@@ -179,7 +179,19 @@ def build_audit_page(document, signers: list, signed_hash: str, verify_url: str)
         y -= 12
         c.setFillColorRGB(*MUTED)
         c.setFont("Helvetica-Oblique", 7)
-        c.drawString(36, y, f"Signer ID: {s.id}  •  Status: {s.status}")
+        # Map raw status → human-readable, role-aware label so a witness
+        # doesn't read "signed" on the audit trail.
+        status_label = (s.status or "").lower()
+        role_lc = (getattr(s, "role", "") or "").lower()
+        if status_label == "signed":
+            if role_lc == "witness":
+                status_label = "witnessed"
+            elif role_lc == "approver":
+                status_label = "approved"
+            elif role_lc == "cc":
+                status_label = "received"
+        role_suffix = f"  •  Role: {role_lc}" if role_lc and role_lc != "signer" else ""
+        c.drawString(36, y, f"Signer ID: {s.id}  •  Status: {status_label}{role_suffix}")
         c.setFillColorRGB(*DARK)
         c.setFont("Helvetica", 8)
         y -= 14

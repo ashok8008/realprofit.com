@@ -466,6 +466,16 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - `data-testid="signing-progress-strip"` + `data-testid="progress-signer-<id>"` per chip. Conditional on `signers.length > 1` so single-signer flows stay clean.
 - Live-verified in preview with a 4-party doc (3 signers + 1 witness): strip rendered correctly with all four chips and correct statuses.
 
+### Phase 39c: Role-Aware Emails + Audit Trail (Feb 2026) -- DONE
+- **Witness/approver/CC emails no longer say "Review & Sign Document"**: `email_service.send_signature_request` now takes a `role` argument and renders role-specific subject, preheader, body, header title and CTA label:
+  - `signer` → "requested your signature on …" / "Review & Sign Document"
+  - `witness` → "asked you to witness …" / "Review & Witness Document"
+  - `approver` → "asked for your approval on …" / "Review & Approve Document"
+  - `cc` → "shared a document with you" / "Open Document"
+  Called from `/api/esign/documents/{id}/send`, the sequential-next-signer trigger in `submit`, and the `reminder_job` scheduler — all pass `s.role`.
+- **Audit trail PDF (`pdf_processor.build_audit_page`) no longer prints "Status: signed" for witnesses**: when a row's `status == "signed"`, the label is mapped via role: `witness → witnessed`, `approver → approved`, `cc → received`. Non-signer roles also get a `Role: <role>` suffix for clarity.
+- Verified via direct script runs: 4-role email scan and 4-role audit-PDF text extraction both PASS.
+
 ## Upcoming Tasks
 - pSEO Master Plan Phase 1b+: salary comparisons, more cities (50 → 1,000 leaf pages), more jobs (500 → 25,000 leaf pages) toward the 75K goal (P1)
 - pSEO Master Plan Phase 3 expansion: more contract types × industries (P1)

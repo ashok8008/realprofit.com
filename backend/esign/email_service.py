@@ -102,13 +102,46 @@ def _wrap(title: str, preheader: str, body_html: str, cta_text: str | None = Non
 
 async def send_signature_request(*, to_email: str, signer_name: str, owner_name: str,
                                   document_title: str, sign_url: str,
-                                  expires: Optional[str] = None) -> bool:
-    subject = f"[Action Required] {owner_name} requested your signature on \"{document_title}\""
-    preheader = f"Open to review and sign — {f'expires {expires}' if expires else 'one-time secure link'}"
+                                  expires: Optional[str] = None,
+                                  role: str = "signer") -> bool:
+    # Role-aware copy. Witnesses don't "sign" — they confirm; CC recipients only get a copy.
+    role_label = {
+        "witness": "witnessing",
+        "approver": "approval",
+        "cc": "review",
+    }.get(role, "signature")
+    cta_label = {
+        "witness": "Review & Witness Document",
+        "approver": "Review & Approve Document",
+        "cc": "Open Document",
+    }.get(role, "Review & Sign Document")
+    title_label = {
+        "witness": "Witness Request",
+        "approver": "Approval Request",
+        "cc": "Document Shared",
+    }.get(role, "Signature Request")
+    subject_verb = {
+        "witness": "asked you to witness",
+        "approver": "asked for your approval on",
+        "cc": "shared a document with you:",
+    }.get(role, "requested your signature on")
+    body_verb_html = {
+        "witness": "asked you to <b>witness</b> the signing of",
+        "approver": "asked for your <b>approval</b> on",
+        "cc": "shared a copy of",
+    }.get(role, f"requested your {role_label} on")
+
+    subject = f'[Action Required] {owner_name} {subject_verb} "{document_title}"'
+    preheader_action = {
+        "witness": "Open to witness",
+        "approver": "Open to approve",
+        "cc": "Open to review",
+    }.get(role, "Open to review and sign")
+    preheader = f"{preheader_action} — {f'expires {expires}' if expires else 'one-time secure link'}"
     body = f'''
     <p style="font-size:15px;line-height:1.6;margin:0 0 14px;">Hi {signer_name},</p>
     <p style="font-size:15px;line-height:1.6;margin:0 0 14px;">
-      <b>{owner_name}</b> has requested your signature on
+      <b>{owner_name}</b> has {body_verb_html}
       <b style="color:{TEAL};">{document_title}</b>. The link below is unique to you and
       can only be used once.
     </p>
@@ -117,7 +150,7 @@ async def send_signature_request(*, to_email: str, signer_name: str, owner_name:
       🔒 Do not share this link — it is tied to your email address.
     </p>'''
     return await _send(to_email, subject,
-                       _wrap("Signature Request", preheader, body, "Review & Sign Document", sign_url))
+                       _wrap(title_label, preheader, body, cta_label, sign_url))
 
 
 # ============ E5/E6: Completion ============

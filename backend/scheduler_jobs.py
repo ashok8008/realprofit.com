@@ -131,6 +131,7 @@ async def reminder_job() -> None:
                     owner_name=owner_name or "Document owner",
                     document_title=f"[Reminder] {doc.title}",
                     sign_url=sign_url, expires=expiry,
+                    role=s.role,
                 )
                 total_sent += 1
         if total_sent:

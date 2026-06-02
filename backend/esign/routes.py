@@ -294,6 +294,7 @@ async def send_document(doc_id: str, request: Request, background: BackgroundTas
             email_service.send_signature_request,
             to_email=s.email, signer_name=s.name, owner_name=owner_name,
             document_title=doc.title, sign_url=sign_url, expires=expiry_str,
+            role=s.role,
         )
 
     return {"status": "sent", "recipients": len(to_notify)}
@@ -515,7 +516,8 @@ async def submit_signature(token: str, body: SignSubmission, request: Request,
                                 to_email=next_to_notify.email, signer_name=next_to_notify.name,
                                 owner_name=owner_name or "Document owner",
                                 document_title=doc.title, sign_url=sign_url,
-                                expires=doc.expires_at.strftime("%b %d, %Y") if doc.expires_at else None)
+                                expires=doc.expires_at.strftime("%b %d, %Y") if doc.expires_at else None,
+                                role=next_to_notify.role)
 
     return {"status": "signed", "document_status": doc.status}
 
