@@ -460,6 +460,12 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - New `SignerSummary` schema in `/app/backend/esign/schemas.py`.
 - Testing: Backend 100% (25/25 pytest — 3 new for Issue C+D + 22 regression), Frontend 100% (all 4 issues live-verified) — iteration_40.
 
+### Phase 39b: Signing Progress Strip (Feb 2026) -- DONE
+- Added a slim **"Signing order" strip** to the top of the public `/sign/{token}` page (below the document header, above the PDF). Renders one chip per signer (sorted by `order_index`) with avatar initials in their assigned color, a check-circle for `signed`, an X-circle for `declined`, and a gold ring for the current viewer ("You're next"). CC + Witness roles get a tiny role label next to the name.
+- Pure UI addition — uses the already-returned `signers[]` summary from `GET /api/esign/sign/{token}`. No backend changes.
+- `data-testid="signing-progress-strip"` + `data-testid="progress-signer-<id>"` per chip. Conditional on `signers.length > 1` so single-signer flows stay clean.
+- Live-verified in preview with a 4-party doc (3 signers + 1 witness): strip rendered correctly with all four chips and correct statuses.
+
 ## Upcoming Tasks
 - pSEO Master Plan Phase 1b+: salary comparisons, more cities (50 → 1,000 leaf pages), more jobs (500 → 25,000 leaf pages) toward the 75K goal (P1)
 - pSEO Master Plan Phase 3 expansion: more contract types × industries (P1)
