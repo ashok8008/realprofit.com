@@ -538,8 +538,22 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - pSEO Master Plan Phase 3 expansion: more contract types × industries (P1)
 - Resend domain switch (`sign@realprofits.com`) — needs user DNS verification first (P1)
 - Stripe live keys (P2)
-- Component splitting: `EsignWizard.tsx` (1,070 lines) still over the 700-line guideline (P2) — InvoiceApp.tsx done in Phase 41
+- Component split P3: `SigningPage.tsx` still in original shape (P2) — `EsignWizard.tsx` + `InvoiceApp.tsx` are now done
+- After-restore UX polish: going Back to Step 1 after autosave restore disables Continue because the File can't persist in localStorage — skip file requirement when docId exists, OR disable Back once Step 1 is complete (P2, pre-existing)
+- `useMemo` at line 524 of EsignWizard.tsx is used for side-effects — should be `useEffect` (P2, pre-existing nit)
 - A/B test hero CTAs visibility analytics (P2)
+
+### Phase 42: EsignWizard Component Split + Autosave Restore Fix (Feb 2026) — DONE
+- **Component split**: extracted 3 pure-JSX step sub-components from `EsignWizard.tsx` (917 → 692 lines, ~25% reduction):
+  - `/app/frontend/src/components/esign/WizardStepUpload.tsx` (Step 1, 58 lines)
+  - `/app/frontend/src/components/esign/WizardStepSigners.tsx` (Step 2, 172 lines, owns drag/drop reorder)
+  - `/app/frontend/src/components/esign/WizardStepSettings.tsx` (Step 4, 95 lines)
+  - `/app/frontend/src/components/esign/wizardTypes.ts` (shared `SignerDraft` + `FieldDraft`)
+- **Infra recovery**: PostgreSQL was missing in the preview pod (known recurrence). Reinstalled `postgresql-15`, created `realprofits` role + `realprofits_esign` DB, restarted backend so `init_esign_db()` recreated all 7 tables (`documents`, `signers`, `signature_fields`, `audit_events`, `subscriptions`, `subscription_events`, `saved_signatures`).
+- **HIGH bug fix — Autosave restore**: surfaced by iter44 testing. `useAutosave` was clobbering the saved snapshot with the empty initial state on mount before the restore effect read it. Fixed by gating `useAutosave({ enabled: restored })` behind a new `restored` state flag; flag flips to `true` only after the restore effect either applies the saved snapshot or confirms there's nothing meaningful to restore. Verified by inspecting localStorage immediately post-reload — content preserved verbatim.
+- **MEDIUM bug fix — signer-0 prefill**: surfaced by iter44. The initial `useState` ran while `useAuth()` was still resolving so the default signer row stayed empty. Added a new `useEffect([user, restored])` that backfills `signers[0].{name,email}` once auth resolves AND the slot is still empty AND we haven't just restored a snapshot.
+- **UX hardening — upload-failed toast**: the prior toast used `e.message` which can be empty for generic fetch errors → silent failure. Now falls back to a friendly server-error message.
+- Iter43/44/45 testing: **frontend 100% PASS** on the component split, autosave restore, signer-0 prefill, and full Steps 1→2→3→4 navigation with a real Postgres-backed document.
 
 ### Phase 41: Invoice PDF Builder Extraction + UX Polish (Feb 2026) — DONE
 - **Completed the in-progress component-splitting refactor** the previous agent left unfinished.
