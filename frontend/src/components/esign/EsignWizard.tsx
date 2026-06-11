@@ -128,10 +128,12 @@ export function EsignWizard({ initialDoc }: Props = {}) {
     if (typeof d.brandEnabled === "boolean") setBrandEnabled(d.brandEnabled);
     if (typeof d.uuidEnabled === "boolean") setUuidEnabled(d.uuidEnabled);
     if (d.fields) setFields(d.fields);
-    toast({
-      title: "Draft restored",
-      description: "We kept the document you were preparing. Click Send when you're ready.",
-    });
+    setTimeout(() => {
+      toast({
+        title: "Draft restored",
+        description: "We kept the document you were preparing. Click Send when you're ready.",
+      });
+    }, 0);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

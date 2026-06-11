@@ -488,6 +488,51 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - `_finalize_document` in `routes.py` now loads `AuditEvent` rows for the document and passes them to `pdf_processor.build_audit_page(..., audit_events=...)`.
 - Verified end-to-end via direct script: timeline section present, 6 expected verbs ("Document sent", "Viewed", "Signed", "Witnessed", "Document completed") all rendered, and signer names correctly resolved.
 
+### Phase 40: Session + Autosave + Guest eSign + Bank Details on Invoice (Feb 2026) -- DONE
+
+**1. Session expiry while actively working** (P0):
+- Access JWT TTL extended from 15 → **60 minutes**; refresh JWT 7 → **30 days**.
+- `/api/auth/login` now sets BOTH cookies (was: only access).
+- Frontend `AuthContext` fires `POST /api/auth/refresh` every **10 minutes** while the tab is visible — keeps the rolling 60-min window alive indefinitely.
+- Both API clients (`esign/api.ts`, `invoice-app/api.ts`) now attempt a silent `/refresh` on the first 401, then **retry the original call exactly once** — invisible token rotation.
+- Concurrent 401s coalesce into a single `refreshInFlight` promise (no thundering herd).
+
+**2. Autosave** (P0):
+- New hook `frontend/src/hooks/useAutosave.ts` with two-tier cadence:
+  - localStorage every **5s** (debounced), plus synchronous flush on `beforeunload` + `visibilitychange` (survives crashes / lost network / closed tab).
+  - Optional server save every **30s** when `enableRemote=true` (used by invoices for saved drafts).
+- Helpers `readAutosave(key)`, `clearAutosave(key)`.
+- Wired into:
+  - `InvoiceApp` — key `rp-autosave:invoice:current`, server-saves draft when an `editingId` exists, cleared on Save or New.
+  - `EsignWizard` — key `rp-autosave:esign:wizard`, snapshot includes `step, title, signers, fields, signingOrder, expiryDays, brandEnabled, uuidEnabled`. Restored on mount for both guests and logged-in users (skipped when editing an existing server-side draft to avoid fighting server state). Toast "Draft restored" shown via deferred `setTimeout(..., 0)` so it lands after `<Toaster/>` mounts.
+
+**3. Guest eSign flow** (P0):
+- A guest can complete the whole wizard for **exactly one signer with role='signer'** without logging in.
+- Adding a 2nd signer OR selecting `approver / witness / cc` triggers a toast + redirect to `/login?redirect=/tools/esign/new`. Autosave preserves all wizard state.
+- New module `backend/esign/guest_routes.py` exposing:
+  - `POST /api/esign/guest/documents` (multipart `file=<pdf>` + `payload=<json>`): creates `Document.owner_id="guest:<sender_email>"`, status `"pending_verify"`, stores a **bcrypt-hashed 6-digit code** in `settings.verification_code_hash` (TTL 30 min); emails the code to sender via `send_guest_verification`.
+  - `POST /api/esign/guest/documents/verify` ({verification_id, code}): max 5 attempts; on success transitions to `status="sent"`, mints signer JWT, dispatches `send_signature_request`, returns `{document_id, claim_token}`.
+  - `GET /api/esign/guest/documents/{id}/status?claim=<token>` for guest polling.
+- **Anti-abuse**: max 3 verified sends per IP per 24 h (Mongo `esign_guest_sends`); validates sender_email ≠ signer_email (400) and file ≤ 10 MB, ≤ 20 pages.
+- **Auto-attach on register/login**: helper `_attach_guest_esign_docs(email, user_id)` in `auth.py` reassigns any `owner_id="guest:<email>"` docs to the new Mongo user id.
+- New public tracking page `/track/esign?d=<id>&c=<token>` (`app/track/esign/page.tsx`) polls the status endpoint every 30 s.
+
+**4. Bank / ACH details on invoice** (P1):
+- New `BankDetails` interface (bank_name, account_holder, account_number, routing_number, account_type, paypal, notes).
+- `invoice_settings` collection now carries `bank_details` per user — auto-prefilled when starting a new invoice.
+- `PUT /api/invoices/settings` accepts `{logo_url?, bank_details?}` with whitelist + length caps.
+- Editor UI in `InvoiceEditor.tsx`: full bank-details form + "Use my saved default" + "Save as my default" buttons.
+- Renders on:
+  - `InvoicePreviewPanel` (right rail).
+  - `InvoiceApp` jsPDF generator (PDF).
+  - Backend email HTML (`invoices.py` send_email).
+  - Backend public-portal HTML (`/api/invoices/public/{token}`) — appears whether or not a payment link is set.
+
+**Testing**:
+- 5 new pytests in `/app/backend/tests/test_iter41.py` — **5/5 PASS** locally + via testing agent.
+- Testing agent (iter41): backend **100% (49/49 across iter39+iter40+iter41 + bank-render)**, frontend ~95% (guest flow + autosave verified; the missing "Draft restored" toast now fixed via deferred dispatch).
+- All previous phase regressions still green.
+
 ## Upcoming Tasks
 - pSEO Master Plan Phase 1b+: salary comparisons, more cities (50 → 1,000 leaf pages), more jobs (500 → 25,000 leaf pages) toward the 75K goal (P1)
 - pSEO Master Plan Phase 3 expansion: more contract types × industries (P1)

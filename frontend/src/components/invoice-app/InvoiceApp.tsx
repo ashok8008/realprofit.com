@@ -85,10 +85,13 @@ export function InvoiceApp() {
     if (!hasContent) return;
     setInv(draft.data);
     setRestoredDraftAt(draft.ts);
-    toast({
-      title: "Draft restored",
-      description: "We kept the invoice you were working on. Click Save to keep it permanently.",
-    });
+    // Defer the toast until after the Toaster portal is mounted (next tick).
+    setTimeout(() => {
+      toast({
+        title: "Draft restored",
+        description: "We kept the invoice you were working on. Click Save to keep it permanently.",
+      });
+    }, 0);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
