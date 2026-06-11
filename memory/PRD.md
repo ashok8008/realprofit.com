@@ -538,5 +538,14 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - pSEO Master Plan Phase 3 expansion: more contract types × industries (P1)
 - Resend domain switch (`sign@realprofits.com`) — needs user DNS verification first (P1)
 - Stripe live keys (P2)
-- Component splitting: `EsignWizard.tsx` (637 lines) and `InvoiceApp.tsx` (810 lines) are approaching/over the 700-line guideline (P2)
+- Component splitting: `EsignWizard.tsx` (1,070 lines) still over the 700-line guideline (P2) — InvoiceApp.tsx done in Phase 41
 - A/B test hero CTAs visibility analytics (P2)
+
+### Phase 41: Invoice PDF Builder Extraction + UX Polish (Feb 2026) — DONE
+- **Completed the in-progress component-splitting refactor** the previous agent left unfinished.
+- `InvoiceApp.tsx` reduced **894 → 752 lines** (~150 LOC removed). The bulky inline `handleDownloadPDF` (jsPDF + pdf-brand + QR code generation) now delegates to the pure-utility `/app/frontend/src/components/invoice-app/buildInvoicePdf.ts` (179 lines). The dead trailing `require("./types")` was removed.
+- **Build-blocker fix**: removed an unused `@ts-expect-error` directive inside `buildInvoicePdf.ts` that was failing `next build` ("Unused '@ts-expect-error' directive") — `pdf-brand.ts` is a TS module so the suppression was incorrect.
+- **`handleRowDownloadPDF` race fixed**: the prior `setTimeout(()=>handleDownloadPDF(), 80)` was producing PDFs with stale React state (default "Client" instead of the row's actual client_name, missing QR). Now fetches the invoice fresh, then calls `buildInvoicePdf({ inv: doc, shareUrl })` directly with the freshly-fetched payload — no React-state dependency.
+- **A11y nit fix**: cross-promo modal (`esign-cross-promo-modal`) now dismisses on `Escape` via a window-level keydown listener (effect-scoped so it tears down when modal closes).
+- Production `next build` passes cleanly (52s). Testing agent iter42: **frontend 100%** — toolbar PDF download, row PDF download (after race fix), bank-detail rendering in PDF, cross-promo modal open/dismiss, eSign smoke — all PASS.
+

@@ -43,6 +43,16 @@ export function InvoiceApp() {
     }
   }, [user, authLoading, router]);
 
+  // Allow Escape to dismiss the eSign cross-promo modal (a11y).
+  useEffect(() => {
+    if (!showEsignCrossPromo) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowEsignCrossPromo(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [showEsignCrossPromo]);
+
   // Load data on mount
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -337,9 +347,28 @@ export function InvoiceApp() {
   };
 
   const handleRowDownloadPDF = async (id: string) => {
-    await handleOpenInvoice(id);
-    // wait one tick so state has propagated before generating
-    setTimeout(() => handleDownloadPDF(), 80);
+    // Open in editor for UX consistency, but generate the PDF from the freshly
+    // fetched payload — don't rely on React state propagation (avoids race).
+    try {
+      const doc = await invoiceApi.get(id);
+      setInv(doc);
+      setEditingId(id);
+      setActiveTab("editor");
+      toast({ title: "Generating PDF..." });
+      let shareUrl: string | undefined;
+      try {
+        const r = await invoiceApi.share(id);
+        shareUrl = r.public_url.startsWith("http")
+          ? r.public_url
+          : `${window.location.origin}${r.public_url}`;
+      } catch { /* QR is best-effort */ }
+      const pdf = await buildInvoicePdf({ inv: doc, shareUrl });
+      pdf.save(`${doc.invoice_number || "invoice"}.pdf`);
+      toast({ title: "PDF downloaded" });
+      setShowEsignCrossPromo(true);
+    } catch {
+      toast({ title: "PDF generation failed", variant: "destructive" });
+    }
   };
 
   const handleRowShare = async (id: string) => {
