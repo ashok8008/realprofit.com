@@ -200,7 +200,13 @@ export function EsignWizard({ initialDoc }: Props = {}) {
         router.push("/login?redirect=/tools/esign/new");
         return;
       }
-      toast({ title: "Upload failed", description: e.message, variant: "destructive" });
+      toast({
+        title: "Upload failed",
+        description:
+          e?.message ||
+          "Server returned an error. Please try again — if it persists, contact support.",
+        variant: "destructive",
+      });
     } finally {
       setSubmitting(false);
     }

@@ -1,0 +1,58 @@
+{
+  "summary": "Iter44 eSign wizard end-to-end re-verification AFTER iter43 PostgreSQL blocker was resolved. PostgreSQL is now running (POST /api/esign/documents → 200, PATCH /api/esign/documents/{id} → 200). Login as admin@realprofits.com → /tools/esign/new → Step 1 (upload PDF + title) → Step 2 → Step 3 (field placement) → Step 4 (settings) ALL VERIFIED PASS. However, AUTOSAVE RESTORE IS BROKEN: localStorage contains a valid 622-char snapshot with step=2 + title + 2 signers, but after page reload the wizard resets to Step 1 with empty form and NO 'Draft restored' toast fires. Also found a minor bug: signer-0 row is NOT prefilled with the admin's name/email even though the user is logged in (race between useAuth() resolving and EsignWizard initial state).",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "EsignWizard / Step 2 default signer prefill",
+        "issue": "When admin lands on /tools/esign/new and proceeds to Step 2, signer-row-0 name + email are EMPTY (instead of prefilled with admin name/email). useAuth() user is null on first render, so initial signers state at line 65 of EsignWizard.tsx falls back to empty strings. There is no useEffect that backfills signer-0 once user resolves.",
+        "selector": "[data-testid=\"signer-name-0\"], [data-testid=\"signer-email-0\"]",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [
+      {
+        "flow": "Autosave restore on page reload (Step 2 → reload → expected Step 2)",
+        "issue": "After working through wizard to Step 2 (with title + 2 signers) and reloading /tools/esign/new, localStorage 'rp-autosave:esign:wizard' contains a valid 622-byte JSON snapshot ({v:1, ts, data:{docId, step:2, title:'TEST_eSign_Doc_iter44', signers:[Admin User, Test Signer Two], …}}), BUT the page renders Step 1 (empty title, empty file) and NO 'Draft restored' toast fires. Expected: Step 2 visible with restored title + 2 signers + toast. The useEffect at EsignWizard.tsx lines 97-122 either never runs, readAutosave() returns null for the key, or hasMeaningful evaluates false. Worth checking: (a) the saved blob shape vs readAutosave's expected shape ({ts,data} vs raw data), (b) whether the wizard mounts twice (Strict Mode) and the second mount clobbers state, (c) whether something else clears the snapshot between save and restore.",
+        "affected_selectors": ["[data-testid=\"step-1-upload\"]", "[data-testid=\"step-2-signers\"]", "[role=\"status\"]"],
+        "priority": "HIGH"
+      }
+    ],
+    "design_issues": []
+  },
+  "verifications": {
+    "step1_to_step2": "PASS — POST /api/esign/documents returned 200, transitioned to step-2-signers.",
+    "step2_add_signer": "PASS — add-signer-btn creates signer-row-1 with role='signer'.",
+    "step2_sequential_toggle": "PASS — clicking signing-order-sequential shows reorder-hint and signer-drag-handle-0 + signer-drag-handle-1.",
+    "step2_to_step3": "PASS — PATCH /api/esign/documents/{id} 200, transitioned to step-3-fields; FieldPlacer rendered with field-type-{signature,initials,date,text,checkbox} buttons and pick-signer-* chooser buttons.",
+    "step3_field_placement": "PASS — selected field-type-signature then clicked on PDF canvas; one field placed (wizard-next became enabled).",
+    "step3_to_step4": "PASS — transitioned to step-4-settings.",
+    "step4_expiry_default": "PASS — expiry-select default value = '15' (15 days recommended).",
+    "step4_uuid_brand_toggles": "PASS — setting-uuid and setting-brand both visible and clickable.",
+    "step4_summary": "PASS — Summary lists document title 'TEST_eSign_Doc_iter44', the expiry options, and the two toggles.",
+    "step4_send_button": "PASS — wizard-send is visible on Step 4 (wizard-next is hidden).",
+    "autosave_restore": "FAIL — snapshot saved correctly to localStorage (verified 622-byte JSON with step=2 + title + 2 signers), but reload renders Step 1 with no toast.",
+    "signer0_prefill": "FAIL (minor) — admin name/email not prefilled on signer-row-0 because user object from useAuth() is null on first EsignWizard render."
+  },
+  "test_report_links": [],
+  "action_items": [
+    "HIGH: Fix autosave-restore on /tools/esign/new. localStorage write works (verified 622-byte snapshot with step=2 + title + 2 signers + docId), but the mount-time restore useEffect in EsignWizard.tsx (lines 97-122) does NOT restore state and does NOT fire the 'Draft restored' toast on reload. Inspect: (a) readAutosave() return shape vs what's saved ({v,ts,data} blob), (b) whether the initialDoc prop is being silently injected by the parent page on reload (which would short-circuit restore at line 98), (c) React 18 Strict Mode double-mount clearing state, (d) whether useAutosave hook clobbers/overwrites the snapshot with the empty initial state BEFORE the restore effect runs (this is the most likely root cause — the useAutosave hook on line 126 has localDebounceMs:5000 but may still write a flush on unmount/initial-mount with the empty state, OR the restore effect may be running AFTER useAutosave's initial write).",
+    "MEDIUM: signer-row-0 name+email empty on first arrival to Step 2. EsignWizard.tsx line 54-66 initialises signers from user?.name/email at mount, but useAuth() user is null on first render (auth check still pending). Add a useEffect that backfills signer[0].name/email once user resolves AND the row is still empty AND we're not editing an existing draft."
+  ],
+  "critical_code_review_comments": [
+    "Autosave restore is silently failing — major UX promise broken. The useEffect on line 97 has an empty deps array so it only fires once on mount; if readAutosave returns the saved snapshot but the wizard's own useAutosave hook (line 126) flushes the empty default state to localStorage during the same render cycle, the snapshot gets overwritten BEFORE it can be read. Recommend gating useAutosave with a 'restored' flag that's only set true after the restore effect completes.",
+    "Pre-existing useMemo at line 506 is used purely for side-effect (setActiveSignerId) — should be useEffect. Already flagged in iter43.",
+    "signer-0 default value is captured at component mount from useAuth(); if user resolves later, the row stays empty. Needs a backfill effect."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100% — /api/esign/documents POST + PATCH both 200; PostgreSQL is fully operational.",
+    "frontend": "Steps 1→2→3→4 navigation and Step 4 summary: 100% PASS. Autosave restore: 0% (fails silently). Signer-0 prefill: FAIL."
+  },
+  "test_credentials": "admin@realprofits.com / RealProfits2026!",
+  "seed_data_creation": "Created one TEST_eSign_Doc_iter44 document (id bcd25a11-01b0-4a98-b1c2-e3667f0d2db5) in realprofits_esign DB with 2 signers. Not deleted — main agent may want to GC TEST_ prefixed documents.",
+  "retest_needed": true,
+  "main_agent_can_self_test": false,
+  "context_for_next_testing_agent": "All wizard steps (1→2→3→4) and Step 4 controls (expiry-select=15, setting-uuid, setting-brand, wizard-send) work end-to-end with a real Postgres-backed document. Two issues remain for main agent: (1) HIGH — autosave restore on reload doesn't fire toast or resume step despite localStorage containing the correct snapshot; suspected root cause is useAutosave hook clobbering the saved snapshot with empty initial state before the mount restore effect reads it (gate useAutosave behind a 'restored' flag, OR have restore effect happen synchronously before useAutosave registers). (2) MEDIUM — signer-row-0 name/email aren't prefilled on Step 2 because user from useAuth() is null on first render. Both are reproducible at /tools/esign/new while logged in as admin@realprofits.com.",
+  "rca_of_the_issue": "Autosave restore failure RCA hypothesis: The EsignWizard.tsx mount path is (1) initial render with signers=[{name:'',email:'',…}] (user=null) and step=1, (2) useAutosave hook registers and on its first effect fires a localStorage.setItem with the empty initial state, OVERWRITING the user's previously saved snapshot, (3) the restore useEffect then runs readAutosave but sees the (now empty) overwritten blob and short-circuits at hasMeaningful=false. Confirming evidence: snapshot we observed pre-reload (622 bytes, valid step=2 + title + 2 signers) is exactly what useAutosave would have written DURING the test; if the mount-time write happened first on reload, the snapshot we observed pre-reload would still get clobbered to an empty blob right after reload. Fix path: introduce a `restored` ref/state flag set to true after the restore effect completes, and have useAutosave skip its first write while `restored===false`."
+}
