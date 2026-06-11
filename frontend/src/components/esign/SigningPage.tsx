@@ -5,6 +5,8 @@ import { CheckCircle2, AlertTriangle, FileSignature, X, Sparkles } from "lucide-
 import { signApi, type Field } from "./api";
 import { usePdfRenderer, PageCanvas } from "./PdfRenderer";
 import { SignatureCreator } from "./SignatureCreator";
+import { SigningProgressStrip } from "./SigningProgressStrip";
+import { OtherSignedOverlays } from "./OtherSignedOverlays";
 
 const API = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -209,85 +211,7 @@ export function SigningPage({ token }: Props) {
       </header>
 
       {/* Signing progress strip — small avatars showing who has signed, who's current, who's pending. */}
-      {view.signers && view.signers.length > 1 && (
-        <div className="bg-white border-b border-stone-200" data-testid="signing-progress-strip">
-          <div className="max-w-7xl mx-auto px-6 py-2.5 flex items-center gap-2 overflow-x-auto">
-            <span className="text-[10px] uppercase tracking-[0.18em] text-stone-500 font-semibold whitespace-nowrap pr-2 border-r border-stone-200 mr-1">
-              Signing order
-            </span>
-            {view.signers
-              .slice()
-              .sort((a, b) => a.order_index - b.order_index)
-              .map((s, idx, arr) => {
-                const isMe = s.name === view.signer_name && s.role !== "cc";
-                const isSigned = s.status === "signed" || !!s.signed_at;
-                const isDeclined = s.status === "declined";
-                const stateLabel = isSigned
-                  ? "Signed"
-                  : isDeclined
-                    ? "Declined"
-                    : isMe
-                      ? "You're next"
-                      : "Pending";
-                const initials = (s.name || "?")
-                  .split(/\s+/)
-                  .map((w) => w[0])
-                  .slice(0, 2)
-                  .join("")
-                  .toUpperCase();
-                return (
-                  <div key={s.id} className="flex items-center gap-2 flex-shrink-0" data-testid={`progress-signer-${s.id}`}>
-                    <div
-                      className={`relative w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0 ${
-                        isMe ? "ring-2 ring-offset-2 ring-[#C8A96E]" : ""
-                      } ${isSigned ? "" : isDeclined ? "opacity-60" : "opacity-70"}`}
-                      style={{ background: s.color }}
-                      title={`${s.name} — ${stateLabel}`}
-                    >
-                      {initials}
-                      {isSigned && (
-                        <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-white rounded-full flex items-center justify-center">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-[#2A6B45]" />
-                        </span>
-                      )}
-                      {isDeclined && (
-                        <span className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-white rounded-full flex items-center justify-center">
-                          <X className="w-3 h-3 text-[#B53D2F]" />
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex flex-col leading-tight">
-                      <span className={`text-xs font-semibold ${isMe ? "text-[#0B3D3D]" : "text-stone-800"} truncate max-w-[160px]`}>
-                        {isMe ? "You" : s.name}
-                        {s.role !== "signer" && (
-                          <span className="ml-1 text-[9px] uppercase tracking-wider text-stone-500 font-medium">
-                            {s.role}
-                          </span>
-                        )}
-                      </span>
-                      <span
-                        className={`text-[10px] ${
-                          isSigned
-                            ? "text-[#2A6B45]"
-                            : isDeclined
-                              ? "text-[#B53D2F]"
-                              : isMe
-                                ? "text-[#A0621A] font-medium"
-                                : "text-stone-500"
-                        }`}
-                      >
-                        {stateLabel}
-                      </span>
-                    </div>
-                    {idx < arr.length - 1 && (
-                      <span className="text-stone-300 px-1 select-none" aria-hidden>›</span>
-                    )}
-                  </div>
-                );
-              })}
-          </div>
-        </div>
-      )}
+      <SigningProgressStrip signers={view.signers as any} currentSignerName={view.signer_name} />
 
       <main className="max-w-7xl mx-auto px-6 py-6 grid grid-cols-12 gap-6 items-start">
         {/* PDF column */}
@@ -299,37 +223,7 @@ export function SigningPage({ token }: Props) {
             return (
               <PageCanvas key={p.pageNumber} info={p}>
                 {/* Read-only overlays for fields already signed by other signers / witnesses preview */}
-                {othersFilled.map((f) => {
-                  const owner = view.signers?.find((s) => s.id === f.signer_id);
-                  const accent = owner?.color || "#2A6B45";
-                  const val = f.value || "";
-                  const isImg = val.startsWith("data:image");
-                  return (
-                    <div
-                      key={`other-${f.id}`}
-                      data-testid={`other-signed-field-${f.id}`}
-                      style={{
-                        position: "absolute",
-                        left: `${f.x * 100}%`,
-                        top: `${f.y * 100}%`,
-                        width: `${f.width * 100}%`,
-                        height: `${f.height * 100}%`,
-                        borderColor: accent,
-                        background: `${accent}14`,
-                      }}
-                      className="border rounded flex items-center justify-center overflow-hidden pointer-events-none"
-                      title={owner ? `Signed by ${owner.name}` : "Signed"}
-                    >
-                      {isImg ? (
-                        <img src={val} alt={`${owner?.name || "Signer"} signature`} className="max-h-full max-w-full" />
-                      ) : (
-                        <span className="text-xs px-1 truncate" style={{ fontSize: "min(14px, 90%)", color: accent }}>
-                          {val}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
+                <OtherSignedOverlays fields={othersFilled} signers={view.signers as any} />
                 {myFields.map((f) => {
                   const isActive = f.id === activeFieldId;
                   const isFilled = !!fieldValues[f.id];
