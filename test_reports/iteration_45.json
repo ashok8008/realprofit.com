@@ -1,0 +1,38 @@
+{
+  "summary": "Iter45 re-verification of two iter44 fixes in EsignWizard.tsx — both PASS. (1) HIGH autosave-restore: fixed via `restored` state flag gating useAutosave. After Step 1 upload → Step 2 add 2nd signer → page reload, the wizard now resumes at Step 2 with both signers intact AND the 'Draft restored' toast fires. localStorage snapshot is preserved across reload (no longer clobbered by useAutosave mount write). (2) MEDIUM signer-0 prefill: fixed via new useEffect watching user+restored. Signer-row-0 on Step 2 is now prefilled with 'Admin' / 'admin@realprofits.com' on a fresh wizard load. Smoke nav back to Step 1 confirms title is preserved through restore.",
+  "backend_issues": { "critical": [], "minor": [] },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "verifications": {
+    "test1_signer0_prefill": "PASS — On fresh load /tools/esign/new as admin, signer-name-0='Admin' and signer-email-0='admin@realprofits.com' on Step 2 (iter44 MEDIUM fixed).",
+    "test2_autosave_restore_step": "PASS — After reload on Step 2, wizard resumes on step-2-signers (step-1-upload not shown).",
+    "test2_autosave_restore_signers": "PASS — Both signer-0 (Admin/admin@realprofits.com) and signer-1 (Second Signer Iter45/second-iter45@example.com) restored verbatim.",
+    "test2_draft_restored_toast": "PASS — 'Draft restored' toast visible after reload.",
+    "test2_localstorage_preserved": "PASS — localStorage 'rp-autosave:esign:wizard' identical content before and immediately after reload (no longer clobbered; the `restored` gate works).",
+    "test3_title_preserved": "PASS — Clicking Back to Step 1 from restored Step 2 shows title input still='TEST_iter45_autosave'.",
+    "smoke_step2_to_step3_first_pass": "PASS — During the initial wizard walk (before reload), Step 1→2 completed via POST /api/esign/documents (200) and `wizard-next` advanced as expected.",
+    "smoke_after_restore_back_then_forward": "EXPECTED-LIMITATION — After restore on Step 2, going Back to Step 1 leaves `file` state null (File objects can't survive localStorage), so wizard-next is disabled until the user re-uploads. This is a pre-existing design limit, not a regression from iter45. The docId is retained in the snapshot so re-upload is technically redundant but currently still gated by file presence."
+  },
+  "test_report_links": [],
+  "action_items": [
+    "OPTIONAL (minor UX, pre-existing): After autosave-restore brings the user to Step 2+, going Back to Step 1 disables Continue because `file` is null. Either (a) skip the file requirement on Step 1 when a docId already exists in state, or (b) disable Back to Step 1 once Step 1 is considered complete (file uploaded server-side). Not blocking — the primary flow (reload → resume at saved step → Continue) works correctly."
+  ],
+  "critical_code_review_comments": [
+    "Both iter44 fixes are minimal, correctly scoped, and verified working. The `restored` gate on useAutosave is the right pattern: it prevents the empty initial state from overwriting the saved snapshot before the restore effect reads it.",
+    "Minor: useMemo at line 524 of EsignWizard.tsx is still used purely for setActiveSignerId side-effect — should be useEffect. Pre-existing, flagged in iter43/44, still present."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "100% (not retested this iteration — confirmed healthy in iter44)",
+    "frontend": "100% on both iter44 fixes (HIGH autosave-restore, MEDIUM signer-0 prefill) and primary wizard navigation Steps 1→2→3."
+  },
+  "test_credentials": "admin@realprofits.com / RealProfits2026!",
+  "seed_data_creation": "Created 1 TEST_iter45_autosave document (docId 21c5500f-e6e2-43de-87b5-d03d865163a... visible in localStorage trace) in realprofits_esign DB. Not GC'd — main agent may wish to prune TEST_ prefixed eSign documents after the iter44/45 verification round.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Both iter44 fixes are fully verified. The autosave restore now works end-to-end: snapshot writes correctly, survives reload, restores step + title + signers, and fires the 'Draft restored' toast. Signer-0 backfill from useAuth() works on fresh page loads. Only remaining minor item is the Back-to-Step-1 dead-end after restore (file state can't persist in localStorage) — not a regression, optional polish.",
+  "rca_of_the_issue": "Confirmed iter44 RCA was correct: useAutosave's debounce timer fired on initial mount with empty state and overwrote the saved snapshot before the restore useEffect could read it. iter45 fix gates `useAutosave({enabled: restored})` so no localStorage write happens until the mount-time restore effect either restores the saved snapshot (setRestored(true) after applying it) or confirms there's nothing meaningful to restore (setRestored(true) on cold start). Verified by inspecting localStorage immediately after reload — content identical to pre-reload, no clobbering observed."
+}

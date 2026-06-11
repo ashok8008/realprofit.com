@@ -91,19 +91,22 @@ export function EsignWizard({ initialDoc }: Props = {}) {
   );
   const [submitting, setSubmitting] = useState(false);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
+  // Gate useAutosave's first write until the restore effect has run — otherwise
+  // the empty initial state can clobber the saved snapshot on mount.
+  const [restored, setRestored] = useState(false);
 
   // ── Autosave ──
   // On mount (only when NOT editing an existing draft), try restoring a snapshot.
   useEffect(() => {
-    if (initialDoc) return; // editing an existing draft — don't fight server state
+    if (initialDoc) { setRestored(true); return; } // editing — don't fight server state
     const snap = readAutosave<WizardAutosaveSnapshot>(ESIGN_AUTOSAVE_KEY);
-    if (!snap || !snap.data) return;
+    if (!snap || !snap.data) { setRestored(true); return; }
     const d = snap.data;
     const hasMeaningful =
       (d.signers || []).some((s) => (s.name && s.email)) ||
       (d.fields || []).length > 0 ||
       (d.title && d.title.length > 0);
-    if (!hasMeaningful) return;
+    if (!hasMeaningful) { setRestored(true); return; }
     if (typeof d.step === "number" && d.step >= 1 && d.step <= 5) setStep(d.step as WizardStep);
     if (d.title) setTitle(d.title);
     if (d.signers && d.signers.length > 0) setSigners(d.signers);
@@ -112,6 +115,7 @@ export function EsignWizard({ initialDoc }: Props = {}) {
     if (typeof d.brandEnabled === "boolean") setBrandEnabled(d.brandEnabled);
     if (typeof d.uuidEnabled === "boolean") setUuidEnabled(d.uuidEnabled);
     if (d.fields) setFields(d.fields);
+    setRestored(true);
     setTimeout(() => {
       toast({
         title: "Draft restored",
@@ -120,6 +124,20 @@ export function EsignWizard({ initialDoc }: Props = {}) {
     }, 0);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Backfill signer-0 with the logged-in user's identity once auth resolves
+  // (the initial useState ran while user was still null).
+  useEffect(() => {
+    if (!user) return;
+    if (!restored) return; // wait so we don't overwrite a restored snapshot
+    setSigners((prev) => {
+      if (!prev[0]) return prev;
+      if (prev[0].name || prev[0].email) return prev; // already filled (manual or restored)
+      const next = prev.slice();
+      next[0] = { ...next[0], name: user.name || "", email: user.email || "" };
+      return next;
+    });
+  }, [user, restored]);
 
   // Save snapshot to localStorage every 5s; server-side persistence happens
   // via the existing PATCH calls between wizard steps (don't double-save).
@@ -136,7 +154,7 @@ export function EsignWizard({ initialDoc }: Props = {}) {
       uuidEnabled,
       fields,
     },
-    enabled: true, // works for guests too — survives accidental tab close
+    enabled: restored, // gated — avoids clobbering the saved snapshot on mount
     localDebounceMs: 5000,
   });
 
