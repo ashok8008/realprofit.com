@@ -2,13 +2,17 @@
 // 5-step wizard: Upload → Signers → Place Fields → Settings & Review → Send
 import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Upload, Users, MousePointer2, Settings as SettingsIcon, Send, ArrowLeft, ArrowRight, Plus, Trash2, FileText, GripVertical } from "lucide-react";
+import { Send, ArrowLeft, ArrowRight, Upload, Users, MousePointer2, Settings as SettingsIcon } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { esignApi, SIGNER_PALETTE, type DocumentDetail, type FieldType, type Signer } from "./api";
+import { esignApi, SIGNER_PALETTE, type DocumentDetail, type Signer } from "./api";
 import { FieldPlacer } from "./FieldPlacer";
 import { GuestSendModal, type GuestModalState } from "./GuestSendModal";
 import { useAutosave, readAutosave, clearAutosave } from "@/hooks/useAutosave";
+import { WizardStepUpload } from "./WizardStepUpload";
+import { WizardStepSigners } from "./WizardStepSigners";
+import { WizardStepSettings } from "./WizardStepSettings";
+import type { SignerDraft, FieldDraft } from "./wizardTypes";
 
 const ESIGN_AUTOSAVE_KEY = "rp-autosave:esign:wizard";
 
@@ -33,27 +37,6 @@ const STEPS: { id: WizardStep; label: string; icon: any }[] = [
   { id: 4, label: "Settings", icon: SettingsIcon },
   { id: 5, label: "Send", icon: Send },
 ];
-
-interface SignerDraft {
-  name: string;
-  email: string;
-  role: "signer" | "approver" | "cc" | "witness";
-  color: string;
-}
-
-interface FieldDraft {
-  signer_id: string;
-  page: number;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  field_type: FieldType;
-  required: boolean;
-  label?: string;
-  // local id for tracking
-  _localId?: string;
-}
 
 interface Props {
   initialDoc?: DocumentDetail;
@@ -583,188 +566,26 @@ export function EsignWizard({ initialDoc }: Props = {}) {
       {/* Body */}
       <main className="max-w-6xl mx-auto px-6 py-8 pb-32">
         {step === 1 && (
-          <section data-testid="step-1-upload" className="max-w-2xl mx-auto">
-            <h2 className="text-2xl font-semibold text-stone-900 mb-1">Upload your document</h2>
-            <p className="text-sm text-stone-600 mb-6">PDF only, up to 25 MB on the free plan.</p>
-
-            <div className="bg-white border border-stone-200 rounded-xl p-6 shadow-sm">
-              <label className="block text-sm font-medium text-stone-700 mb-1">Document title</label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g. Freelance Contract Q2"
-                data-testid="doc-title-input"
-                className="w-full px-3 py-2 border border-stone-300 rounded-md text-base focus:outline-none focus:border-[#0B3D3D] mb-4"
-              />
-
-              <label
-                htmlFor="pdf-upload"
-                data-testid="pdf-upload-zone"
-                className="block border-2 border-dashed border-stone-300 rounded-lg p-10 text-center cursor-pointer hover:border-[#0B3D3D] transition-colors bg-stone-50/50"
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  handleFile(e.dataTransfer.files?.[0] || null);
-                }}
-              >
-                <FileText className="w-10 h-10 mx-auto text-[#0B3D3D] mb-3" />
-                <div className="text-base font-medium text-stone-800">
-                  {file ? file.name : "Drag & drop your PDF here"}
-                </div>
-                <div className="text-sm text-stone-500 mt-1">
-                  {file ? `${(file.size / 1024 / 1024).toFixed(2)} MB` : "or click to choose a file"}
-                </div>
-                <input
-                  id="pdf-upload"
-                  type="file"
-                  accept="application/pdf"
-                  onChange={(e) => handleFile(e.target.files?.[0] || null)}
-                  className="hidden"
-                  data-testid="pdf-upload-input"
-                />
-              </label>
-            </div>
-          </section>
+          <WizardStepUpload
+            title={title}
+            setTitle={setTitle}
+            file={file}
+            onFile={handleFile}
+          />
         )}
 
         {step === 2 && (
-          <section data-testid="step-2-signers" className="max-w-3xl mx-auto">
-            <h2 className="text-2xl font-semibold text-stone-900 mb-1">Who needs to sign?</h2>
-            <p className="text-sm text-stone-600 mb-6">Add up to 5 signers. Each will get a unique signing link by email.</p>
-
-            <div className="bg-white border border-stone-200 rounded-xl p-6 shadow-sm">
-              <div className="space-y-3">
-                {signers.map((s, i) => {
-                  const reorderable = signingOrder === "sequential";
-                  return (
-                    <div
-                      key={i}
-                      className={`grid grid-cols-12 gap-3 items-center rounded-md transition-colors ${
-                        dragIdx === i ? "opacity-40" : ""
-                      }`}
-                      data-testid={`signer-row-${i}`}
-                      draggable={reorderable}
-                      onDragStart={(e) => {
-                        if (!reorderable) return;
-                        setDragIdx(i);
-                        e.dataTransfer.effectAllowed = "move";
-                      }}
-                      onDragOver={(e) => {
-                        if (!reorderable || dragIdx === null) return;
-                        e.preventDefault();
-                        e.dataTransfer.dropEffect = "move";
-                      }}
-                      onDrop={(e) => {
-                        if (!reorderable || dragIdx === null || dragIdx === i) return;
-                        e.preventDefault();
-                        const next = signers.slice();
-                        const [moved] = next.splice(dragIdx, 1);
-                        next.splice(i, 0, moved);
-                        setSigners(next);
-                        setDragIdx(null);
-                      }}
-                      onDragEnd={() => setDragIdx(null)}
-                    >
-                      <div className="col-span-1 flex items-center gap-1">
-                        {reorderable && (
-                          <button
-                            type="button"
-                            data-testid={`signer-drag-handle-${i}`}
-                            className="p-1 text-stone-400 hover:text-stone-700 cursor-grab active:cursor-grabbing"
-                            aria-label={`Drag signer ${i + 1} to reorder`}
-                            title="Drag to reorder"
-                          >
-                            <GripVertical className="w-4 h-4" />
-                          </button>
-                        )}
-                        <div
-                          className="w-8 h-8 rounded-full text-white text-xs font-bold flex items-center justify-center"
-                          style={{ background: s.color }}
-                        >
-                          {i + 1}
-                        </div>
-                      </div>
-                      <input
-                        type="text"
-                        value={s.name}
-                        onChange={(e) => updateSigner(i, { name: e.target.value })}
-                        placeholder="Full name"
-                        data-testid={`signer-name-${i}`}
-                        className="col-span-4 px-3 py-2 border border-stone-300 rounded-md text-sm focus:outline-none focus:border-[#0B3D3D]"
-                      />
-                      <input
-                        type="email"
-                        value={s.email}
-                        onChange={(e) => updateSigner(i, { email: e.target.value })}
-                        placeholder="email@company.com"
-                        data-testid={`signer-email-${i}`}
-                        className="col-span-4 px-3 py-2 border border-stone-300 rounded-md text-sm focus:outline-none focus:border-[#0B3D3D]"
-                      />
-                      <select
-                        value={s.role}
-                        onChange={(e) => updateSigner(i, { role: e.target.value as any })}
-                        data-testid={`signer-role-${i}`}
-                        className="col-span-2 px-2 py-2 border border-stone-300 rounded-md text-xs focus:outline-none focus:border-[#0B3D3D]"
-                      >
-                        <option value="signer">Signer</option>
-                        <option value="approver">Approver</option>
-                        <option value="cc">CC</option>
-                        <option value="witness">Witness</option>
-                      </select>
-                      <button
-                        onClick={() => removeSigner(i)}
-                        disabled={signers.length <= 1}
-                        data-testid={`signer-remove-${i}`}
-                        className="col-span-1 p-2 rounded-md text-stone-400 hover:text-[#B53D2F] hover:bg-stone-50 disabled:opacity-30 disabled:hover:bg-transparent"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <button
-                onClick={addSigner}
-                data-testid="add-signer-btn"
-                className="mt-4 flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#0B3D3D] border border-[#0B3D3D] rounded-md hover:bg-[#0B3D3D] hover:text-white transition-colors"
-              >
-                <Plus className="w-4 h-4" /> Add signer
-              </button>
-
-              {signers.length > 1 && (
-                <div className="mt-6 pt-6 border-t border-stone-200">
-                  <label className="block text-sm font-medium text-stone-700 mb-2">Signing order</label>
-                  <div className="flex gap-2">
-                    {[
-                      { id: "parallel" as const, label: "Anyone, any order", desc: "All signers notified at once" },
-                      { id: "sequential" as const, label: "In order", desc: "One at a time — drag rows to reorder" },
-                    ].map((o) => (
-                      <button
-                        key={o.id}
-                        onClick={() => setSigningOrder(o.id)}
-                        data-testid={`signing-order-${o.id}`}
-                        className={`flex-1 text-left p-3 rounded-md border transition-all ${
-                          signingOrder === o.id
-                            ? "border-[#0B3D3D] bg-[#FAF5EE]"
-                            : "border-stone-200 hover:border-stone-400"
-                        }`}
-                      >
-                        <div className="text-sm font-medium text-stone-900">{o.label}</div>
-                        <div className="text-xs text-stone-600 mt-0.5">{o.desc}</div>
-                      </button>
-                    ))}
-                  </div>
-                  {signingOrder === "sequential" && (
-                    <p className="mt-3 text-xs text-stone-500" data-testid="reorder-hint">
-                      Drag the <GripVertical className="w-3 h-3 inline -mt-0.5" /> handle on any signer row to change the order.
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-          </section>
+          <WizardStepSigners
+            signers={signers}
+            setSigners={setSigners}
+            signingOrder={signingOrder}
+            setSigningOrder={setSigningOrder}
+            dragIdx={dragIdx}
+            setDragIdx={setDragIdx}
+            onAddSigner={addSigner}
+            onUpdateSigner={updateSigner}
+            onRemoveSigner={removeSigner}
+          />
         )}
 
         {step === 3 && (doc || (!user && file)) && (
@@ -791,64 +612,18 @@ export function EsignWizard({ initialDoc }: Props = {}) {
         )}
 
         {step === 4 && (
-          <section data-testid="step-4-settings" className="max-w-2xl mx-auto">
-            <h2 className="text-2xl font-semibold text-stone-900 mb-1">Final settings</h2>
-            <p className="text-sm text-stone-600 mb-6">Configure how this document behaves once sent.</p>
-
-            <div className="bg-white border border-stone-200 rounded-xl p-6 shadow-sm space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-stone-700 mb-2">Expires in</label>
-                <select
-                  value={expiryDays}
-                  onChange={(e) => setExpiryDays(parseInt(e.target.value))}
-                  data-testid="expiry-select"
-                  className="w-full px-3 py-2 border border-stone-300 rounded-md text-sm focus:outline-none focus:border-[#0B3D3D]"
-                >
-                  <option value={7}>7 days</option>
-                  <option value={15}>15 days (recommended)</option>
-                  <option value={30}>30 days</option>
-                  <option value={60}>60 days</option>
-                  <option value={0}>No expiry</option>
-                </select>
-              </div>
-
-              <label className="flex items-start gap-3 cursor-pointer" data-testid="setting-uuid">
-                <input
-                  type="checkbox"
-                  checked={uuidEnabled}
-                  onChange={(e) => setUuidEnabled(e.target.checked)}
-                  className="mt-1 w-4 h-4 accent-[#0B3D3D]"
-                />
-                <div>
-                  <div className="text-sm font-medium text-stone-900">Show signer ID under each signature</div>
-                  <div className="text-xs text-stone-600 mt-0.5">Adds a unique identifier under each signature for legal traceability.</div>
-                </div>
-              </label>
-
-              <label className="flex items-start gap-3 cursor-pointer" data-testid="setting-brand">
-                <input
-                  type="checkbox"
-                  checked={brandEnabled}
-                  onChange={(e) => setBrandEnabled(e.target.checked)}
-                  className="mt-1 w-4 h-4 accent-[#0B3D3D]"
-                />
-                <div>
-                  <div className="text-sm font-medium text-stone-900">"Powered by RealProfits" footer</div>
-                  <div className="text-xs text-stone-600 mt-0.5">Free plans display this footer on signed PDFs. Pro removes it.</div>
-                </div>
-              </label>
-            </div>
-
-            <div className="mt-6 bg-[#FAF5EE] border border-[#C8A96E] rounded-xl p-5">
-              <div className="text-sm font-semibold text-[#0B3D3D] mb-2">Ready to send</div>
-              <ul className="text-sm text-stone-700 space-y-1">
-                <li>• {doc?.title}</li>
-                <li>• {signers.length} signer{signers.length !== 1 ? "s" : ""} ({signingOrder})</li>
-                <li>• {fields.length} field{fields.length !== 1 ? "s" : ""} to fill</li>
-                <li>• Expires {expiryDays > 0 ? `in ${expiryDays} days` : "never"}</li>
-              </ul>
-            </div>
-          </section>
+          <WizardStepSettings
+            docTitle={doc?.title || title || "Untitled document"}
+            signerCount={signers.length}
+            fieldCount={fields.length}
+            signingOrder={signingOrder}
+            expiryDays={expiryDays}
+            setExpiryDays={setExpiryDays}
+            uuidEnabled={uuidEnabled}
+            setUuidEnabled={setUuidEnabled}
+            brandEnabled={brandEnabled}
+            setBrandEnabled={setBrandEnabled}
+          />
         )}
       </main>
 

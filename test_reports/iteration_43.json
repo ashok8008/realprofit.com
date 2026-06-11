@@ -1,0 +1,62 @@
+{
+  "summary": "Iter43 verification of EsignWizard.tsx component split (Phase 42). PARTIAL VERIFICATION COMPLETED. Step 1 (Upload) was fully verified: all data-testids render correctly (step-pip-1..5, wizard-back, wizard-next, step-1-upload, doc-title-input, pdf-upload-zone, pdf-upload-input), Continue button is correctly disabled until BOTH title is typed AND PDF is selected, and the file selection updates the UI (file name + size). Code review confirms EsignWizard.tsx is 692 lines as claimed, imports WizardStepUpload/WizardStepSigners/WizardStepSettings from sibling files, uses shared wizardTypes.ts (SignerDraft, FieldDraft), and all data-testids referenced in the request are present verbatim in the extracted child components. HOWEVER, Steps 2, 3, 4 functional verification + autosave-restore test are BLOCKED: the Step 1 → Step 2 transition calls POST /api/esign/documents which returns 500 because asyncpg cannot connect to PostgreSQL at 127.0.0.1:5432 ([Errno 111] Connect call failed). PostgreSQL is not installed/running in this preview pod — no `postgres`, `psql`, `pg_ctlcluster` binaries; no postgresql Debian package. The eSign backend hard-depends on PG (Phase 38 schema). The refactor itself is NOT the cause — same upload would have failed before the split. This is an environment bootstrap regression vs prior iterations (per iter42 note, PG was previously bootstrapped).",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "POST /api/esign/documents",
+        "issue": "Returns 500. asyncpg/SQLAlchemy cannot connect to PostgreSQL at 127.0.0.1:5432 — [Errno 111] Connect call failed. PG is not running in this preview pod (no postgres binary, port 5432 not listening). This blocks the entire eSign wizard at Step 1 → Step 2 transition and prevents verifying Steps 2/3/4 functionally.",
+        "priority": "CRITICAL"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "eSign wizard Step 1 → Step 2",
+        "issue": "Click on wizard-next (Continue) on Step 1 with valid title + PDF makes upload API call that returns 500, leaving user stuck on Step 1 with no visible error toast in the DOM (no 'Upload failed' text found in body even though the request failed). Caused by missing PostgreSQL — not a frontend bug, but error UX is silent.",
+        "affected_selectors": ["[data-testid=\"wizard-next\"]"]
+      }
+    ],
+    "design_issues": []
+  },
+  "verifications": {
+    "1_step_pips_render": "PASS — step-pip-1 .. step-pip-5 all visible.",
+    "2_back_next_buttons": "PASS — wizard-back and wizard-next both visible on Step 1.",
+    "3_step1_testids": "PASS — step-1-upload, doc-title-input, pdf-upload-zone, pdf-upload-input all present.",
+    "4_continue_disable_logic": "PASS — wizard-next is disabled when (no title, no file), disabled with (title only, no file), and enabled when (title + file). Matches canForward() logic in EsignWizard.tsx line 512.",
+    "5_step1_to_step2_transition": "FAIL (blocked by backend 500) — UI stays on Step 1; POST /api/esign/documents → 500 (PG unreachable). Could not verify signer-row-0 prefill, add-signer-btn, signing-order-sequential, reorder-hint, signer-drag-handle-0.",
+    "6_step3_field_placer": "NOT TESTED (blocked).",
+    "7_step4_settings_summary": "NOT TESTED (blocked).",
+    "8_wizard_send_button": "NOT TESTED (blocked).",
+    "9_autosave_restore": "NOT TESTED (blocked) — cannot reach Step 2 to seed the autosave snapshot meaningfully.",
+    "10_code_review_refactor": "PASS — EsignWizard.tsx is 692 lines (vs 917 pre-split as claimed). Imports the 3 new sub-components (lines 12-14) and shared types from ./wizardTypes (line 15). All data-testids requested in the task are present verbatim: step-1-upload + doc-title-input + pdf-upload-zone + pdf-upload-input (WizardStepUpload.tsx); step-2-signers + signer-row-{i} + signer-name/email/role/remove-{i} + add-signer-btn + signing-order-{parallel|sequential} + reorder-hint + signer-drag-handle-{i} (WizardStepSigners.tsx); step-4-settings + expiry-select + setting-uuid + setting-brand (WizardStepSettings.tsx); step-3-fields + wizard-back + wizard-next + wizard-send + step-pip-{1..5} + exit-wizard (EsignWizard.tsx)."
+  },
+  "test_report_links": [],
+  "action_items": [
+    "CRITICAL (infra): Restore PostgreSQL in this preview pod and re-run the eSign DB bootstrap (Phase 38 schema: documents, signers, signature_fields, audit_events) so /api/esign/* endpoints can actually serve requests. PG is currently not installed (no binaries, port 5432 not listening). Without this, the eSign wizard is fully blocked beyond Step 1.",
+    "HIGH (UX): When POST /api/esign/documents fails with 500, uploadAndContinue() in EsignWizard.tsx (lines 198-206) catches the error and toasts 'Upload failed', but the toast was not observable in DOM during this test run. Verify the toast actually surfaces a visible error to users when the backend errors — silent failure on click is bad UX.",
+    "After PG is restored, re-run this iteration's Step 2/3/4/autosave-restore scenarios. The refactor's structural integrity is already verified via code review; only functional verification of the post-Step-1 flow is outstanding."
+  ],
+  "critical_code_review_comments": [
+    "EsignWizard.tsx — clean orchestrator pattern; child components receive only the state + setters they need (good prop-drilling discipline). Shared types via wizardTypes.ts avoids cycle.",
+    "WizardStepUpload.tsx (61 lines) — pure JSX, no side effects, accepts (title, setTitle, file, onFile) — good split.",
+    "WizardStepSigners.tsx (172 lines) — owns drag/drop reorder logic, which slightly violates 'pure JSX' (it mutates parent's signers via setSigners on drop). Acceptable since the state is parent-owned, but the drop handler could be lifted to the parent for a cleaner split.",
+    "WizardStepSettings.tsx (95 lines) — pure render of summary + 3 controls, clean.",
+    "wizardTypes.ts — minimal shared type file, correctly imports FieldType from './api' to avoid duplication.",
+    "Silent failure on upload 500: handleFile/uploadAndContinue should surface a non-default destructive toast even when e.message is undefined/empty. Currently toast({ title: 'Upload failed', description: e.message, variant: 'destructive' }) — description may be empty when fetch throws a generic error.",
+    "useMemo at line 500 is used purely for its side-effect of calling setActiveSignerId — incorrect hook usage. Should be useEffect. Pre-existing, not introduced by this refactor."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "0% on /api/esign/* (PG missing)",
+    "frontend": "Step 1 fully verified (100%); Steps 2/3/4/autosave blocked by backend infra — cannot quantify."
+  },
+  "test_credentials": "admin@realprofits.com / RealProfits2026!",
+  "seed_data_creation": "None (upload to /api/esign/documents failed with 500; no document persisted).",
+  "retest_needed": true,
+  "main_agent_can_self_test": false,
+  "context_for_next_testing_agent": "PRIMARY BLOCKER: PostgreSQL is not running in this preview pod (port 5432 not listening, postgres binary not on PATH, no postgresql package installed). Backend /api/esign/documents returns 500 immediately. Main agent must (a) install + start PG and (b) re-run the eSign schema bootstrap (Phase 38) — or stub the eSign storage layer for testing. After that, re-run Steps 2/3/4 and the autosave-restore test against /tools/esign/new with admin@realprofits.com / RealProfits2026!. Step 1 testids and continue-button enable logic are already confirmed working — the component split itself is structurally correct and all advertised data-testids are present verbatim in the extracted child files.",
+  "rca_of_the_issue": "Root cause of the Step 1→2 failure: asyncpg.connect() raises OSError [Errno 111] Connect call failed ('127.0.0.1', 5432) because PostgreSQL is not running (or installed) in the current pod. Backend log shows SQLAlchemy pool._create_connection() bubbling this up, returning 500 to the client. Reproduction: login → /tools/esign/new → type title + select PDF → click Continue → observe POST /api/esign/documents 500 in network log. Mitigation: install PostgreSQL (apt-get install postgresql) or start the existing PG service, then run the eSign migrations to create the documents/signers/signature_fields/audit_events tables. The refactor itself is unaffected by this — same error would occur in the pre-split codebase."
+}
