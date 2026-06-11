@@ -17,7 +17,6 @@ export interface BuildPdfOptions {
 export async function buildInvoicePdf({ inv, shareUrl }: BuildPdfOptions): Promise<any> {
   // Dynamic imports so the heavy PDF libs aren't pulled into the initial bundle.
   const { jsPDF } = await import("jspdf");
-  // @ts-expect-error — pdf-brand is a JS module with no types
   const { drawHeader, drawFooter, BRAND, LM, PW } = await import("@/lib/pdf-brand");
   const QRCode = (await import("qrcode")).default;
 
