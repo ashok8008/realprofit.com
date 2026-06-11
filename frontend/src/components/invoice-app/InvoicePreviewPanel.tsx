@@ -2,7 +2,7 @@
 import React from "react";
 import { Printer, Download } from "lucide-react";
 import type { InvoiceData } from "./types";
-import { getCurrencySymbol, calcTotals } from "./types";
+import { getCurrencySymbol, calcTotals, hasBankDetails } from "./types";
 
 interface PreviewProps {
   inv: InvoiceData;
@@ -109,6 +109,24 @@ export function InvoicePreviewPanel({ inv, onPrint, onDownloadPDF }: PreviewProp
             <div className="mt-3">
               <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: accent }}>Payment Terms</p>
               <p className="text-[#6E6B63] whitespace-pre-line">{inv.payment_terms}</p>
+            </div>
+          )}
+
+          {/* Bank / ACH details (shown when no payment link) */}
+          {hasBankDetails(inv.bank_details) && !inv.payment_link && (
+            <div className="mt-4 pt-3 border-t border-[#E2DDD4]" data-testid="preview-bank-block">
+              <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: accent }}>Bank / Payment Details</p>
+              <table className="w-full text-[11px]">
+                <tbody>
+                  {inv.bank_details?.bank_name && <tr><td className="py-0.5 pr-2 text-[#6E6B63]">Bank</td><td className="py-0.5 font-semibold text-[#1C1B18]">{inv.bank_details.bank_name}</td></tr>}
+                  {inv.bank_details?.account_holder && <tr><td className="py-0.5 pr-2 text-[#6E6B63]">Account holder</td><td className="py-0.5 font-semibold text-[#1C1B18]">{inv.bank_details.account_holder}</td></tr>}
+                  {inv.bank_details?.account_number && <tr><td className="py-0.5 pr-2 text-[#6E6B63]">Account number</td><td className="py-0.5 font-semibold text-[#1C1B18]">{inv.bank_details.account_number}</td></tr>}
+                  {inv.bank_details?.routing_number && <tr><td className="py-0.5 pr-2 text-[#6E6B63]">Routing / SWIFT / IFSC</td><td className="py-0.5 font-semibold text-[#1C1B18]">{inv.bank_details.routing_number}</td></tr>}
+                  {inv.bank_details?.account_type && <tr><td className="py-0.5 pr-2 text-[#6E6B63]">Type</td><td className="py-0.5 font-semibold text-[#1C1B18]">{inv.bank_details.account_type}</td></tr>}
+                  {inv.bank_details?.paypal && <tr><td className="py-0.5 pr-2 text-[#6E6B63]">PayPal / Venmo / Zelle</td><td className="py-0.5 font-semibold text-[#1C1B18]">{inv.bank_details.paypal}</td></tr>}
+                </tbody>
+              </table>
+              {inv.bank_details?.notes && <p className="mt-1 text-[10px] text-[#6E6B63] whitespace-pre-line">{inv.bank_details.notes}</p>}
             </div>
           )}
 

@@ -1,6 +1,23 @@
 // API client for the eSign module
 const API = process.env.NEXT_PUBLIC_BACKEND_URL;
 
+// Coalesce concurrent 401s into a single /refresh call (sliding session).
+let refreshInFlight: Promise<boolean> | null = null;
+async function tryRefresh(): Promise<boolean> {
+  if (refreshInFlight) return refreshInFlight;
+  refreshInFlight = (async () => {
+    try {
+      const r = await fetch(`${API}/api/auth/refresh`, { method: "POST", credentials: "include" });
+      return r.ok;
+    } catch {
+      return false;
+    } finally {
+      setTimeout(() => { refreshInFlight = null; }, 50);
+    }
+  })();
+  return refreshInFlight;
+}
+
 export type EsignStatus =
   | "draft" | "sent" | "partial" | "completed" | "expired" | "voided" | "declined";
 
@@ -68,13 +85,17 @@ export interface DocumentListItem {
   signed_count: number;
 }
 
-async function json<T>(path: string, opts?: RequestInit): Promise<T> {
+async function json<T>(path: string, opts?: RequestInit, _retried = false): Promise<T> {
   const res = await fetch(`${API}${path}`, {
     credentials: "include",
     ...opts,
     headers: { "Content-Type": "application/json", ...(opts?.headers || {}) },
   });
   if (res.status === 401) {
+    if (!_retried) {
+      const ok = await tryRefresh();
+      if (ok) return json<T>(path, opts, true);
+    }
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("auth:expired", { detail: { source: "esign" } }));
     }
@@ -96,7 +117,7 @@ export const esignApi = {
   list: () => json<{ documents: DocumentListItem[] }>("/api/esign/documents"),
   get: (id: string) => json<DocumentDetail>(`/api/esign/documents/${id}`),
 
-  async upload(title: string, file: File): Promise<DocumentDetail> {
+  async upload(title: string, file: File, _retried = false): Promise<DocumentDetail> {
     const fd = new FormData();
     fd.append("title", title);
     fd.append("file", file);
@@ -106,6 +127,10 @@ export const esignApi = {
       body: fd,
     });
     if (res.status === 401) {
+      if (!_retried) {
+        const ok = await tryRefresh();
+        if (ok) return esignApi.upload(title, file, true);
+      }
       if (typeof window !== "undefined") {
         window.dispatchEvent(new CustomEvent("auth:expired", { detail: { source: "esign" } }));
       }

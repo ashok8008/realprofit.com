@@ -18,6 +18,7 @@ from auth import router as auth_router, seed_admin
 from user_data import router as user_data_router
 from invoices import router as invoices_router
 from esign.routes import router as esign_router
+from esign.guest_routes import router as esign_guest_router
 from esign.database import init_esign_db
 from billing.routes import router as billing_router
 from billing.saved_signature import router as saved_sig_router
@@ -45,6 +46,7 @@ app.include_router(auth_router)
 app.include_router(user_data_router)
 app.include_router(invoices_router)
 app.include_router(esign_router)
+app.include_router(esign_guest_router)
 app.include_router(billing_router)
 app.include_router(saved_sig_router)
 app.include_router(analytics_router)

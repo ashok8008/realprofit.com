@@ -2,8 +2,35 @@ import type { InvoiceData, ClientData } from "./types";
 
 const API = process.env.NEXT_PUBLIC_BACKEND_URL;
 
-async function f(path: string, opts?: RequestInit) {
+// Coalesce concurrent 401s into a single /refresh call so we don't fire N refresh requests.
+let refreshInFlight: Promise<boolean> | null = null;
+async function tryRefresh(): Promise<boolean> {
+  if (refreshInFlight) return refreshInFlight;
+  refreshInFlight = (async () => {
+    try {
+      const r = await fetch(`${API}/api/auth/refresh`, { method: "POST", credentials: "include" });
+      return r.ok;
+    } catch {
+      return false;
+    } finally {
+      // Allow next attempt after a tiny tick.
+      setTimeout(() => { refreshInFlight = null; }, 50);
+    }
+  })();
+  return refreshInFlight;
+}
+
+async function f(path: string, opts?: RequestInit, _retried = false): Promise<any> {
   const res = await fetch(`${API}${path}`, { credentials: "include", ...opts, headers: { "Content-Type": "application/json", ...opts?.headers } });
+  if (res.status === 401 && !_retried) {
+    // Try a silent refresh and replay the call exactly once.
+    const ok = await tryRefresh();
+    if (ok) return f(path, opts, true);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("auth:expired", { detail: { source: "invoice-app" } }));
+    }
+    throw new Error("AUTH_REQUIRED");
+  }
   if (res.status === 401) {
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("auth:expired", { detail: { source: "invoice-app" } }));

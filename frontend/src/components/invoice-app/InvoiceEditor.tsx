@@ -1,8 +1,8 @@
 "use client";
 import React, { useState } from "react";
 import { Plus, Trash2, Upload, X, Paperclip, FileText, Save, Send, Link2, Copy, Download, FilePlus } from "lucide-react";
-import type { InvoiceData, ClientData, LineItem, InvoiceAttachment } from "./types";
-import { UNITS, getCurrencySymbol, calcTotals } from "./types";
+import type { InvoiceData, ClientData, LineItem, InvoiceAttachment, BankDetails } from "./types";
+import { UNITS, getCurrencySymbol, calcTotals, EMPTY_BANK_DETAILS, hasBankDetails } from "./types";
 
 interface EditorProps {
   inv: InvoiceData;
@@ -22,6 +22,9 @@ interface EditorProps {
   onShare: () => void;
   onExportCSV: () => void;
   onDownloadPDF: () => void;
+  // Bank details default-set helpers (optional)
+  settings?: { bank_details?: BankDetails | null } | null;
+  onSaveDefaultBank?: (bd: BankDetails) => void;
 }
 
 const lbl = "text-[11px] font-semibold text-[#6E6B63] uppercase tracking-wider mb-1 block";
@@ -34,6 +37,7 @@ export function InvoiceEditor({
   onSaveAsClient, onRecordPayment, onLogoUpload,
   onUploadAttachment, onDeleteAttachment,
   onNewInvoice, onDuplicate, onSave, onSendEmail, onShare, onExportCSV, onDownloadPDF,
+  settings, onSaveDefaultBank,
 }: EditorProps) {
   const sym = getCurrencySymbol(inv.currency);
   const totals = calcTotals(inv);
@@ -239,6 +243,63 @@ export function InvoiceEditor({
         <p className={fst}>Payment Link</p>
         <label className={lbl}>Payment URL (shown as QR code on invoice)</label>
         <input type="url" className={inp} placeholder="https://pay.me/..." value={inv.payment_link} onChange={e => set("payment_link", e.target.value)} data-testid="payment-link" />
+        <p className="text-xs text-[#6E6B63] mt-1.5">Leave empty if you prefer to share bank details below.</p>
+      </div>
+
+      {/* Bank / ACH details — shown on the public invoice page + PDF when no payment link is provided */}
+      <div className={section}>
+        <div className="flex items-center justify-between">
+          <p className={fst} style={{ marginBottom: 0 }}>Bank / ACH details</p>
+          <button
+            type="button"
+            data-testid="copy-default-bank-btn"
+            onClick={async () => {
+              try {
+                const settings = await (await import("./api")).invoiceApi.list();
+                void settings; // silence unused warn — we already have settings via parent; we won't fetch here.
+              } catch { /* noop */ }
+            }}
+            className="hidden"
+          />
+        </div>
+        <p className="text-xs text-[#6E6B63] mb-3">Optional — shown to clients when no payment link is set, so they can make an ACH / bank transfer / PayPal payment.</p>
+        <div className="grid grid-cols-2 gap-3">
+          <div><label className={lbl}>Bank Name</label><input className={inp} placeholder="Chase, Wells Fargo..." value={inv.bank_details?.bank_name || ""} onChange={e => set("bank_details", { ...(inv.bank_details || EMPTY_BANK_DETAILS), bank_name: e.target.value })} data-testid="bank-name" /></div>
+          <div><label className={lbl}>Account Holder</label><input className={inp} placeholder="As on the bank account" value={inv.bank_details?.account_holder || ""} onChange={e => set("bank_details", { ...(inv.bank_details || EMPTY_BANK_DETAILS), account_holder: e.target.value })} data-testid="bank-holder" /></div>
+          <div><label className={lbl}>Account Number / IBAN</label><input className={inp} placeholder="123456789" value={inv.bank_details?.account_number || ""} onChange={e => set("bank_details", { ...(inv.bank_details || EMPTY_BANK_DETAILS), account_number: e.target.value })} data-testid="bank-account" /></div>
+          <div><label className={lbl}>Routing / SWIFT / IFSC</label><input className={inp} placeholder="ABA / SWIFT / IFSC" value={inv.bank_details?.routing_number || ""} onChange={e => set("bank_details", { ...(inv.bank_details || EMPTY_BANK_DETAILS), routing_number: e.target.value })} data-testid="bank-routing" /></div>
+          <div><label className={lbl}>Account Type</label>
+            <select className={inp} value={inv.bank_details?.account_type || ""} onChange={e => set("bank_details", { ...(inv.bank_details || EMPTY_BANK_DETAILS), account_type: e.target.value })} data-testid="bank-type">
+              <option value="">—</option>
+              <option value="Checking">Checking</option>
+              <option value="Savings">Savings</option>
+              <option value="Business">Business</option>
+            </select>
+          </div>
+          <div><label className={lbl}>PayPal / Venmo / Zelle</label><input className={inp} placeholder="@handle or email" value={inv.bank_details?.paypal || ""} onChange={e => set("bank_details", { ...(inv.bank_details || EMPTY_BANK_DETAILS), paypal: e.target.value })} data-testid="bank-paypal" /></div>
+        </div>
+        <label className={lbl + " mt-3 block"}>Notes</label>
+        <textarea className={inp + " min-h-[60px] resize-y"} placeholder="e.g. Bank address, reference number, anything else the payer needs" value={inv.bank_details?.notes || ""} onChange={e => set("bank_details", { ...(inv.bank_details || EMPTY_BANK_DETAILS), notes: e.target.value })} data-testid="bank-notes" />
+        {settings?.bank_details && hasBankDetails(settings.bank_details) && !hasBankDetails(inv.bank_details) && (
+          <button
+            type="button"
+            data-testid="use-default-bank-btn"
+            onClick={() => set("bank_details", { ...(settings!.bank_details as BankDetails) })}
+            className="mt-3 text-xs font-semibold text-[#0B3D3D] underline underline-offset-2"
+          >
+            Use my saved default bank details
+          </button>
+        )}
+        {hasBankDetails(inv.bank_details) && (
+          <button
+            type="button"
+            data-testid="save-default-bank-btn"
+            onClick={() => onSaveDefaultBank?.(inv.bank_details)}
+            className="mt-3 ml-3 text-xs font-semibold text-[#0B3D3D] underline underline-offset-2"
+          >
+            Save as my default for future invoices
+          </button>
+        )}
       </div>
 
       {/* Partial Payments */}

@@ -11,6 +11,9 @@ import { InvoicePreviewPanel } from "./InvoicePreviewPanel";
 import { invoiceApi, clientApi } from "./api";
 import { defaultInvoice, calcTotals } from "./types";
 import type { InvoiceData, ClientData, InvoiceAttachment } from "./types";
+import { useAutosave, readAutosave, clearAutosave } from "@/hooks/useAutosave";
+
+const INVOICE_AUTOSAVE_KEY = "rp-autosave:invoice:current";
 
 export function InvoiceApp() {
   const { user, loading: authLoading } = useAuth();
@@ -24,6 +27,8 @@ export function InvoiceApp() {
   const [invoices, setInvoices] = useState<{ id: string; invoice_number: string; client_name: string; client_company?: string; status: string; total: number; currency: string; date: string; due_date: string }[]>([]);
   const [stats, setStats] = useState({ total_count: 0, paid_count: 0, overdue_count: 0, total_revenue: 0 });
   const [showEsignCrossPromo, setShowEsignCrossPromo] = useState(false);
+  // User-level settings — currently logo + default bank details.
+  const [settings, setSettings] = useState<{ logo_url?: string; bank_details?: import("./types").BankDetails | null } | null>(null);
 
   // Modal states
   const [clientModal, setClientModal] = useState<{ open: boolean; editing: ClientData | null }>({ open: false, editing: null });
@@ -45,10 +50,15 @@ export function InvoiceApp() {
       setClients(cl);
       setInvoices(inv);
       setStats(st);
-      // Load saved settings (logo)
+      // Load saved settings (logo + default bank details)
       try {
-        const settings = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/invoices/settings`, { credentials: "include" }).then(r => r.json());
-        if (settings.logo_url) setInv(prev => ({ ...prev, logo_url: settings.logo_url }));
+        const s = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/invoices/settings`, { credentials: "include" }).then(r => r.json());
+        setSettings(s || null);
+        if (s?.logo_url) setInv(prev => ({ ...prev, logo_url: s.logo_url }));
+        // Auto-prefill bank details for new (un-saved) invoice if not already set.
+        if (s?.bank_details && !inv.id && !inv.bank_details?.bank_name && !inv.bank_details?.account_number) {
+          setInv(prev => ({ ...prev, bank_details: { ...s.bank_details } }));
+        }
       } catch {}
     } catch (err: unknown) {
       if (err instanceof Error && err.message === "AUTH_REQUIRED") {
@@ -61,6 +71,44 @@ export function InvoiceApp() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  // ── Autosave / restore ──
+  // 1. On mount, if there's a saved draft AND no invoice currently being edited,
+  //    restore it (and show a toast giving the user a chance to discard).
+  const [restoredDraftAt, setRestoredDraftAt] = useState<number | null>(null);
+  useEffect(() => {
+    if (editingId) return;
+    const draft = readAutosave<InvoiceData>(INVOICE_AUTOSAVE_KEY);
+    if (!draft) return;
+    // Only restore if draft has any meaningful content beyond defaults.
+    const hasContent = !!(draft.data.client_name || draft.data.client_email
+      || draft.data.business_name || (draft.data.items || []).some(i => i.description));
+    if (!hasContent) return;
+    setInv(draft.data);
+    setRestoredDraftAt(draft.ts);
+    toast({
+      title: "Draft restored",
+      description: "We kept the invoice you were working on. Click Save to keep it permanently.",
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 2. Autosave: localStorage every 5s, server every 30s (only for saved invoices being edited).
+  useAutosave<InvoiceData>({
+    key: INVOICE_AUTOSAVE_KEY,
+    data: inv,
+    enabled: !!user,
+    localDebounceMs: 5000,
+    remoteIntervalMs: 30_000,
+    enableRemote: !!editingId,
+    remoteSave: async (snapshot) => {
+      if (!editingId) return;
+      try {
+        const totals = calcTotals(snapshot);
+        await invoiceApi.update(editingId, { ...snapshot, ...totals });
+      } catch { /* swallow — next tick retries */ }
+    },
+  });
+
   if (authLoading) {
     return <div className="h-screen flex items-center justify-center bg-[#F5F3EE]"><div className="animate-spin w-8 h-8 border-4 border-[#0B3D3D] border-t-transparent rounded-full" /></div>;
   }
@@ -71,6 +119,8 @@ export function InvoiceApp() {
     const nextNum = `INV-${String(invoices.length + 1).padStart(3, "0")}`;
     setInv({ ...defaultInvoice, invoice_number: nextNum });
     setEditingId(null);
+    setRestoredDraftAt(null);
+    clearAutosave(INVOICE_AUTOSAVE_KEY);
     setActiveTab("editor");
     toast({ title: "New invoice", description: "Form cleared — start fresh." });
   };
@@ -87,6 +137,9 @@ export function InvoiceApp() {
         setEditingId(res.id);
         toast({ title: "Invoice saved" });
       }
+      // Successful save — wipe the autosave snapshot so we don't restore it later.
+      clearAutosave(INVOICE_AUTOSAVE_KEY);
+      setRestoredDraftAt(null);
       loadData();
     } catch {
       toast({ title: "Failed to save", variant: "destructive" });
@@ -466,6 +519,19 @@ export function InvoiceApp() {
       const blocks: Array<{ title: string; text: string }> = [];
       if (inv.payment_terms) blocks.push({ title: "Payment terms", text: inv.payment_terms });
       if (inv.notes) blocks.push({ title: "Notes", text: inv.notes });
+      // Bank / ACH details block in PDF
+      const bd = inv.bank_details;
+      if (bd && (bd.bank_name || bd.account_number || bd.routing_number || bd.paypal || bd.account_holder)) {
+        const lines: string[] = [];
+        if (bd.bank_name) lines.push(`Bank: ${bd.bank_name}`);
+        if (bd.account_holder) lines.push(`Account holder: ${bd.account_holder}`);
+        if (bd.account_number) lines.push(`Account number: ${bd.account_number}`);
+        if (bd.routing_number) lines.push(`Routing / SWIFT / IFSC: ${bd.routing_number}`);
+        if (bd.account_type) lines.push(`Type: ${bd.account_type}`);
+        if (bd.paypal) lines.push(`PayPal / Venmo / Zelle: ${bd.paypal}`);
+        if (bd.notes) lines.push(bd.notes);
+        blocks.push({ title: "Bank / Payment details", text: lines.join("\n") });
+      }
       for (const b of blocks) {
         if (y > 250) { doc.addPage(); y = 20; }
         doc.setFont("helvetica", "bold"); doc.setFontSize(8);
@@ -548,6 +614,21 @@ export function InvoiceApp() {
               onShare={handleShare}
               onExportCSV={handleExportCSV}
               onDownloadPDF={handleDownloadPDF}
+              settings={settings}
+              onSaveDefaultBank={async (bd) => {
+                try {
+                  await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/invoices/settings`, {
+                    method: "PUT",
+                    credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ bank_details: bd }),
+                  });
+                  setSettings(prev => ({ ...(prev || {}), bank_details: bd }));
+                  toast({ title: "Saved as default", description: "These bank details will be auto-filled on new invoices." });
+                } catch (e) {
+                  toast({ title: "Could not save", description: String(e), variant: "destructive" });
+                }
+              }}
             />
           )}
           {activeTab === "clients" && (

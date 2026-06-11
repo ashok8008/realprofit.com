@@ -1,12 +1,27 @@
 "use client";
 // 5-step wizard: Upload → Signers → Place Fields → Settings & Review → Send
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Upload, Users, MousePointer2, Settings as SettingsIcon, Send, ArrowLeft, ArrowRight, Plus, Trash2, FileText, GripVertical } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { esignApi, SIGNER_PALETTE, type DocumentDetail, type FieldType, type Signer } from "./api";
 import { FieldPlacer } from "./FieldPlacer";
+import { useAutosave, readAutosave, clearAutosave } from "@/hooks/useAutosave";
+
+const ESIGN_AUTOSAVE_KEY = "rp-autosave:esign:wizard";
+
+interface WizardAutosaveSnapshot {
+  docId?: string | null;
+  step?: 1 | 2 | 3 | 4 | 5;
+  title?: string;
+  signers?: SignerDraft[];
+  signingOrder?: "sequential" | "parallel";
+  expiryDays?: number;
+  brandEnabled?: boolean;
+  uuidEnabled?: boolean;
+  fields?: FieldDraft[];
+}
 
 type WizardStep = 1 | 2 | 3 | 4 | 5;
 
@@ -93,6 +108,52 @@ export function EsignWizard({ initialDoc }: Props = {}) {
   const [submitting, setSubmitting] = useState(false);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
 
+  // ── Autosave ──
+  // On mount (only when NOT editing an existing draft), try restoring a snapshot.
+  useEffect(() => {
+    if (initialDoc) return; // editing an existing draft — don't fight server state
+    const snap = readAutosave<WizardAutosaveSnapshot>(ESIGN_AUTOSAVE_KEY);
+    if (!snap || !snap.data) return;
+    const d = snap.data;
+    const hasMeaningful =
+      (d.signers || []).some((s) => (s.name && s.email)) ||
+      (d.fields || []).length > 0 ||
+      (d.title && d.title.length > 0);
+    if (!hasMeaningful) return;
+    if (typeof d.step === "number" && d.step >= 1 && d.step <= 5) setStep(d.step as WizardStep);
+    if (d.title) setTitle(d.title);
+    if (d.signers && d.signers.length > 0) setSigners(d.signers);
+    if (d.signingOrder) setSigningOrder(d.signingOrder);
+    if (typeof d.expiryDays === "number") setExpiryDays(d.expiryDays);
+    if (typeof d.brandEnabled === "boolean") setBrandEnabled(d.brandEnabled);
+    if (typeof d.uuidEnabled === "boolean") setUuidEnabled(d.uuidEnabled);
+    if (d.fields) setFields(d.fields);
+    toast({
+      title: "Draft restored",
+      description: "We kept the document you were preparing. Click Send when you're ready.",
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Save snapshot to localStorage every 5s; server-side persistence happens
+  // via the existing PATCH calls between wizard steps (don't double-save).
+  useAutosave<WizardAutosaveSnapshot>({
+    key: ESIGN_AUTOSAVE_KEY,
+    data: {
+      docId: doc?.id || null,
+      step,
+      title,
+      signers,
+      signingOrder,
+      expiryDays,
+      brandEnabled,
+      uuidEnabled,
+      fields,
+    },
+    enabled: true, // works for guests too — survives accidental tab close
+    localDebounceMs: 5000,
+  });
+
   // --- Step 1: Upload ---
 
   const handleFile = (f: File | null) => {
@@ -109,14 +170,45 @@ export function EsignWizard({ initialDoc }: Props = {}) {
     if (!title) setTitle(f.name.replace(/\.pdf$/i, ""));
   };
 
+  // ─────────────────────────────────────────────────────────────────────
+  // Guest mode helpers
+  // ─────────────────────────────────────────────────────────────────────
+  // A guest can complete the entire flow IFF the document has exactly one
+  // signer AND that signer's role is "signer". Adding more signers or any
+  // non-signer role (approver/witness/cc) requires login.
+  const guestEligible = !user
+    && signers.length === 1
+    && signers.every((s) => s.role === "signer");
+
+  const requireLoginAndPreserve = (reason?: string) => {
+    // Autosave hook keeps the wizard state in localStorage; just redirect.
+    if (reason) {
+      toast({
+        title: "Sign in to continue",
+        description: reason,
+      });
+    }
+    const back = "/tools/esign/new";
+    router.push(`/login?redirect=${encodeURIComponent(back)}`);
+  };
+
+  // Local object URL for guests so the PDF can render without a server upload.
+  const localPdfUrl = useMemo(() => {
+    if (!file) return "";
+    try { return URL.createObjectURL(file); } catch { return ""; }
+  }, [file]);
+
   const uploadAndContinue = async () => {
     if (!file || !title.trim()) return;
     setSubmitting(true);
     try {
-      const result = await esignApi.upload(title.trim(), file);
-      setDoc(result);
+      if (user) {
+        const result = await esignApi.upload(title.trim(), file);
+        setDoc(result);
+      }
+      // Guests: we keep `file` in state and lazily upload on Send.
       setStep(2);
-      toast({ title: "Document uploaded" });
+      toast({ title: user ? "Document uploaded" : "Document ready — add your signer" });
     } catch (e: any) {
       if (e.message === "AUTH_REQUIRED") {
         router.push("/login?redirect=/tools/esign/new");
@@ -131,6 +223,11 @@ export function EsignWizard({ initialDoc }: Props = {}) {
   // --- Step 2: Signers ---
 
   const addSigner = () => {
+    if (!user) {
+      // Guests are restricted to a single signer with role="signer".
+      requireLoginAndPreserve("Sign in to add more than one signer.");
+      return;
+    }
     if (signers.length >= 5) {
       toast({ title: "Free plan allows up to 5 signers", description: "Upgrade to Pro for more." });
       return;
@@ -142,6 +239,11 @@ export function EsignWizard({ initialDoc }: Props = {}) {
   };
 
   const updateSigner = (i: number, patch: Partial<SignerDraft>) => {
+    // Guests can't pick non-signer roles — re-route them to login.
+    if (!user && patch.role && patch.role !== "signer") {
+      requireLoginAndPreserve("Sign in to add an approver, witness, or CC.");
+      return;
+    }
     setSigners(signers.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
   };
 
@@ -151,12 +253,21 @@ export function EsignWizard({ initialDoc }: Props = {}) {
   };
 
   const saveSignersAndContinue = async () => {
-    if (!doc) return;
     const invalid = signers.find((s) => !s.name.trim() || !s.email.includes("@"));
     if (invalid) {
       toast({ title: "Every signer needs a name and valid email", variant: "destructive" });
       return;
     }
+    // Guest flow: keep everything client-side; just advance.
+    if (!user) {
+      if (!guestEligible) {
+        requireLoginAndPreserve("Sign in to send to multiple recipients or use approver/witness/CC.");
+        return;
+      }
+      setStep(3);
+      return;
+    }
+    if (!doc) return;
     setSubmitting(true);
     try {
       // Capture old signer mapping (id → email) before backend replaces signers.
@@ -206,17 +317,61 @@ export function EsignWizard({ initialDoc }: Props = {}) {
   const goToFields = () => setStep(3);
 
   const saveFieldsAndContinue = async () => {
-    if (!doc) return;
     if (fields.length === 0) {
       toast({ title: "Place at least one signature field", variant: "destructive" });
       return;
     }
+    if (user && !doc) return; // safety — logged-in users must have a doc id
     setStep(4);
   };
+
+  // ── Guest send modal state ──
+  const [guestModal, setGuestModal] = useState<{
+    open: boolean;
+    senderName: string;
+    senderEmail: string;
+    code: string;
+    verificationId: string | null;
+    expiresAt: string | null;
+    submitting: boolean;
+    error: string;
+    step: "sender_info" | "code_entry" | "sent";
+    claimToken: string | null;
+    documentId: string | null;
+  }>({
+    open: false,
+    senderName: "",
+    senderEmail: "",
+    code: "",
+    verificationId: null,
+    expiresAt: null,
+    submitting: false,
+    error: "",
+    step: "sender_info",
+    claimToken: null,
+    documentId: null,
+  });
 
   // --- Step 5: Send ---
 
   const sendDocument = async () => {
+    // Guest flow: open the sender-info modal.
+    if (!user) {
+      if (!guestEligible) {
+        requireLoginAndPreserve("Sign in to send to multiple recipients or use approver/witness/CC.");
+        return;
+      }
+      if (fields.length === 0) {
+        toast({ title: "Place at least one signature field", variant: "destructive" });
+        return;
+      }
+      if (!file) {
+        toast({ title: "Please re-upload the PDF", variant: "destructive" });
+        return;
+      }
+      setGuestModal((m) => ({ ...m, open: true, step: "sender_info", error: "" }));
+      return;
+    }
     if (!doc) return;
     setSubmitting(true);
     try {
@@ -246,6 +401,7 @@ export function EsignWizard({ initialDoc }: Props = {}) {
         })),
       });
       const res = await esignApi.send(doc.id);
+      clearAutosave(ESIGN_AUTOSAVE_KEY);
       toast({ title: `Sent to ${res.recipients} signer(s)`, description: "Email invitations are on the way." });
       router.push("/tools/esign/dashboard");
     } catch (e: any) {
@@ -259,9 +415,114 @@ export function EsignWizard({ initialDoc }: Props = {}) {
     }
   };
 
+  // ── Guest: actually upload + verify ──
+  const submitGuestSend = async () => {
+    if (!file || signers.length !== 1) return;
+    const sender_name = guestModal.senderName.trim();
+    const sender_email = guestModal.senderEmail.trim().toLowerCase();
+    if (!sender_name || !sender_email.includes("@")) {
+      setGuestModal((m) => ({ ...m, error: "Please enter your name and a valid email." }));
+      return;
+    }
+    if (sender_email === signers[0].email.trim().toLowerCase()) {
+      setGuestModal((m) => ({
+        ...m,
+        error: "The sender and signer can't share an email. Want to sign yourself? Sign up for a free account.",
+      }));
+      return;
+    }
+    setGuestModal((m) => ({ ...m, submitting: true, error: "" }));
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append(
+        "payload",
+        JSON.stringify({
+          title: title.trim() || "Untitled document",
+          sender_name,
+          sender_email,
+          signer_name: signers[0].name.trim(),
+          signer_email: signers[0].email.trim().toLowerCase(),
+          signing_order: "parallel",
+          fields: fields.map((f) => ({
+            page: f.page, x: f.x, y: f.y, width: f.width, height: f.height,
+            field_type: f.field_type, required: f.required, label: f.label || null,
+          })),
+        })
+      );
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/esign/guest/documents`, {
+        method: "POST",
+        body: fd,
+      });
+      if (!res.ok) {
+        const t = await res.text();
+        try { const j = JSON.parse(t); throw new Error(j.detail || t); }
+        catch { throw new Error(t || `HTTP ${res.status}`); }
+      }
+      const data = await res.json();
+      setGuestModal((m) => ({
+        ...m,
+        submitting: false,
+        error: "",
+        step: "code_entry",
+        verificationId: data.verification_id,
+        expiresAt: data.expires_at,
+        documentId: data.document_id,
+      }));
+      toast({
+        title: "Check your inbox",
+        description: `We sent a 6-digit code to ${sender_email} to confirm this send.`,
+      });
+    } catch (e: any) {
+      setGuestModal((m) => ({ ...m, submitting: false, error: e.message || "Send failed" }));
+    }
+  };
+
+  const verifyGuestCode = async () => {
+    if (!guestModal.verificationId) return;
+    const code = guestModal.code.trim();
+    if (!/^\d{6}$/.test(code)) {
+      setGuestModal((m) => ({ ...m, error: "Enter the 6-digit code from the email." }));
+      return;
+    }
+    setGuestModal((m) => ({ ...m, submitting: true, error: "" }));
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/esign/guest/documents/verify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ verification_id: guestModal.verificationId, code }),
+      });
+      if (!res.ok) {
+        const t = await res.text();
+        try { const j = JSON.parse(t); throw new Error(j.detail || t); }
+        catch { throw new Error(t || `HTTP ${res.status}`); }
+      }
+      const data = await res.json();
+      clearAutosave(ESIGN_AUTOSAVE_KEY);
+      setGuestModal((m) => ({
+        ...m,
+        submitting: false,
+        step: "sent",
+        claimToken: data.claim_token,
+        documentId: data.document_id,
+        error: "",
+      }));
+      toast({ title: "Document sent!", description: `${signers[0].name} will receive the signing email shortly.` });
+    } catch (e: any) {
+      setGuestModal((m) => ({ ...m, submitting: false, error: e.message || "Verification failed" }));
+    }
+  };
   // Active signer for placement
   const [activeSignerId, setActiveSignerId] = useState<string | null>(null);
-  const signerOptions: Signer[] = doc?.signers || [];
+  const signerOptions: Signer[] = doc?.signers || (signers.map((s, i) => ({
+    id: `local-${i}`,
+    name: s.name || "Signer",
+    email: s.email,
+    role: s.role,
+    order_index: i,
+    color: s.color,
+    status: "pending",
+  })) as Signer[]);
   useMemo(() => {
     if (signerOptions.length && !activeSignerId) {
       setActiveSignerId(signerOptions[0].id);
@@ -515,13 +776,21 @@ export function EsignWizard({ initialDoc }: Props = {}) {
           </section>
         )}
 
-        {step === 3 && doc && (
+        {step === 3 && (doc || (!user && file)) && (
           <section data-testid="step-3-fields">
             <h2 className="text-2xl font-semibold text-stone-900 mb-1">Place signature fields</h2>
             <p className="text-sm text-stone-600 mb-6">Pick a signer, pick a field type, then click on the document to drop a field.</p>
             <FieldPlacer
-              pdfUrl={esignApi.originalUrl(doc.id)}
-              signers={doc.signers}
+              pdfUrl={user && doc ? esignApi.originalUrl(doc.id) : localPdfUrl}
+              signers={(doc?.signers as Signer[]) || (signers.map((s, i) => ({
+                id: `local-${i}`,
+                name: s.name || "Signer",
+                email: s.email,
+                role: s.role,
+                order_index: i,
+                color: s.color,
+                status: "pending",
+              })) as Signer[])}
               fields={fields}
               onChange={setFields}
               activeSignerId={activeSignerId}
@@ -631,6 +900,165 @@ export function EsignWizard({ initialDoc }: Props = {}) {
           )}
         </div>
       </footer>
+
+      {/* Guest send + verification modal */}
+      {guestModal.open && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          data-testid="guest-send-modal"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !guestModal.submitting && guestModal.step !== "sent") {
+              setGuestModal((m) => ({ ...m, open: false }));
+            }
+          }}
+        >
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            {guestModal.step === "sender_info" && (
+              <>
+                <h3 className="text-lg font-semibold text-stone-900 mb-1">Send as a guest</h3>
+                <p className="text-sm text-stone-600 mb-5">
+                  We&apos;ll email a 6-digit code to your address to confirm this send.
+                  This keeps the audit trail tamper-evident — and means you can come back later
+                  (by signing up with the same email) to see what was signed.
+                </p>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-stone-500 mb-1">Your name</label>
+                <input
+                  type="text"
+                  data-testid="guest-sender-name"
+                  className="w-full px-3 py-2 border border-stone-300 rounded-md text-sm focus:outline-none focus:border-[#0B3D3D] mb-3"
+                  placeholder="Jane Smith"
+                  value={guestModal.senderName}
+                  onChange={(e) => setGuestModal((m) => ({ ...m, senderName: e.target.value, error: "" }))}
+                />
+                <label className="block text-xs font-semibold uppercase tracking-wider text-stone-500 mb-1">Your email (the sender)</label>
+                <input
+                  type="email"
+                  data-testid="guest-sender-email"
+                  className="w-full px-3 py-2 border border-stone-300 rounded-md text-sm focus:outline-none focus:border-[#0B3D3D]"
+                  placeholder="you@company.com"
+                  value={guestModal.senderEmail}
+                  onChange={(e) => setGuestModal((m) => ({ ...m, senderEmail: e.target.value, error: "" }))}
+                />
+                {guestModal.error && (
+                  <p className="text-xs text-[#B53D2F] mt-2" data-testid="guest-send-error">{guestModal.error}</p>
+                )}
+                <div className="flex items-center justify-between gap-2 mt-5">
+                  <button
+                    onClick={() => setGuestModal((m) => ({ ...m, open: false }))}
+                    disabled={guestModal.submitting}
+                    data-testid="guest-cancel"
+                    className="px-3 py-2 text-sm font-medium text-stone-600 hover:text-stone-900"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={submitGuestSend}
+                    disabled={guestModal.submitting}
+                    data-testid="guest-send-submit"
+                    className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-[#0B3D3D] rounded-md hover:bg-[#165252] disabled:opacity-40"
+                  >
+                    {guestModal.submitting ? "Sending…" : "Send verification code"}
+                  </button>
+                </div>
+                <p className="text-[11px] text-stone-500 mt-4">
+                  Want unlimited sends, a dashboard, multi-signer + witness/approver/CC?{" "}
+                  <button
+                    type="button"
+                    data-testid="guest-signup-link"
+                    className="font-semibold text-[#0B3D3D] underline underline-offset-2"
+                    onClick={() => requireLoginAndPreserve("Continue with a free account to skip verification.")}
+                  >
+                    Sign up free
+                  </button>{" "}
+                  — your work is preserved.
+                </p>
+              </>
+            )}
+            {guestModal.step === "code_entry" && (
+              <>
+                <h3 className="text-lg font-semibold text-stone-900 mb-1">Enter the 6-digit code</h3>
+                <p className="text-sm text-stone-600 mb-5">
+                  We just emailed a code to <b>{guestModal.senderEmail}</b>. Enter it below to send the document.
+                </p>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  data-testid="guest-code-input"
+                  className="w-full px-4 py-3 border-2 border-[#C8A96E] rounded-lg text-center text-2xl tracking-[0.5em] font-bold focus:outline-none focus:border-[#0B3D3D]"
+                  placeholder="••••••"
+                  value={guestModal.code}
+                  onChange={(e) => setGuestModal((m) => ({ ...m, code: e.target.value.replace(/\D/g, ""), error: "" }))}
+                />
+                {guestModal.error && (
+                  <p className="text-xs text-[#B53D2F] mt-2" data-testid="guest-code-error">{guestModal.error}</p>
+                )}
+                <div className="flex items-center justify-between gap-2 mt-5">
+                  <button
+                    onClick={() => setGuestModal((m) => ({ ...m, step: "sender_info", code: "", error: "" }))}
+                    disabled={guestModal.submitting}
+                    data-testid="guest-back"
+                    className="px-3 py-2 text-sm font-medium text-stone-600 hover:text-stone-900"
+                  >
+                    Back
+                  </button>
+                  <button
+                    onClick={verifyGuestCode}
+                    disabled={guestModal.submitting || guestModal.code.length !== 6}
+                    data-testid="guest-verify-submit"
+                    className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-[#0B3D3D] rounded-md hover:bg-[#165252] disabled:opacity-40"
+                  >
+                    {guestModal.submitting ? "Verifying…" : "Verify & send"}
+                  </button>
+                </div>
+              </>
+            )}
+            {guestModal.step === "sent" && (
+              <>
+                <h3 className="text-lg font-semibold text-stone-900 mb-1">Sent — keep this safe</h3>
+                <p className="text-sm text-stone-600 mb-3">
+                  <b>{signers[0]?.name}</b> will receive the signing email at <b>{signers[0]?.email}</b>.
+                </p>
+                {guestModal.claimToken && guestModal.documentId && (
+                  <div className="bg-[#FAF5EE] border border-[#C8A96E] rounded-md p-3 mb-3">
+                    <p className="text-xs font-semibold text-stone-700 mb-1">Your tracking link</p>
+                    <input
+                      readOnly
+                      data-testid="guest-tracking-url"
+                      className="w-full px-2 py-1.5 text-xs bg-white border border-stone-300 rounded font-mono"
+                      value={`${typeof window !== "undefined" ? window.location.origin : ""}/track/esign?d=${guestModal.documentId}&c=${guestModal.claimToken}`}
+                    />
+                    <p className="text-[10px] text-stone-500 mt-1">Bookmark this — it&apos;s the only way to check status without an account.</p>
+                  </div>
+                )}
+                <p className="text-xs text-stone-500 mb-4">
+                  Tip: <button
+                    type="button"
+                    data-testid="guest-signup-after-send"
+                    onClick={() => router.push(`/register?email=${encodeURIComponent(guestModal.senderEmail)}`)}
+                    className="font-semibold text-[#0B3D3D] underline underline-offset-2"
+                  >
+                    Sign up free
+                  </button>{" "}
+                  with this same email to see this document in your dashboard automatically.
+                </p>
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => {
+                      setGuestModal((m) => ({ ...m, open: false }));
+                      router.push("/");
+                    }}
+                    data-testid="guest-done"
+                    className="px-5 py-2.5 text-sm font-semibold text-white bg-[#0B3D3D] rounded-md hover:bg-[#165252]"
+                  >
+                    Done
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

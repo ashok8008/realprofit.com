@@ -60,6 +60,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     checkSession();
   }, [checkSession]);
 
+  // Background sliding refresh: while the user is logged in AND the tab is
+  // visible, ping /api/auth/refresh every 10 minutes so the 60-min access
+  // token (and 30-day refresh token) keep rolling forward. This prevents
+  // active users from being kicked out mid-task.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    const tick = async () => {
+      if (cancelled) return;
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
+      try {
+        await fetch(`${API}/api/auth/refresh`, { method: "POST", credentials: "include" });
+      } catch { /* silent — next tick will retry */ }
+    };
+    const id = setInterval(tick, 10 * 60 * 1000); // 10 minutes
+    const onVis = () => { if (document.visibilityState === "visible") tick(); };
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, [user]);
+
   // Global listener: when API clients dispatch "auth:expired" (401 response),
   // clear local user and redirect to login preserving the current path.
   useEffect(() => {

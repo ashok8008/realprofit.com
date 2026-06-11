@@ -33,27 +33,56 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 
 def create_access_token(user_id: str, email: str) -> str:
+    minutes = int(os.environ.get("JWT_ACCESS_EXPIRES_MIN", "60"))
     payload = {
         "sub": user_id,
         "email": email,
-        "exp": datetime.now(timezone.utc) + timedelta(minutes=15),
+        "exp": datetime.now(timezone.utc) + timedelta(minutes=minutes),
         "type": "access",
     }
     return jwt.encode(payload, _jwt_secret(), algorithm=JWT_ALGORITHM)
 
 
 def create_refresh_token(user_id: str) -> str:
+    days = int(os.environ.get("JWT_REFRESH_EXPIRES_DAYS", "30"))
     payload = {
         "sub": user_id,
-        "exp": datetime.now(timezone.utc) + timedelta(days=7),
+        "exp": datetime.now(timezone.utc) + timedelta(days=days),
         "type": "refresh",
     }
     return jwt.encode(payload, _jwt_secret(), algorithm=JWT_ALGORITHM)
 
 
 def _set_auth_cookies(response: JSONResponse, access: str, refresh: str):
-    response.set_cookie(key="access_token", value=access, httponly=True, secure=False, samesite="lax", max_age=900, path="/")
-    response.set_cookie(key="refresh_token", value=refresh, httponly=True, secure=False, samesite="lax", max_age=604800, path="/")
+    access_max_age = int(os.environ.get("JWT_ACCESS_EXPIRES_MIN", "60")) * 60
+    refresh_max_age = int(os.environ.get("JWT_REFRESH_EXPIRES_DAYS", "30")) * 86400
+    response.set_cookie(key="access_token", value=access, httponly=True, secure=False, samesite="lax", max_age=access_max_age, path="/")
+    response.set_cookie(key="refresh_token", value=refresh, httponly=True, secure=False, samesite="lax", max_age=refresh_max_age, path="/")
+
+
+async def _attach_guest_esign_docs(email: str, user_id: str) -> int:
+    """Reassign any guest eSign documents owned by `guest:<email>` to this user.
+
+    Returns the number of docs reassigned. Best-effort: never blocks login.
+    """
+    try:
+        from esign.database import get_session  # local import — circular safe
+        from esign.models import Document
+        from sqlalchemy import update
+        guest_owner = f"guest:{email.lower().strip()}"
+        async for session in get_session():
+            result = await session.execute(
+                update(Document)
+                .where(Document.owner_id == guest_owner)
+                .values(owner_id=user_id)
+            )
+            await session.commit()
+            return int(result.rowcount or 0)
+    except Exception as e:  # pragma: no cover — non-critical
+        import logging
+        logging.getLogger(__name__).warning("Guest doc attach skipped: %s", e)
+    return 0
+
 
 
 def _user_dict(user: dict) -> dict:
@@ -172,6 +201,8 @@ async def register(body: RegisterBody):
     }
     result = await db.users.insert_one(user_doc)
     user_doc["_id"] = result.inserted_id
+    # Auto-attach any guest eSign documents this email previously sent.
+    await _attach_guest_esign_docs(email, str(result.inserted_id))
     access = create_access_token(str(result.inserted_id), email)
     refresh = create_refresh_token(str(result.inserted_id))
     resp = JSONResponse(content=_user_dict(user_doc))
@@ -190,6 +221,8 @@ async def login(body: LoginBody, request: Request):
         await _record_failed_attempt(ip, email)
         raise HTTPException(status_code=401, detail="Invalid email or password")
     await _clear_attempts(ip, email)
+    # Auto-attach any guest eSign documents this email previously sent.
+    await _attach_guest_esign_docs(email, str(user["_id"]))
     access = create_access_token(str(user["_id"]), email)
     refresh = create_refresh_token(str(user["_id"]))
     resp = JSONResponse(content=_user_dict(user))
@@ -225,8 +258,10 @@ async def refresh_token(request: Request):
         if not user:
             raise HTTPException(status_code=401, detail="User not found")
         access = create_access_token(str(user["_id"]), user["email"])
+        # Also rotate refresh token (sliding session) so active users never expire.
+        refresh = create_refresh_token(str(user["_id"]))
         resp = JSONResponse(content=_user_dict(user))
-        resp.set_cookie(key="access_token", value=access, httponly=True, secure=False, samesite="lax", max_age=900, path="/")
+        _set_auth_cookies(resp, access, refresh)
         return resp
     except jwt.ExpiredSignatureError:
         raise HTTPException(status_code=401, detail="Refresh token expired")

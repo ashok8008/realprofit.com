@@ -9,7 +9,7 @@ import resend
 from fastapi import APIRouter, HTTPException, Request, UploadFile, File
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, EmailStr, Field, field_validator
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from datetime import datetime, timezone
 from bson import ObjectId
 from db import get_db
@@ -107,6 +107,8 @@ class InvoiceCreate(BaseModel):
     notes: str = ""
     payment_terms: str = ""
     payment_link: str = ""
+    # Bank / ACH details (shown on the public invoice page + PDF when payment_link is empty).
+    bank_details: Optional[Dict[str, Any]] = None
     signature_data: str = ""
     template: str = "minimal"
     # Recurring
@@ -199,6 +201,39 @@ async def get_invoice_settings(request: Request):
     db = get_db()
     doc = await db.invoice_settings.find_one({"user_id": str(user["_id"])}, {"_id": 0, "user_id": 0})
     return doc or {}
+
+
+class SettingsUpdate(BaseModel):
+    logo_url: Optional[str] = None
+    bank_details: Optional[Dict[str, Any]] = None
+
+
+@router.put("/settings")
+async def update_invoice_settings(body: SettingsUpdate, request: Request):
+    """Save user-level invoice settings (default bank details, etc.)."""
+    user = await get_current_user(request)
+    db = get_db()
+    update_doc: Dict[str, Any] = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    if body.logo_url is not None:
+        update_doc["logo_url"] = body.logo_url
+    if body.bank_details is not None:
+        # Only store the whitelisted keys so we don't accept arbitrary blobs.
+        bd = body.bank_details or {}
+        update_doc["bank_details"] = {
+            "bank_name": str(bd.get("bank_name", ""))[:200],
+            "account_holder": str(bd.get("account_holder", ""))[:200],
+            "account_number": str(bd.get("account_number", ""))[:100],
+            "routing_number": str(bd.get("routing_number", ""))[:100],
+            "account_type": str(bd.get("account_type", ""))[:50],
+            "paypal": str(bd.get("paypal", ""))[:200],
+            "notes": str(bd.get("notes", ""))[:1000],
+        }
+    await db.invoice_settings.update_one(
+        {"user_id": str(user["_id"])},
+        {"$set": update_doc},
+        upsert=True,
+    )
+    return {"status": "saved"}
 
 @router.post("/upload-logo")
 async def upload_logo(request: Request):
@@ -353,6 +388,38 @@ async def send_invoice_email(body: SendInvoiceEmailRequest, request: Request):
     payment_btn = ""
     if payment_link:
         payment_btn = f'<div style="text-align:center;margin:24px 0;"><a href="{payment_link}" style="background:{accent};color:#fff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:16px;display:inline-block;">Pay Now</a></div>'
+
+    # Bank / ACH block in the email — only when bank details exist and (no payment link OR not paid).
+    bank_block_email = ""
+    _bd = doc.get("bank_details") or {}
+    _bd_has = any((_bd.get(k) or "").strip() for k in ("bank_name", "account_holder", "account_number", "routing_number", "paypal"))
+    if _bd_has:
+        def _erow(label: str, val: str) -> str:
+            return (
+                f'<tr><td style="padding:5px 12px;color:#777;font-size:12px;text-transform:uppercase;letter-spacing:.05em;width:42%">{label}</td>'
+                f'<td style="padding:5px 12px;font-weight:600;font-size:13px;color:#222">{val}</td></tr>'
+            ) if val else ""
+        _rows = "".join([
+            _erow("Bank", str(_bd.get("bank_name") or "")),
+            _erow("Account holder", str(_bd.get("account_holder") or "")),
+            _erow("Account number", str(_bd.get("account_number") or "")),
+            _erow("Routing / SWIFT / IFSC", str(_bd.get("routing_number") or "")),
+            _erow("Account type", str(_bd.get("account_type") or "")),
+            _erow("PayPal / Venmo / Zelle", str(_bd.get("paypal") or "")),
+        ])
+        _bd_notes = (str(_bd.get("notes") or "")).strip()
+        _notes_html = (
+            f'<div style="padding:8px 12px;background:#FAF5EE;border-top:1px solid #EBE6DC;font-size:12px;color:#666;white-space:pre-line">{_bd_notes}</div>'
+            if _bd_notes else ""
+        )
+        bank_block_email = (
+            f'<div style="margin-top:18px;border:1px solid #E2DDD4;border-radius:8px;overflow:hidden">'
+            f'<div style="padding:8px 12px;background:#FAF5EE;border-bottom:1px solid #EBE6DC;font-size:12px;font-weight:700;color:{accent};letter-spacing:.05em;text-transform:uppercase">'
+            f'Bank / Payment Details</div>'
+            f'<table style="width:100%;border-collapse:collapse">{_rows}</table>'
+            f'{_notes_html}'
+            f'</div>'
+        )
     html = f"""
     <div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;background:#fff;">
       <div style="background:{accent};padding:24px 32px;border-radius:8px 8px 0 0;">
@@ -384,6 +451,7 @@ async def send_invoice_email(body: SendInvoiceEmailRequest, request: Request):
         </div>
         {payments_block}
         {payment_btn}
+        {bank_block_email}
         {"<div style='background:#f9f8f5;border-radius:8px;padding:12px 16px;margin-top:16px;font-size:13px;color:#666;'><strong>Payment terms:</strong> " + payment_terms.replace(chr(10), '<br>') + "</div>" if payment_terms else ""}
         {"<div style='background:#f9f8f5;border-radius:8px;padding:12px 16px;margin-top:16px;font-size:13px;color:#666;'><strong>Notes:</strong> " + notes + "</div>" if notes else ""}
         <hr style="border:none;border-top:1px solid #eee;margin:24px 0;" />
@@ -639,6 +707,40 @@ def _portal_html(doc: dict) -> str:
     accent = doc.get("accent_color", "#0B3D3D")
     if pl and doc.get("status") != "paid":
         pay_btn = f'<a href="{pl}" data-testid="public-pay-btn" target="_blank" rel="noopener" style="display:inline-block;background:{accent};color:#fff;padding:14px 36px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;">Pay Now {sym}{outstanding if outstanding > 0 else total:,.2f}</a>'
+
+    # Bank / ACH details block — shown when (a) bank details were provided AND (b) either
+    # there's no payment link or the invoice isn't yet paid.
+    bank_block = ""
+    bd = doc.get("bank_details") or {}
+    bd_has = any((bd.get(k) or "").strip() for k in ("bank_name", "account_holder", "account_number", "routing_number", "paypal"))
+    if bd_has and doc.get("status") != "paid":
+        def _row(label: str, val: str) -> str:
+            if not val:
+                return ""
+            return (
+                f'<tr><td style="padding:6px 12px;color:#6E6B63;font-size:12px;text-transform:uppercase;letter-spacing:.05em;width:38%">{label}</td>'
+                f'<td style="padding:6px 12px;font-weight:600;font-size:14px;color:#1C1B18">{val}</td></tr>'
+            )
+        rows_html = "".join([
+            _row("Bank", str(bd.get("bank_name") or "")),
+            _row("Account holder", str(bd.get("account_holder") or "")),
+            _row("Account number", str(bd.get("account_number") or "")),
+            _row("Routing / SWIFT / IFSC", str(bd.get("routing_number") or "")),
+            _row("Account type", str(bd.get("account_type") or "")),
+            _row("PayPal / Venmo / Zelle", str(bd.get("paypal") or "")),
+        ])
+        notes_html = (
+            f'<div style="padding:10px 12px;background:#FAF5EE;border-top:1px solid #EBE6DC;font-size:12px;color:#6E6B63;white-space:pre-line">{bd.get("notes", "")}</div>'
+            if (bd.get("notes") or "").strip() else ""
+        )
+        bank_block = (
+            f'<div data-testid="public-bank-block" style="margin-top:24px;border:1px solid #E2DDD4;border-radius:10px;overflow:hidden">'
+            f'<div style="padding:10px 14px;background:#FAF5EE;border-bottom:1px solid #EBE6DC;font-size:13px;font-weight:700;color:{accent}">'
+            f'Bank / payment details</div>'
+            f'<table style="width:100%;border-collapse:collapse">{rows_html}</table>'
+            f'{notes_html}'
+            f'</div>'
+        )
     status = doc.get("status", "sent")
     status_color = {"paid": "#2A6B45", "overdue": "#B53D2F", "sent": "#A0621A", "partial": "#A0621A"}.get(status, "#6E6B63")
     return f"""<!DOCTYPE html>
@@ -683,6 +785,7 @@ thead th{{background:#f9f8f5;padding:10px 12px;text-align:left;color:#6E6B63;fon
 {payments_block}
 {attachments_block}
 <div class="cta">{pay_btn}</div>
+{bank_block}
 {"<div style='background:#FAF5EE;border-radius:8px;padding:14px 18px;margin-top:12px;font-size:13px'><b>Payment terms:</b> "+(doc.get("payment_terms","")).replace(chr(10),'<br>')+"</div>" if doc.get("payment_terms") else ""}
 {"<div style='background:#FAF5EE;border-radius:8px;padding:14px 18px;margin-top:12px;font-size:13px'><b>Notes:</b> "+(doc.get("notes",""))+"</div>" if doc.get("notes") else ""}
 </div>

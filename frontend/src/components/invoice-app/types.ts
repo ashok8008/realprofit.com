@@ -14,6 +14,31 @@ export interface PaymentRecord {
   recorded_at?: string;
 }
 
+export interface BankDetails {
+  bank_name: string;
+  account_holder: string;
+  account_number: string;
+  routing_number: string;     // ACH routing (US) / SWIFT / IFSC etc — free text
+  account_type: string;       // "Checking" | "Savings" | other
+  paypal: string;             // optional
+  notes: string;              // anything else (e.g., bank address, Zelle handle)
+}
+
+export const EMPTY_BANK_DETAILS: BankDetails = {
+  bank_name: "",
+  account_holder: "",
+  account_number: "",
+  routing_number: "",
+  account_type: "",
+  paypal: "",
+  notes: "",
+};
+
+export function hasBankDetails(b?: BankDetails | null): boolean {
+  if (!b) return false;
+  return !!(b.bank_name || b.account_holder || b.account_number || b.routing_number || b.paypal);
+}
+
 export interface InvoiceAttachment {
   id: string;
   filename: string;
@@ -48,6 +73,7 @@ export interface InvoiceData {
   notes: string;
   payment_terms: string;
   payment_link: string;
+  bank_details: BankDetails;
   signature_data: string;
   template: "minimal" | "corporate" | "creative";
   recurring: boolean;
@@ -104,6 +130,7 @@ export const defaultInvoice: InvoiceData = {
   notes: "",
   payment_terms: "",
   payment_link: "",
+  bank_details: { ...EMPTY_BANK_DETAILS },
   signature_data: "",
   template: "minimal",
   recurring: false,

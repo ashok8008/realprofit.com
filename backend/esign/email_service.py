@@ -223,3 +223,37 @@ async def send_voided(*, to_email: str, recipient_name: str, document_title: str
     </p>'''
     return await _send(to_email, subject,
                        _wrap("Document Voided", "The owner voided this document.", body))
+
+
+# ============ E11: Guest sender email-verification (6-digit code) ============
+
+async def send_guest_verification(*, to_email: str, sender_name: str,
+                                    document_title: str, signer_name: str,
+                                    signer_email: str, code: str,
+                                    expires_minutes: int = 30) -> bool:
+    subject = f"Your RealProfits eSign verification code: {code}"
+    body = f'''
+    <p style="font-size:15px;line-height:1.6;margin:0 0 14px;">Hi {sender_name},</p>
+    <p style="font-size:15px;line-height:1.6;margin:0 0 14px;">
+      Use the code below to confirm you want to send
+      <b style="color:{TEAL};">{document_title}</b> to
+      <b>{signer_name}</b> &lt;{signer_email}&gt; for signing.
+    </p>
+    <div style="text-align:center;margin:24px 0;">
+      <div style="display:inline-block;background:{CREAM};border:2px solid {GOLD};border-radius:10px;
+                  padding:18px 36px;font-family:'Courier New',monospace;font-weight:700;
+                  font-size:32px;letter-spacing:10px;color:{TEAL};">{code}</div>
+    </div>
+    <p style="font-size:13px;color:{MUTED};margin:0 0 14px;">
+      This code expires in {expires_minutes} minutes. If you didn't initiate this,
+      no further action is required — the document will not be sent.
+    </p>
+    <p style="font-size:13px;color:{MUTED};margin:0;">
+      Tip: <b>Sign up for a free RealProfits account</b> to send unlimited
+      documents, track signing status from a dashboard, and skip this
+      verification step on every send.
+    </p>'''
+    return await _send(to_email, subject,
+                       _wrap("Confirm your send",
+                             f"Verification code: {code}",
+                             body))

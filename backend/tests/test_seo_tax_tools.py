@@ -53,7 +53,7 @@ class TestBackendSitemap:
                 missing.append(slug)
         
         assert len(missing) == 0, f"Missing tax tool URLs in sitemap: {missing}"
-        print(f"✓ Backend sitemap includes all 8 tax tool detail URLs")
+        print("OK Backend sitemap includes all 8 tax tool detail URLs")
     
     def test_sitemap_stats_returns_correct_count(self):
         """Backend /api/sitemap/stats returns total_sitemap_urls >= 1200"""
