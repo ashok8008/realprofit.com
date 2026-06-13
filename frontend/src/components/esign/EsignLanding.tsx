@@ -1,56 +1,108 @@
 "use client";
 import Link from "next/link";
 import { FileSignature, ShieldCheck, MailCheck, Clock, Zap, Award, CheckCircle2 } from "lucide-react";
+import { EsignHeroMockup } from "./EsignHeroMockup";
+import { StickyCtaBar } from "./StickyCtaBar";
+import { EsignSocialProof } from "./EsignSocialProof";
+import { FaqAccordion, type FAQ } from "./FaqAccordion";
+
+const ESIGN_FAQS: FAQ[] = [
+  {
+    q: "Is RealProfits eSign legally binding?",
+    a: "Yes. RealProfits eSign is fully compliant with the US ESIGN Act, the Uniform Electronic Transactions Act (UETA), and the EU eIDAS regulation for Simple Electronic Signatures. Every signed document includes a timestamped audit trail, per-signer UUID, IP address logging, and SHA-256 document hash — the same legal standard as DocuSign.",
+  },
+  {
+    q: "Is it really completely free?",
+    a: "Yes. The free plan lets you sign 5 documents per month with up to 5 signers each, full audit trail, QR verification, and PDF download. The only thing on the free plan is a small \"Powered by RealProfits\" footer on signed documents. Remove it for $9/month on Pro.",
+  },
+  {
+    q: "Do my signers need an account?",
+    a: "No. Signers receive a secure link by email and sign directly in their browser. No account, no app download, no signup required for anyone.",
+  },
+  {
+    q: "What happens to my documents?",
+    a: "Documents are encrypted and stored on our servers for 90 days on the free plan, 1 year on Pro. You can download your signed PDF and audit trail at any time. We never share your documents with third parties.",
+  },
+  {
+    q: "How is this different from DocuSign?",
+    a: "RealProfits gives you 5 signers per document free, SHA-256 document hashing, QR verification codes, and a public verification page — all free. DocuSign charges $25/month+ for equivalent features. The main difference is we show a small RealProfits footer on free documents. That's it.",
+  },
+  {
+    q: "Can I use this for real legal contracts?",
+    a: "Yes. Electronic signatures created with RealProfits eSign are legally valid for the vast majority of contracts including NDAs, service agreements, freelance contracts, independent contractor agreements, and rental agreements in the US, UK, EU, Canada, and Australia. Note: some specific document types (wills, certain real estate deeds) require wet signatures by law.",
+  },
+];
 
 export function EsignLanding() {
+  const scrollToHow = () => {
+    const el = document.getElementById("how-it-works");
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   return (
     <div className="bg-[#F5F3EE]">
+      {/* Sticky CTA bar — appears once user scrolls past 250px */}
+      <StickyCtaBar
+        showAfter={250}
+        href="/tools/esign/new"
+        label="RealProfits eSign"
+      />
+
       {/* Hero */}
       <section className="bg-[#0B3D3D] text-white relative overflow-hidden">
         <div className="absolute inset-0 opacity-10" style={{
           backgroundImage: "radial-gradient(circle at 30% 50%, #C8A96E 0%, transparent 50%)",
         }} />
         <div className="relative max-w-6xl mx-auto px-6 py-20 lg:py-28">
-          <div className="max-w-3xl">
-            <div className="text-[10px] tracking-[0.3em] text-[#C8A96E] uppercase font-medium mb-4">
-              RealProfits eSign · 100% Free
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+            <div className="lg:col-span-7">
+              <div className="text-[10px] tracking-[0.3em] text-[#C8A96E] uppercase font-medium mb-4">
+                RealProfits eSign · 100% Free
+              </div>
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-6">
+                Sign Documents Free.<br />
+                <span className="text-[#C8A96E]">No DocuSign.</span> No HelloSign.<br />
+                No monthly fee.
+              </h1>
+              <p className="text-lg text-stone-200 leading-relaxed mb-8 max-w-2xl">
+                Upload any PDF, place signature fields for up to 5 parties, collect signatures with a
+                full legal audit trail — all free on RealProfits. Better than DocuSign, and completely free.
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <Link
+                  href="/tools/esign/new"
+                  data-testid="hero-cta-new"
+                  className="px-7 py-3.5 text-base font-bold text-[#0B3D3D] bg-[#C8A96E] rounded-md hover:bg-[#D4B780] transition-colors"
+                >
+                  Sign a Document Free →
+                </Link>
+                <button
+                  type="button"
+                  onClick={scrollToHow}
+                  data-testid="hero-cta-how"
+                  className="px-7 py-3.5 text-base font-semibold text-white border border-white/30 rounded-md hover:bg-white/10 transition-colors"
+                >
+                  See how it works ↓
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-6 mt-10 text-sm text-stone-300">
+                <div className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-[#C8A96E]" /> ESIGN Act compliant</div>
+                <div className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-[#C8A96E]" /> UETA & eIDAS</div>
+                <div className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-[#C8A96E]" /> SHA-256 audit trail</div>
+              </div>
             </div>
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-6">
-              Sign Documents Free.<br />
-              <span className="text-[#C8A96E]">No DocuSign.</span> No HelloSign.<br />
-              No monthly fee.
-            </h1>
-            <p className="text-lg text-stone-200 leading-relaxed mb-8 max-w-2xl">
-              Upload any PDF, place signature fields for up to 5 parties, collect signatures with a
-              full legal audit trail — all free on RealProfits. Better than DocuSign, and completely free.
-            </p>
-            <div className="flex flex-wrap gap-3">
-              <Link
-                href="/tools/esign/new"
-                data-testid="hero-cta-new"
-                className="px-7 py-3.5 text-base font-bold text-[#0B3D3D] bg-[#C8A96E] rounded-md hover:bg-[#D4B780] transition-colors"
-              >
-                Sign a Document Free →
-              </Link>
-              <Link
-                href="/tools/esign/dashboard"
-                data-testid="hero-cta-dashboard"
-                className="px-7 py-3.5 text-base font-semibold text-white border border-white/30 rounded-md hover:bg-white/10 transition-colors"
-              >
-                Open dashboard
-              </Link>
-            </div>
-            <div className="flex flex-wrap gap-6 mt-10 text-sm text-stone-300">
-              <div className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-[#C8A96E]" /> ESIGN Act compliant</div>
-              <div className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-[#C8A96E]" /> UETA & eIDAS</div>
-              <div className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-[#C8A96E]" /> SHA-256 audit trail</div>
+            <div className="lg:col-span-5 hidden lg:flex justify-center">
+              <EsignHeroMockup />
             </div>
           </div>
         </div>
       </section>
 
+      {/* Social proof — placed between hero and "Three steps" per spec */}
+      <EsignSocialProof />
+
       {/* How it works */}
-      <section className="max-w-6xl mx-auto px-6 py-20">
+      <section id="how-it-works" className="max-w-6xl mx-auto px-6 py-20">
         <div className="text-center mb-12">
           <div className="text-[10px] tracking-[0.3em] text-[#C8A96E] uppercase font-medium mb-3">How it works</div>
           <h2 className="text-3xl sm:text-4xl font-bold text-stone-900">Three steps. That's it.</h2>
@@ -203,6 +255,9 @@ export function EsignLanding() {
           ))}
         </div>
       </section>
+
+      {/* FAQ — placed between features and final CTA per spec */}
+      <FaqAccordion items={ESIGN_FAQS} />
 
       {/* Final CTA */}
       <section className="bg-[#0B3D3D] text-white">

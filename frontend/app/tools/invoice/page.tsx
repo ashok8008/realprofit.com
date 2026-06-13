@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { InvoiceApp } from "@/components/invoice-app/InvoiceApp";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { SITE_URL } from "@/lib/site";
+import { ZeroparkUtmCapture } from "@/lib/analytics/zeropark";
 
 export const metadata: Metadata = {
   title: "Free Invoice Generator — Create & Download Professional Invoices",
@@ -92,6 +93,7 @@ export default function InvoicePage() {
   return (
     <>
       <JsonLd data={[invoiceAppSchema, invoiceFaqSchema]} />
+      <ZeroparkUtmCapture />
       <InvoiceApp />
     </>
   );

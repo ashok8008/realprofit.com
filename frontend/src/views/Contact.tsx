@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Seo } from "@/components/Seo";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { CONTACT } from "@/lib/site";
 
 export default function Contact() {
   const { toast } = useToast();
@@ -17,10 +18,10 @@ export default function Contact() {
 
     const subject = encodeURIComponent(`Contact from ${form.firstName} ${form.lastName}`.trim());
     const body = encodeURIComponent(`Name: ${form.firstName} ${form.lastName}\nEmail: ${form.email}\n\n${form.message}`);
-    window.open(`mailto:realprofits@gmail.com?subject=${subject}&body=${body}`, "_self");
+    window.open(`mailto:${CONTACT.email}?subject=${subject}&body=${body}`, "_self");
 
     setSubmitted(true);
-    toast({ title: "Message Prepared", description: "Your email client should open with the message. You can also email us directly at realprofits@gmail.com." });
+    toast({ title: "Message Prepared", description: `Your email client should open with the message. You can also email us directly at ${CONTACT.email}.` });
   };
 
   return (
@@ -33,7 +34,7 @@ export default function Contact() {
           <div className="text-center py-8 space-y-4">
             <h2 className="text-2xl font-bold">Thank you for reaching out!</h2>
             <p className="text-muted-foreground">Your email client should have opened with your message pre-filled. If it didn't, you can email us directly at:</p>
-            <a href="mailto:realprofits@gmail.com" className="text-primary font-bold text-lg hover:underline">realprofits@gmail.com</a>
+            <a href={`mailto:${CONTACT.email}`} className="text-primary font-bold text-lg hover:underline">{CONTACT.email}</a>
             <div className="pt-4">
               <Button variant="outline" onClick={() => { setSubmitted(false); setForm({ firstName: "", lastName: "", email: "", message: "" }); }}>
                 Send Another Message

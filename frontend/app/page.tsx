@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Home from "@/views/Home";
 import { JsonLd } from "@/components/seo/JsonLd";
-import { SITE_URL, SITE_NAME } from "@/lib/site";
+import { SITE_URL, SITE_NAME, CONTACT, SOCIAL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Free Invoice Generator + eSign Tool — 50+ Free Financial Tools",
@@ -42,11 +42,20 @@ const orgSchema = {
   "@type": "Organization",
   name: SITE_NAME,
   url: SITE_URL,
-  logo: `${SITE_URL}/favicon.svg`,
-  sameAs: [],
+  logo: `${SITE_URL}/logo.png`,
+  email: CONTACT.email,
+  address: {
+    "@type": "PostalAddress",
+    streetAddress: CONTACT.address.streetAddress,
+    addressLocality: CONTACT.address.addressLocality,
+    addressRegion: CONTACT.address.addressRegion,
+    postalCode: CONTACT.address.postalCode,
+    addressCountry: CONTACT.address.addressCountry,
+  },
+  sameAs: SOCIAL,
   contactPoint: {
     "@type": "ContactPoint",
-    email: "realprofits@gmail.com",
+    email: CONTACT.email,
     contactType: "customer support",
   },
 };

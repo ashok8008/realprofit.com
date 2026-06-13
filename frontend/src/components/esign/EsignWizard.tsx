@@ -212,6 +212,12 @@ export function EsignWizard({ initialDoc }: Props = {}) {
       }
       // Guests: we keep `file` in state and lazily upload on Send.
       setStep(2);
+      // Conversion event for paid-traffic attribution. Attaches Zeropark
+      // source/campaign/cost automatically when the user came from an ad.
+      try {
+        const { trackZeroparkEvent } = await import("@/lib/analytics/zeropark");
+        trackZeroparkEvent("tool_started", { tool: "esign" });
+      } catch { /* analytics is best-effort */ }
       toast({ title: user ? "Document uploaded" : "Document ready — add your signer" });
     } catch (e: any) {
       if (e.message === "AUTH_REQUIRED") {

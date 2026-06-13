@@ -143,6 +143,7 @@ export function InvoiceApp() {
     const totals = calcTotals(inv);
     const data = { ...inv, ...totals };
     try {
+      const wasNew = !editingId;
       if (editingId) {
         await invoiceApi.update(editingId, data);
         toast({ title: "Invoice updated" });
@@ -150,6 +151,13 @@ export function InvoiceApp() {
         const res = await invoiceApi.create(data);
         setEditingId(res.id);
         toast({ title: "Invoice saved" });
+      }
+      if (wasNew) {
+        // First save = real conversion. Attach Zeropark attribution if present.
+        try {
+          const { trackZeroparkEvent } = await import("@/lib/analytics/zeropark");
+          trackZeroparkEvent("tool_started", { tool: "invoice" });
+        } catch { /* analytics best-effort */ }
       }
       // Successful save — wipe the autosave snapshot so we don't restore it later.
       clearAutosave(INVOICE_AUTOSAVE_KEY);

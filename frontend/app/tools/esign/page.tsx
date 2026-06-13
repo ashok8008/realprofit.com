@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { EsignLanding } from "@/components/esign/EsignLanding";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { SITE_URL } from "@/lib/site";
+import { ZeroparkUtmCapture } from "@/lib/analytics/zeropark";
 
 export const metadata: Metadata = {
   title: "Free eSign Tool — Sign PDF Documents Online",
@@ -63,34 +64,50 @@ const esignFaqSchema = {
   mainEntity: [
     {
       "@type": "Question",
-      name: "Is RealProfits eSign legally valid?",
+      name: "Is RealProfits eSign legally binding?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Yes. RealProfits eSign is compliant with the US ESIGN Act, UETA, and EU eIDAS regulations for Simple Electronic Signatures. Each signature includes a timestamp, UUID, IP address, and a downloadable audit trail PDF.",
+        text: "Yes. RealProfits eSign is fully compliant with the US ESIGN Act, UETA, and EU eIDAS regulation. Every signed document includes a timestamped audit trail, per-signer UUID, IP address logging, and SHA-256 document hash.",
       },
     },
     {
       "@type": "Question",
-      name: "Is the eSign tool really free?",
+      name: "Is it really completely free?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Yes. The Free plan lets you send and sign unlimited documents with up to 5 signers, full audit trail, and a 'Powered by RealProfits' footer. The Pro plan ($9/month) removes the footer and unlocks higher monthly limits.",
+        text: "Yes. The free plan includes 5 documents per month, up to 5 signers, full audit trail, QR verification, and PDF download. Pro plan at $9/month removes branding and unlocks unlimited documents.",
       },
     },
     {
       "@type": "Question",
-      name: "Can I sign without creating an account?",
+      name: "Do signers need an account?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "Yes. Recipients never need an account to sign — they just click the email link, complete the fields, and click Finish. The sender can also send single-signer documents as a guest without logging in.",
+        text: "No. Signers receive a secure link by email and sign directly in their browser. No account, app, or signup required for anyone.",
       },
     },
     {
       "@type": "Question",
-      name: "How is RealProfits eSign different from DocuSign?",
+      name: "What happens to my documents?",
       acceptedAnswer: {
         "@type": "Answer",
-        text: "RealProfits eSign is free for unlimited documents up to 5 signers, while DocuSign starts at $10/month with restrictive limits. Both produce legally compliant signatures with full audit trails. RealProfits adds QR verification on every signed PDF for instant public verification.",
+        text: "Documents are encrypted and stored for 90 days on the free plan, 1 year on Pro. You can download your signed PDF and audit trail at any time.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "How is this different from DocuSign?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "RealProfits gives you 5 signers per document free, SHA-256 hashing, QR verification, and a public verification page — all free. DocuSign charges $25/month+ for equivalent features.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Can I use this for real legal contracts?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes. Legally valid for NDAs, service agreements, freelance contracts, independent contractor agreements, and rental agreements in the US, UK, EU, Canada, and Australia.",
       },
     },
   ],
@@ -100,6 +117,7 @@ export default function EsignLandingPage() {
   return (
     <>
       <JsonLd data={[esignAppSchema, esignFaqSchema]} />
+      <ZeroparkUtmCapture />
       <EsignLanding />
     </>
   );

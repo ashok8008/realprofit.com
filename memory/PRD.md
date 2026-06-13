@@ -543,7 +543,28 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - `useMemo` at line 524 of EsignWizard.tsx is used for side-effects — should be `useEffect` (P2, pre-existing nit)
 - A/B test hero CTAs visibility analytics (P2)
 
-### Phase 44: Calculator Export Fix — black bars / blank multi-page PDFs / empty input values (Feb 2026) — DONE
+### Phase 45: Paid-Traffic Landing Polish — contact info, schema, social proof, FAQ, sticky CTA, Zeropark tracking (Feb 2026) — DONE
+Eight-prompt ticket from the marketing team to make the site ready for paid Zeropark traffic to `/tools/esign` + `/tools/invoice`.
+
+- **Centralised contact source of truth** (`/app/frontend/src/lib/site.ts`): added `CONTACT.email` = `hello@realprofits.com`, `CONTACT.address` (full NAP), `SOCIAL` array (`twitter.com/realprofits`, `linkedin.com/company/realprofits`). Footer, Contact page, schema, llms.txt all import from here.
+- **Footer** (`/app/frontend/src/components/layout/Footer.tsx`): removed the placeholder `(406) 555-0120` phone and the fake Westheimer/Santa Ana address. Email + address now read from `CONTACT`. Added `data-testid="footer-email"` and `data-testid="footer-address"`.
+- **Contact page** (`/app/frontend/src/views/Contact.tsx`): every mailto and visible email now references `CONTACT.email`.
+- **Organization JSON-LD** (`/app/frontend/app/page.tsx`): expanded to include `PostalAddress`, `email`, `sameAs` (Twitter + LinkedIn), branded `/logo.png` reference.
+- **llms.txt** updated with new email + address.
+- **eSign landing page** (`/app/frontend/src/components/esign/EsignLanding.tsx`) — major restructure:
+  - **Hero right-side visual**: new `EsignHeroMockup.tsx` — inline SVG of a PDF with a SIGNED field (green check + faux signature curve) and a PENDING field (dashed gold border + animated pulse dot). Brand-aligned, zero load cost, scales crisply on every device.
+  - **CTA change**: dropped `Open dashboard` (implied "account required" friction for cold traffic). New secondary CTA "See how it works ↓" smooth-scrolls to the new `#how-it-works` anchor on the "Three steps. That's it." section.
+  - **Sticky CTA bar** (`StickyCtaBar.tsx`): fixed-top 48px dark-teal bar with "RealProfits eSign" label + gold "Sign a Document Free →" button. Fades in on scroll past 250px, fades back out at top. Live opacity verified via Playwright: 0 → 1 at 600px scroll.
+  - **Social proof band** (`EsignSocialProof.tsx`) inserted between hero and How-it-works: 3 stats (8,000+ docs signed / 5,000+ freelancers / 100% free) + 2 testimonials in card form with 5-star ratings + teal initial avatars. Stats clearly marked in code as placeholders to swap for real analytics once available.
+  - **FAQ accordion** (`FaqAccordion.tsx`) inserted between "Built for serious work" and final CTA: 6 questions (legal binding / really free / signer accounts / data retention / vs DocuSign / real legal contracts). First item open by default.
+- **FAQPage JSON-LD** at `/tools/esign`: replaced 4-question schema with all 6 new Q&As. Verified via curl: HTML contains 6 `"@type":"Question"` entries.
+- **Zeropark UTM capture** (`/app/frontend/src/lib/analytics/zeropark.ts`): on first landing, captures `source`/`campaign`/`cost` (plus `utm_*` fallbacks) into `sessionStorage` with `zp_` prefix, records landing path + timestamp, fires a `tool_landed` gtag event. New helper `trackZeroparkEvent(name, extra)` auto-attaches the captured context to subsequent events. Mounted via `<ZeroparkUtmCapture />` on both `/tools/esign` and `/tools/invoice` page wrappers. Conversion events wired: eSign Step 1 "Continue" fires `tool_started{tool: esign}`; Invoice first-save (only when `wasNew`) fires `tool_started{tool: invoice}`. Verified via Playwright: landing with `?source=zptest&campaign=cmp42&cost=0.04` populates sessionStorage `{source, campaign, cost, landing: '/tools/esign'}`.
+
+Caveats logged for follow-up:
+- `/logo.png` referenced in Organization schema doesn't exist yet — designer should drop a real 250×250+ PNG at `/app/frontend/public/logo.png`.
+- AggregateRating + testimonial numbers are conservative placeholders; swap with real values once analytics + real customer quotes are available (clearly marked in code comments).
+
+
 Three reported bugs in `/app/frontend/src/components/export/ExportButtons.tsx` (shared by every calculator via `CalculatorDetail.tsx`) all rooted in `html2canvas`. Replaced with `html2canvas-pro` + proper multi-page math + form-value cloning.
 - **Black bars / black charts** — root cause: stock `html2canvas` cannot parse `oklch()` color values emitted by Tailwind v4 + Recharts; it falls back to black. Fix: `yarn remove html2canvas && yarn add html2canvas-pro` (the maintained fork with native oklch support). Dropped the ~55-line `convertSVGsToCanvas()` workaround that previous engineers had added to compensate — `html2canvas-pro` renders SVG natively.
 - **Empty/blank PDF pages for tall results** — root cause: the prior multi-page loop drew the full image at a calculated negative Y offset, relying on jsPDF to clip JPEG `addImage` calls (which it does not). The `srcY/srcH` slice variables were computed but never used. Fix: new `addCanvasAsMultipagePdf()` helper that crops each page's vertical band onto a temp canvas, then `addImage`s the slice at the correct Y on each new page. Includes a 50-page safety cap.

@@ -1,4 +1,4 @@
-import { SITE_URL } from "@/lib/site";
+import { SITE_URL, CONTACT } from "@/lib/site";
 
 // Cache aggressively at the edge — llms.txt rarely changes
 export const dynamic = "force-static";
@@ -45,8 +45,9 @@ calculation, subscription analysis, and career salary tools.
 - All tools are free to use with no account required
 - Privacy-first: no data stored on servers for free tools
 - eSign Pro plan: $9/month removes branding, unlocks unlimited documents
+- Address: ${CONTACT.address.full}
+- Contact: ${CONTACT.email}
 - Based at: ${SITE_URL}
-- Contact: realprofits@gmail.com
 
 ## Optional
 
