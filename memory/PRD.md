@@ -543,7 +543,17 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - `useMemo` at line 524 of EsignWizard.tsx is used for side-effects — should be `useEffect` (P2, pre-existing nit)
 - A/B test hero CTAs visibility analytics (P2)
 
-### Phase 43: AI / SEO Discoverability Setup (Feb 2026) — DONE
+### Phase 44: Calculator Export Fix — black bars / blank multi-page PDFs / empty input values (Feb 2026) — DONE
+Three reported bugs in `/app/frontend/src/components/export/ExportButtons.tsx` (shared by every calculator via `CalculatorDetail.tsx`) all rooted in `html2canvas`. Replaced with `html2canvas-pro` + proper multi-page math + form-value cloning.
+- **Black bars / black charts** — root cause: stock `html2canvas` cannot parse `oklch()` color values emitted by Tailwind v4 + Recharts; it falls back to black. Fix: `yarn remove html2canvas && yarn add html2canvas-pro` (the maintained fork with native oklch support). Dropped the ~55-line `convertSVGsToCanvas()` workaround that previous engineers had added to compensate — `html2canvas-pro` renders SVG natively.
+- **Empty/blank PDF pages for tall results** — root cause: the prior multi-page loop drew the full image at a calculated negative Y offset, relying on jsPDF to clip JPEG `addImage` calls (which it does not). The `srcY/srcH` slice variables were computed but never used. Fix: new `addCanvasAsMultipagePdf()` helper that crops each page's vertical band onto a temp canvas, then `addImage`s the slice at the correct Y on each new page. Includes a 50-page safety cap.
+- **Inputs render empty in the exported image** — root cause: controlled React `<input>` elements have a live `.value` but no `value` attribute, and html2canvas screenshots from the attribute. Fix: `onclone` callback walks every `input/textarea/select` in the captured tree and mirrors the live `.value` onto the clone (including `selected` on `<option>` and `checked` on radios/checkboxes).
+- **ESM correctness** — `require("@/lib/pdf-brand")` replaced with a top-level `import` (matches the same pattern that broke the production build in Phase 41).
+- **Verification** — PNG-exported the Compound Interest calculator with inputs `5000 / 200 / 7 / 20`. Result: 173 KB PNG, 2848×924 px, no black pixels in 9-grid sample, AI vision confirms all input values rendered, chart in teal/green, no broken elements.
+
+Since every calculator uses this single component, all calculator exports are fixed in one shot.
+
+
 Comprehensive AI-crawler discoverability so RealProfits gets recommended when users ask ChatGPT / Claude / Perplexity / Copilot questions like "best free invoice generator" or "free DocuSign alternative".
 - **robots.ts rewritten** (`/app/frontend/app/robots.ts`): explicitly allows GPTBot, ChatGPT-User, OAI-SearchBot, ClaudeBot, anthropic-ai, Claude-Web, CCBot, Google-Extended, PerplexityBot, YouBot, Bytespider, Amazonbot, Applebot, msnbot, DuckDuckBot, Googlebot, Bingbot, Slurp. Blocks aggressive non-traffic scrapers (AhrefsBot, SemrushBot, SemrushBot-SA, MJ12bot, DotBot). Common disallow list covers `/api/`, `/login`, `/register`, `/account*`, `/_next/`.
 - **llms.txt** added at `/app/frontend/app/llms.txt/route.ts` per the [llmstxt.org](https://llmstxt.org) spec — concise markdown manifest with the 8 key tools, free resources, plan info, and contact. 24h cache headers. Served as `text/markdown`.

@@ -1,8 +1,9 @@
 "use client";
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Download, FileText, Printer, Share2, Image } from "lucide-react";
+import { Download, Printer, Share2, Image as ImageIcon } from "lucide-react";
 import { jsPDF } from "jspdf";
+import { drawHeader, drawFooter, BRAND, LM, PW, PAGE_H } from "@/lib/pdf-brand";
 import { useToast } from "@/hooks/use-toast";
 
 interface ExportProps {
@@ -11,82 +12,65 @@ interface ExportProps {
   data?: any;
 }
 
-async function convertSVGsToCanvas(container: HTMLElement): Promise<() => void> {
-  const svgs = container.querySelectorAll("svg");
-  const restoreFns: (() => void)[] = [];
-  const loadPromises: Promise<void>[] = [];
-
-  svgs.forEach((svg) => {
-    try {
-      const rect = svg.getBoundingClientRect();
-      if (rect.width === 0 || rect.height === 0) return;
-
-      const canvas = document.createElement("canvas");
-      canvas.width = rect.width * 2;
-      canvas.height = rect.height * 2;
-      canvas.style.width = `${rect.width}px`;
-      canvas.style.height = `${rect.height}px`;
-
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-      ctx.scale(2, 2);
-
-      const svgData = new XMLSerializer().serializeToString(svg);
-      const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
-      const url = URL.createObjectURL(svgBlob);
-      const img = new window.Image();
-
-      const parent = svg.parentNode;
-      if (!parent) return;
-
-      const loadPromise = new Promise<void>((resolve) => {
-        img.onload = () => {
-          ctx.drawImage(img, 0, 0, rect.width, rect.height);
-          URL.revokeObjectURL(url);
-          resolve();
-        };
-        img.onerror = () => {
-          URL.revokeObjectURL(url);
-          resolve();
-        };
-      });
-      loadPromises.push(loadPromise);
-      img.src = url;
-
-      parent.insertBefore(canvas, svg);
-      svg.style.display = "none";
-
-      restoreFns.push(() => {
-        svg.style.display = "";
-        if (canvas.parentNode) canvas.parentNode.removeChild(canvas);
-      });
-    } catch {}
-  });
-
-  await Promise.all(loadPromises);
-  return () => restoreFns.forEach((fn) => fn());
-}
-
+/**
+ * Capture a DOM element to a canvas using html2canvas-pro (the maintained fork
+ * that natively understands modern CSS colors like `oklch()` — the stock
+ * html2canvas library returns black bars for any Tailwind v4 / Recharts color
+ * because it can't parse oklch).
+ *
+ * The `onclone` hook below ALSO mirrors each live form field's `.value` into
+ * its `value` attribute on the clone, so user-entered numbers actually appear
+ * in the exported image (without this, the screenshot shows empty inputs).
+ */
 async function captureElement(element: HTMLElement): Promise<HTMLCanvasElement> {
-  const restore = await convertSVGsToCanvas(element);
+  // Dynamic import keeps the heavy lib out of the initial bundle.
+  const html2canvas = (await import("html2canvas-pro")).default;
 
-  const html2canvas = (await import("html2canvas")).default;
-  const canvas = await html2canvas(element, {
+  return html2canvas(element, {
     backgroundColor: "#ffffff",
     scale: 2,
     useCORS: true,
     logging: false,
     allowTaint: true,
     removeContainer: true,
+    onclone: (_clonedDoc, clonedEl) => {
+      // Copy live values from the live DOM into the cloned DOM, otherwise
+      // controlled React inputs render empty in the screenshot.
+      const liveInputs = element.querySelectorAll<HTMLInputElement>("input, textarea, select");
+      const clonedInputs = clonedEl.querySelectorAll<HTMLInputElement>("input, textarea, select");
+      liveInputs.forEach((live, i) => {
+        const clone = clonedInputs[i];
+        if (!clone) return;
+        if (live instanceof HTMLSelectElement && clone instanceof HTMLSelectElement) {
+          clone.value = live.value;
+          // Also reflect on <option selected> so it persists in the static render
+          Array.from(clone.options).forEach((opt) => {
+            opt.removeAttribute("selected");
+            if (opt.value === live.value) opt.setAttribute("selected", "selected");
+          });
+        } else if (live instanceof HTMLTextAreaElement && clone instanceof HTMLTextAreaElement) {
+          clone.textContent = live.value;
+          clone.value = live.value;
+        } else if (live instanceof HTMLInputElement && clone instanceof HTMLInputElement) {
+          if (live.type === "checkbox" || live.type === "radio") {
+            if (live.checked) clone.setAttribute("checked", "checked");
+            else clone.removeAttribute("checked");
+          } else {
+            clone.setAttribute("value", live.value);
+            clone.value = live.value;
+          }
+        }
+      });
+    },
   });
-
-  restore();
-  return canvas;
 }
 
+/** Strip non-text content for the text-fallback path. */
 function extractCleanText(element: HTMLElement): string {
   const clone = element.cloneNode(true) as HTMLElement;
-  clone.querySelectorAll("svg, canvas, .recharts-wrapper, .recharts-responsive-container, button, [role='img']").forEach((el) => el.remove());
+  clone
+    .querySelectorAll("svg, canvas, .recharts-wrapper, .recharts-responsive-container, button, [role='img']")
+    .forEach((el) => el.remove());
 
   const text = clone.innerText || clone.textContent || "";
   return text
@@ -96,6 +80,79 @@ function extractCleanText(element: HTMLElement): string {
     .join("\n");
 }
 
+/**
+ * Slice a tall source canvas into per-page-height chunks and add each chunk to
+ * jsPDF as its own page. Replaces the prior broken implementation that drew
+ * the full image with a negative Y offset (jsPDF doesn't clip JPEG addImage,
+ * so pages 2+ came out blank or repeated).
+ *
+ * @param doc          jsPDF instance
+ * @param source       Source canvas captured by html2canvas-pro
+ * @param firstPageTop Top Y on page 1 (after the branded header)
+ * @param title        Title used for the branded header on subsequent pages
+ */
+function addCanvasAsMultipagePdf(
+  doc: jsPDF,
+  source: HTMLCanvasElement,
+  firstPageTop: number,
+  title: string,
+) {
+  const PAGE_BOTTOM_MARGIN = 20; // room for footer
+  const SUBSEQUENT_PAGE_TOP = 18; // room for header reprinted on later pages
+
+  // mm height available on each page
+  const firstPageMm = PAGE_H - firstPageTop - PAGE_BOTTOM_MARGIN;
+  const otherPagesMm = PAGE_H - SUBSEQUENT_PAGE_TOP - PAGE_BOTTOM_MARGIN;
+
+  // Total image height in mm at the target PDF width
+  const mmPerPx = PW / source.width;
+  const totalMm = source.height * mmPerPx;
+
+  // Single page — short-circuit
+  if (totalMm <= firstPageMm) {
+    const imgData = source.toDataURL("image/jpeg", 0.9);
+    doc.addImage(imgData, "JPEG", LM, firstPageTop, PW, totalMm);
+    return;
+  }
+
+  let consumedMm = 0;
+  let pageIdx = 0;
+
+  while (consumedMm < totalMm) {
+    const top = pageIdx === 0 ? firstPageTop : SUBSEQUENT_PAGE_TOP;
+    const pageBudgetMm = pageIdx === 0 ? firstPageMm : otherPagesMm;
+    const sliceMm = Math.min(pageBudgetMm, totalMm - consumedMm);
+
+    // Convert mm slice into px on the source canvas
+    const srcY = Math.floor(consumedMm / mmPerPx);
+    const srcH = Math.floor(sliceMm / mmPerPx);
+
+    // Draw the slice onto a temp canvas, then add to PDF.
+    const tmp = document.createElement("canvas");
+    tmp.width = source.width;
+    tmp.height = srcH;
+    const ctx = tmp.getContext("2d");
+    if (!ctx) break;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, tmp.width, tmp.height);
+    ctx.drawImage(source, 0, srcY, source.width, srcH, 0, 0, source.width, srcH);
+
+    const sliceData = tmp.toDataURL("image/jpeg", 0.9);
+
+    if (pageIdx > 0) {
+      doc.addPage();
+      drawHeader(doc, title);
+    }
+    doc.addImage(sliceData, "JPEG", LM, top, PW, sliceMm);
+
+    consumedMm += sliceMm;
+    pageIdx += 1;
+
+    // Safety valve — never produce more than 50 pages
+    if (pageIdx > 50) break;
+  }
+}
+
 export function ExportToPDFButton({ elementId, title }: ExportProps) {
   const { toast } = useToast();
 
@@ -103,51 +160,25 @@ export function ExportToPDFButton({ elementId, title }: ExportProps) {
     try {
       const element = document.getElementById(elementId);
       if (!element) {
-        toast({ title: "Export Failed", description: "Could not find the content to export.", variant: "destructive" });
+        toast({
+          title: "Export Failed",
+          description: "Could not find the content to export.",
+          variant: "destructive",
+        });
         return;
       }
 
-      const { drawHeader, drawFooter, BRAND, LM, PW, PAGE_W, PAGE_H } = require("@/lib/pdf-brand");
       const doc = new jsPDF("p", "mm", "a4");
+      const headerBottomY = drawHeader(doc, title);
 
-      // Branded header
-      let y = drawHeader(doc, title);
-
-      // Try html2canvas screenshot of calculator
-      let usedImage = false;
       try {
         const canvas = await captureElement(element);
-        const imgData = canvas.toDataURL("image/jpeg", 0.85);
-        const imgWidth = PW;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        const maxFirstPage = PAGE_H - y - 20; // leave room for footer
-
-        if (imgHeight <= maxFirstPage) {
-          doc.addImage(imgData, "JPEG", LM, y, imgWidth, imgHeight);
-        } else {
-          // Multi-page: slice the image across pages
-          const totalPages = Math.ceil(imgHeight / (PAGE_H - 30));
-          for (let p = 0; p < totalPages; p++) {
-            if (p > 0) {
-              doc.addPage();
-              y = drawHeader(doc, title);
-            }
-            // Use clip offset to simulate page slicing
-            const offsetY = p === 0 ? y : y;
-            const srcY = p === 0 ? 0 : (maxFirstPage + (p - 1) * (PAGE_H - 50));
-            const srcH = p === 0 ? maxFirstPage : Math.min(PAGE_H - 50, imgHeight - srcY);
-            
-            // For simplicity, add the full image offset per page
-            doc.addImage(imgData, "JPEG", LM, offsetY - (p === 0 ? 0 : (maxFirstPage + (p - 1) * (PAGE_H - 50))), imgWidth, imgHeight);
-          }
-        }
-        usedImage = true;
+        addCanvasAsMultipagePdf(doc, canvas, headerBottomY, title);
       } catch (imgErr) {
-        console.warn("html2canvas failed, using text fallback:", imgErr);
-      }
-
-      // Text fallback with branded formatting
-      if (!usedImage) {
+        // Text fallback if html2canvas-pro still fails (very rare with the
+        // oklch-aware fork — usually only happens for cross-origin tainted canvases).
+        console.warn("html2canvas-pro failed, falling back to text:", imgErr);
+        let y = headerBottomY;
         const textContent = extractCleanText(element);
         const lines = doc.splitTextToSize(textContent, PW);
         doc.setFontSize(9);
@@ -163,9 +194,7 @@ export function ExportToPDFButton({ elementId, title }: ExportProps) {
         }
       }
 
-      // Branded footer on all pages
       drawFooter(doc);
-
       doc.save(`${title.replace(/\s+/g, "-").toLowerCase()}-results.pdf`);
       toast({ title: "PDF Downloaded", description: "Your results have been saved as a PDF." });
     } catch (err) {
@@ -175,7 +204,7 @@ export function ExportToPDFButton({ elementId, title }: ExportProps) {
   };
 
   return (
-    <Button variant="outline" size="sm" onClick={handleExport} className="flex items-center gap-2">
+    <Button variant="outline" size="sm" onClick={handleExport} className="flex items-center gap-2" data-testid="export-pdf-btn">
       <Download className="w-4 h-4" /> PDF
     </Button>
   );
@@ -188,7 +217,11 @@ export function DownloadPNGButton({ elementId, title }: ExportProps) {
     try {
       const element = document.getElementById(elementId);
       if (!element) {
-        toast({ title: "Export Failed", description: "Could not find the content.", variant: "destructive" });
+        toast({
+          title: "Export Failed",
+          description: "Could not find the content.",
+          variant: "destructive",
+        });
         return;
       }
 
@@ -205,8 +238,8 @@ export function DownloadPNGButton({ elementId, title }: ExportProps) {
   };
 
   return (
-    <Button variant="outline" size="sm" onClick={handleExport} className="flex items-center gap-2">
-      <Image className="w-4 h-4" /> PNG
+    <Button variant="outline" size="sm" onClick={handleExport} className="flex items-center gap-2" data-testid="export-png-btn">
+      <ImageIcon className="w-4 h-4" /> PNG
     </Button>
   );
 }
@@ -230,7 +263,10 @@ export function ExportToCSVButton({ data, title }: { data: any[]; title: string 
       }
 
       const headers = Object.keys(data[0]);
-      const csvLines = [headers.map(escapeCSV).join(","), ...data.map((row) => headers.map((h) => escapeCSV(row[h])).join(","))];
+      const csvLines = [
+        headers.map(escapeCSV).join(","),
+        ...data.map((row) => headers.map((h) => escapeCSV(row[h])).join(",")),
+      ];
       const csvString = csvLines.join("\n");
 
       const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
@@ -250,7 +286,7 @@ export function ExportToCSVButton({ data, title }: { data: any[]; title: string 
   };
 
   return (
-    <Button variant="outline" size="sm" onClick={handleExport} className="flex items-center gap-2">
+    <Button variant="outline" size="sm" onClick={handleExport} className="flex items-center gap-2" data-testid="export-csv-btn">
       <Download className="w-4 h-4" /> CSV
     </Button>
   );
@@ -258,7 +294,7 @@ export function ExportToCSVButton({ data, title }: { data: any[]; title: string 
 
 export function PrintResultsButton() {
   return (
-    <Button variant="outline" size="sm" onClick={() => window.print()} className="flex items-center gap-2">
+    <Button variant="outline" size="sm" onClick={() => window.print()} className="flex items-center gap-2" data-testid="print-btn">
       <Printer className="w-4 h-4" /> Print
     </Button>
   );
@@ -277,7 +313,7 @@ export function ShareResultsButton() {
   };
 
   return (
-    <Button variant="outline" size="sm" onClick={handleShare} className="flex items-center gap-2">
+    <Button variant="outline" size="sm" onClick={handleShare} className="flex items-center gap-2" data-testid="share-btn">
       <Share2 className="w-4 h-4" /> Share
     </Button>
   );
