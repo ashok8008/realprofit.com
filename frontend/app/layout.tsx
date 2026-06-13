@@ -4,6 +4,7 @@ import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import { LayoutShell } from "@/components/layout/LayoutShell";
+import { SITE_URL, SITE_NAME } from "@/lib/site";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -18,7 +19,7 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_BACKEND_URL || "https://realprofits.com"),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "RealProfits - Smart Financial Tools & Career Guides",
     template: "%s | RealProfits",
@@ -30,12 +31,22 @@ export const metadata: Metadata = {
   authors: [{ name: "RealProfits" }],
   robots: "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
   openGraph: {
-    siteName: "RealProfits",
+    siteName: SITE_NAME,
     type: "website",
     locale: "en_US",
+    url: SITE_URL,
+    images: [
+      {
+        url: "/opengraph.jpg",
+        width: 1200,
+        height: 630,
+        alt: "RealProfits — Free Financial Tools",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
+    images: ["/opengraph.jpg"],
   },
   other: {
     "geo.region": "US",

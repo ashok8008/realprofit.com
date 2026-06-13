@@ -543,7 +543,20 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - `useMemo` at line 524 of EsignWizard.tsx is used for side-effects — should be `useEffect` (P2, pre-existing nit)
 - A/B test hero CTAs visibility analytics (P2)
 
-### Phase 42: EsignWizard Component Split + Autosave Restore Fix (Feb 2026) — DONE
+### Phase 43: AI / SEO Discoverability Setup (Feb 2026) — DONE
+Comprehensive AI-crawler discoverability so RealProfits gets recommended when users ask ChatGPT / Claude / Perplexity / Copilot questions like "best free invoice generator" or "free DocuSign alternative".
+- **robots.ts rewritten** (`/app/frontend/app/robots.ts`): explicitly allows GPTBot, ChatGPT-User, OAI-SearchBot, ClaudeBot, anthropic-ai, Claude-Web, CCBot, Google-Extended, PerplexityBot, YouBot, Bytespider, Amazonbot, Applebot, msnbot, DuckDuckBot, Googlebot, Bingbot, Slurp. Blocks aggressive non-traffic scrapers (AhrefsBot, SemrushBot, SemrushBot-SA, MJ12bot, DotBot). Common disallow list covers `/api/`, `/login`, `/register`, `/account*`, `/_next/`.
+- **llms.txt** added at `/app/frontend/app/llms.txt/route.ts` per the [llmstxt.org](https://llmstxt.org) spec — concise markdown manifest with the 8 key tools, free resources, plan info, and contact. 24h cache headers. Served as `text/markdown`.
+- **Structured data (JSON-LD)** via a reusable `JsonLd` server component (`/app/frontend/src/components/seo/JsonLd.tsx`):
+  - Homepage (`/`): `WebSite` + `Organization` schemas (includes `SearchAction` for Google sitelinks search box).
+  - `/tools/invoice`: `SoftwareApplication` (with featureList, AggregateRating, free `Offer`) + `FAQPage` (3 questions).
+  - `/tools/esign`: `SoftwareApplication` (featureList includes guest signing, witness/approver roles) + `FAQPage` (4 questions including DocuSign comparison + legal validity).
+- **Canonical site URL constant** (`/app/frontend/src/lib/site.ts`): all SEO files / schemas now read `SITE_URL` (defaults to `https://www.realprofits.com`, overridable via `NEXT_PUBLIC_SITE_URL`). Previously some files were leaking the preview-environment URL as canonical.
+- **Open Graph hardened** in root `layout.tsx`: default OG image set to `/opengraph.jpg` (1200×630) with width/height/alt, Twitter `summary_large_image` card defaults. Per-page `metadata` exports on `/`, `/tools/invoice`, `/tools/esign` override title/description/canonical/og:url with page-specific values.
+- **Two client-component pages converted to server components** so `metadata` + JSON-LD can be emitted server-side: `/app/frontend/app/page.tsx` (Home) and `/app/frontend/app/tools/invoice/page.tsx` (InvoiceApp). Client behaviour preserved.
+- Verified by curl: WebSite, Organization, SoftwareApplication, FAQPage, SearchAction, ContactPoint, Offer, AggregateRating, Question, Answer JSON-LD types all render in HTML; `/robots.txt` returns the correct allow-list (Cloudflare prepends content-signals); `/llms.txt` returns markdown 200; canonical + og:url use `https://www.realprofits.com` even from the preview environment.
+
+
 - **Component split**: extracted 3 pure-JSX step sub-components from `EsignWizard.tsx` (917 → 692 lines, ~25% reduction):
   - `/app/frontend/src/components/esign/WizardStepUpload.tsx` (Step 1, 58 lines)
   - `/app/frontend/src/components/esign/WizardStepSigners.tsx` (Step 2, 172 lines, owns drag/drop reorder)
