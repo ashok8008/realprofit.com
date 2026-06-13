@@ -543,7 +543,28 @@ RealProfits is a financial + career decision platform. Organic traffic via pSEO 
 - `useMemo` at line 524 of EsignWizard.tsx is used for side-effects — should be `useEffect` (P2, pre-existing nit)
 - A/B test hero CTAs visibility analytics (P2)
 
-### Phase 45: Paid-Traffic Landing Polish — contact info, schema, social proof, FAQ, sticky CTA, Zeropark tracking (Feb 2026) — DONE
+### Phase 46: Resume Builder — Duplicate Entries, Dirty Titles, Date Formatting, Summary Limits, ATS Grammar Checks (Feb 2026) — DONE
+5-prompt ticket addressing user-reported regressions in the Resume Builder import + editor flow.
+
+- **Bug 1 — duplicate experience entries (CRITICAL)**: a resume with both a "Career Summary" and a "Project Details" section produced **2 entries per job** (6 cards for 3 jobs). Root cause was twofold: (a) `parseExperienceEntries` overran its "line-is-company" fallback and consumed bullet-like description text as a company name, (b) `mapSectionsToResumeData` had no cross-section dedup. Fix:
+  - Tightened the company-fallback heuristic in `parseExperienceEntries` — line must look like a proper noun (TitleCase, no trailing period, no leading action verb, < 80 chars) AND if it matches `^Role:\s*(.+)$` it back-fills the title slot instead of the company.
+  - Added an in-section dedup pass (by `anchorToken`) immediately before `parseExperienceEntries` returns.
+  - Added a cross-section dedup pass at the end of `mapSectionsToResumeData` that merges entries whose **anchor token** (longest distinctive non-stopword token from `company + title`) matches. Stopwords cover role tokens, corporate suffixes (Pvt/Ltd/Inc/Software/Systems), common cities, month names, and present-tokens — so e.g. "Echidna Software Pvt Ltd Bangalore" + "Project Manager" anchors to `"echidna"` and merges with "Till date" + "Echidna Software Pvt Ltd".
+  - Merge strategy prefers the entry whose title contains a role token + whose company doesn't look date-shaped + whose description is longest.
+
+- **Bug 2 — dirty titles**: "Working as Project Manager in Echidna…" was rendering verbatim as the card title. Added `cleanJobTitle()` in `fieldMapper.ts` that strips "Working as", "Worked as", "Responsible for" preambles, trailing "since/till/from" clauses, and "Role: X" back-fill. Applied during import (in `flushEntry`) AND when the user clicks "Done editing" in the wizard (new `finishEditingExperience` handler in `WizardStepContent.tsx`).
+
+- **Bug 3 — date formatting**: "Sept 2014 - till date", "Feb2010", inconsistent dashes. Created `/app/frontend/src/lib/career-tools/resume/dateNormalize.ts` with `normalizeDate()` + `isPresentDate()` + `normalizeDateRange()`. Handles "Sept" → "Sep", "Feb2010" → "Feb 2010", "till date"/"till now"/"to date" → "Present", "09/2014" / "9-2014" → "Sep 2014", strips "since"/"from" prefixes. Applied at import time (in `flushEntry`), on Done-editing in the wizard, AND in the card-display render (en-dash range "Sep 2014 – Present").
+
+- **Bug 4 — summary too long**: Replaced the word counter with a **character counter** (testid `summary-char-counter`) showing `N/500 chars`. Above 500 → amber warning "Recruiters spend 6 seconds on a resume. Keep your summary under 4 lines." Above 600 → red warning "Your summary is too long — this hurts your ATS score" PLUS a 2-point score deduction (1-point soft deduction at 500–600).
+
+- **Bug 5 — ATS grammar checker upgrade** (`/app/frontend/src/lib/career-tools/resume/score.ts`): added a typo+grammar pass across summary + every experience description for: `"Leaded" → "Led"`, `"continues improvement" → "continuous improvement"`, `"Responsible for"` (suggests action verb), `"till date"/"till now"` (suggests "Present"). Also flags `Feb2010`-style unspaced dates and job-title fields that start with "Working"/"Worked"/"Responsible". Each match deducts 1 point (max 3) and produces a one-click fix tip via the existing `Smart Improve` button.
+
+- **One-click fix engine** (`/app/frontend/src/lib/career-tools/resume/improve.ts`): added `fixCommonTypos()` regex pass and wired it into both `improveBulletWithActionVerb()` and `improveSummaryStructure()`. The "Fix All" button now corrects "Leaded", "continues improvement", "Feb2010", "till date" across all summary + bullet text in one click.
+
+- **Validation**: `/app/frontend/scripts/test-resume-parser.ts` — 26 assertions covering `normalizeDate` (13 cases), `fixCommonTypos` (6 cases), and `mapSectionsToResumeData` dedup (7 cases). All pass. Browser test confirmed the user-reported "6 cards from 3 jobs" pattern now produces clean cards with normalized "Sep 2014 – Present" dates, cleaned titles, merged descriptions, working char counter, and 11 active ATS tips.
+
+
 Eight-prompt ticket from the marketing team to make the site ready for paid Zeropark traffic to `/tools/esign` + `/tools/invoice`.
 
 - **Centralised contact source of truth** (`/app/frontend/src/lib/site.ts`): added `CONTACT.email` = `hello@realprofits.com`, `CONTACT.address` (full NAP), `SOCIAL` array (`twitter.com/realprofits`, `linkedin.com/company/realprofits`). Footer, Contact page, schema, llms.txt all import from here.

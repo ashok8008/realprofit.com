@@ -3,6 +3,95 @@
 import type { ResumeData } from "@/lib/career-tools/pdf-export";
 import type { ParsedSection } from "./types";
 import { classifySectionHeading } from "./sectionDetector";
+import { normalizeDate, isPresentDate } from "../dateNormalize";
+
+/**
+ * Strip natural-language preambles users sometimes type into a "Title" field
+ * or that the PDF parser pulls into a heading. Returns a clean job title.
+ *
+ *   "Working as Project Manager in Echidna..." → "Project Manager"
+ *   "Worked as Senior Engineer at Acme..."      → "Senior Engineer"
+ *   "Responsible for sales operations"          → "Sales Operations"
+ */
+function cleanJobTitle(raw: string): string {
+  if (!raw) return "";
+  let s = raw.trim();
+  // "Working as X in Y since Z" → keep just X
+  const workingAs = s.match(/^(?:Working|Worked)\s+(?:as\s+)?(.+?)\s+(?:in|for|at)\s+/i);
+  if (workingAs) s = workingAs[1];
+  // "Responsible for X" → keep X (title-cased on first letter)
+  const responsibleFor = s.match(/^Responsible\s+for\s+(.+)$/i);
+  if (responsibleFor) {
+    s = responsibleFor[1];
+    s = s.charAt(0).toUpperCase() + s.slice(1);
+  }
+  // Trim trailing role / date noise
+  s = s.replace(/\s*[,/]\s*$/, "")
+    .replace(/\s+since\s+.*$/i, "")
+    .replace(/\s+till\s+.*$/i, "")
+    .replace(/\s+from\s+.*$/i, "")
+    .trim();
+  return s;
+}
+
+/** Normalize a company name for deduplication (lowercase + strip suffixes). */
+function dedupKey(company: string, title: string): string {
+  const c = (company || "")
+    .toLowerCase()
+    .replace(/\b(pvt|private|ltd|limited|llc|inc|incorporated|corp|corporation|co|company|gmbh|plc)\.?\b/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+  const t = cleanJobTitle(title || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  return `${c}::${t}`;
+}
+
+/**
+ * Pick the most distinctive single token from an entry — used as the
+ * dedup anchor. Strips out role words, dates, common cities, and corporate
+ * suffixes so what's left is the company brand name.
+ *
+ * "Echidna Software Pvt Ltd Bangalore" + "Project Manager"     → "echidna"
+ * "Echidna Software Pvt Ltd"           + "Till date"           → "echidna"
+ * "Connex Info Systems"                + "Aug 2014"            → "connex"
+ */
+const KNOWN_TITLE_TOKENS = new Set<string>([
+  "manager", "analyst", "engineer", "developer", "designer", "architect",
+  "consultant", "specialist", "lead", "director", "head", "officer",
+  "senior", "junior", "associate", "principal", "staff", "intern",
+  "executive", "coordinator", "administrator", "supervisor", "owner",
+  "project", "product", "program", "business", "technical", "data",
+  "software", "systems", "operations", "marketing", "sales", "finance",
+  "hr", "human", "resources", "qa", "quality", "test", "devops",
+  "info", "solutions", "services", "consulting", "technologies", "tech",
+]);
+const STOPWORDS = new Set<string>([
+  ...KNOWN_TITLE_TOKENS,
+  // date tokens
+  "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "sept",
+  "oct", "nov", "dec", "january", "february", "march", "april", "june",
+  "july", "august", "september", "october", "november", "december",
+  "till", "date", "now", "present", "current", "currently", "today",
+  "since", "from", "to", "until",
+  // suffixes
+  "pvt", "private", "ltd", "limited", "llc", "inc", "incorporated", "corp",
+  "corporation", "co", "company", "gmbh", "plc",
+  // cities
+  "bangalore", "mumbai", "delhi", "hyderabad", "pune", "chennai", "kolkata",
+  "new", "york", "san", "francisco", "london", "paris", "berlin", "remote",
+  "the", "and", "of", "in", "at", "for",
+]);
+function anchorToken(company: string, title: string): string {
+  const blob = `${company} ${title}`
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]+/g, " ")
+    .replace(/\b\d+\b/g, " ") // strip years
+    .trim();
+  const tokens = blob.split(/\s+/).filter((w) => w.length > 1 && !STOPWORDS.has(w));
+  if (tokens.length === 0) return "";
+  // Prefer the longest token (usually the brand). If tied, the first.
+  tokens.sort((a, b) => b.length - a.length);
+  return tokens[0];
+}
 
 const EMAIL_RE = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/;
 const PHONE_RE = /(?:\+?1[\s\-.]?)?\(?\d{3}\)?[\s\-.]?\d{3}[\s\-.]?\d{4}/;
@@ -67,10 +156,20 @@ function parseExperienceEntries(content: string): RawEntry[] {
 
   const flushEntry = () => {
     if (currentEntry) {
+      // Clean job title (strip "Working as X in Y" preambles, etc.) +
+      // normalize dates so display + PDF stay consistent.
+      const cleanedTitle = cleanJobTitle(currentEntry.title || "");
+      const start = normalizeDate(currentEntry.startDate || "");
+      const rawEnd = currentEntry.endDate || "";
+      const current = currentEntry.current || isPresentDate(rawEnd);
+      const end = current ? "Present" : normalizeDate(rawEnd);
       entries.push({
-        title: currentEntry.title || "", company: currentEntry.company || "",
-        location: currentEntry.location || "", startDate: currentEntry.startDate || "",
-        endDate: currentEntry.endDate || "", current: currentEntry.current || false,
+        title: cleanedTitle,
+        company: (currentEntry.company || "").trim(),
+        location: (currentEntry.location || "").trim(),
+        startDate: start,
+        endDate: end,
+        current,
         description: descLines.join("\n").trim(),
       });
     }
@@ -118,16 +217,74 @@ function parseExperienceEntries(content: string): RawEntry[] {
     }
 
     if (currentEntry && !currentEntry.company && !isBullet && !dates) {
-      const parts = line.split(/\s*[|,]\s*/);
-      currentEntry.company = parts[0] || line;
-      if (parts[1]) currentEntry.location = parts[1];
-      continue;
+      // Heuristic — only treat the line as a company name if:
+      //   (a) it looks like a proper noun (TitleCase or all caps)
+      //   (b) it doesn't end with a period (sentences/bullets do)
+      //   (c) it doesn't start with a typical action verb
+      //   (d) it's not too long for a company line
+      const startsWithActionVerb = /^(built|led|developed|delivered|reduced|increased|managed|created|owned|drove|launched|designed|implemented|spearheaded|coordinated|facilitated|negotiated|achieved)\b/i.test(line);
+      const looksLikeProperNoun = /^[A-Z]/.test(line) && !/^[A-Z]+\s+[a-z]/.test(line);
+      const endsInSentence = /[.!?]$/.test(line);
+      const ROLE_PREFIX_RE = /^role\s*[:\-]\s*(.+)$/i;
+      const roleMatch = line.match(ROLE_PREFIX_RE);
+      // "Role: Project Manager" → backfill the title rather than the company
+      if (roleMatch && !cleanJobTitle(currentEntry.title || "")) {
+        currentEntry.title = roleMatch[1].trim();
+        continue;
+      }
+      if (
+        looksLikeProperNoun &&
+        !startsWithActionVerb &&
+        !endsInSentence &&
+        line.length < 80
+      ) {
+        const parts = line.split(/\s*[|,]\s*/);
+        currentEntry.company = parts[0] || line;
+        if (parts[1]) currentEntry.location = parts[1];
+        continue;
+      }
+      // Otherwise treat as description text
     }
 
     descLines.push(lines[i]);
   }
   flushEntry();
-  return entries;
+
+  // Deduplicate: when a resume lists a job in BOTH a "Career Summary" form
+  // ("Working as X in Y since Z") AND a "Project Details" form
+  // ("Y, Sep 2014 – Till date, Role: X"), parseExperienceEntries used to
+  // produce two entries. Now we collapse them on (company, title) and keep
+  // the entry with the richest description.
+  const byKey = new Map<string, RawEntry>();
+  for (const e of entries) {
+    const key = anchorToken(e.company, e.title);
+    if (!key) {
+      // Can't safely match — keep as a separate entry (rare edge case)
+      byKey.set(`__unmergeable_${byKey.size}`, e);
+      continue;
+    }
+    const existing = byKey.get(key);
+    if (!existing) {
+      byKey.set(key, e);
+    } else {
+      // Merge: prefer the entry with the longer description, but fill any
+      // empty fields from the other entry.
+      const merged: RawEntry = {
+        title: existing.title || e.title,
+        company: existing.company || e.company,
+        location: existing.location || e.location,
+        startDate: existing.startDate || e.startDate,
+        endDate: existing.endDate || e.endDate,
+        current: existing.current || e.current,
+        description:
+          (existing.description.length >= e.description.length
+            ? existing.description
+            : e.description) || "",
+      };
+      byKey.set(key, merged);
+    }
+  }
+  return Array.from(byKey.values());
 }
 
 function parseEducationEntries(content: string) {
@@ -230,9 +387,71 @@ export function mapSectionsToResumeData(sections: ParsedSection[], rawText: stri
     });
   }
 
+  // Cross-section dedup: a single job often appears in both a "Career Summary"
+  // section AND a "Project Details" section. Merge by company fingerprint so
+  // the user sees ONE card per job — even when one section has the company
+  // name in `title` and the other has it in `company`.
+  const seen = new Map<string, ResumeData["experience"][number]>();
+  for (const exp of experiences) {
+    const key = anchorToken(exp.company, exp.title);
+    if (!key) {
+      seen.set(`__unmergeable_${seen.size}`, exp);
+      continue;
+    }
+    const existing = seen.get(key);
+    if (!existing) {
+      seen.set(key, exp);
+    } else {
+      // Prefer cleaner data:
+      //  - title: the entry whose title contains a role token (Manager, Engineer,
+      //    Analyst…) wins. If both or neither do, keep the existing entry's title.
+      //  - company: the entry with a real (non-date) company string wins.
+      //  - description: the entry with the longer description wins.
+      const looksLikeRole = (t: string) => {
+        const s = (t || "").toLowerCase();
+        return Array.from(KNOWN_TITLE_TOKENS).some((tok) => s.includes(tok));
+      };
+      const looksLikeCompany = (t: string) =>
+        /\b(pvt|ltd|inc|llc|corp|gmbh|plc|systems|software|technologies|solutions|services|consulting|info)\b/i.test(
+          t || "",
+        );
+      const looksLikeDate = (t: string) =>
+        /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec|present|till|date|now|current)\b/i.test(
+          t || "",
+        );
+      // Pick best title
+      let preferTitle = existing.title;
+      const a = looksLikeRole(existing.title);
+      const b = looksLikeRole(exp.title);
+      if (b && !a) preferTitle = exp.title;
+      // Pick best company
+      let preferCompany = existing.company;
+      const aGood = existing.company && !looksLikeDate(existing.company);
+      const bGood = exp.company && !looksLikeDate(exp.company);
+      if (!aGood && bGood) preferCompany = exp.company;
+      else if (aGood && bGood && looksLikeCompany(exp.company) && !looksLikeCompany(existing.company)) {
+        preferCompany = exp.company;
+      }
+      seen.set(key, {
+        ...existing,
+        title: preferTitle || existing.title || exp.title,
+        company: preferCompany || existing.company || exp.company,
+        location: existing.location || exp.location,
+        startDate: existing.startDate || exp.startDate,
+        endDate: existing.endDate || exp.endDate,
+        current: existing.current || exp.current,
+        description:
+          (existing.description?.length || 0) >= (exp.description?.length || 0)
+            ? existing.description
+            : exp.description,
+      });
+    }
+  }
+  const dedupedExperiences = Array.from(seen.values());
+
   // Fallback: if no location was found in personal details, pull from the most recent experience
-  if (!personal.location && experiences.length > 0) {
-    for (const exp of experiences) {
+  if (!personal.location && dedupedExperiences.length > 0) {
+    for (const exp of dedupedExperiences) {
       if (exp.location && exp.location.trim()) {
         personal.location = exp.location.trim();
         break;
@@ -240,5 +459,5 @@ export function mapSectionsToResumeData(sections: ParsedSection[], rawText: stri
     }
   }
 
-  return { personalDetails: personal, summary, experience: experiences, education: educations, skills, certifications };
+  return { personalDetails: personal, summary, experience: dedupedExperiences, education: educations, skills, certifications };
 }

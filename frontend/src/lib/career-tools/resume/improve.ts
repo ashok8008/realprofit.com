@@ -40,8 +40,35 @@ const GENERIC_REPLACEMENTS: Record<string, string> = {
   "multitasker": "Managed [add #] concurrent projects simultaneously",
 };
 
+/**
+ * Common grammar / typo fixes flagged by the ATS checker. Word-boundary
+ * matching so we don't mangle valid words ("continues" inside a longer noun is
+ * left alone — only "continues improvement" is corrected).
+ */
+const TYPO_FIXES: { bad: RegExp; good: string }[] = [
+  { bad: /\bLeaded\b/g, good: "Led" },
+  { bad: /\bleaded\b/g, good: "led" },
+  { bad: /\bcontinues\s+improvement\b/gi, good: "continuous improvement" },
+  { bad: /\btill\s*date\b/gi, good: "Present" },
+  { bad: /\btill\s*now\b/gi, good: "Present" },
+  { bad: /\bto\s+date\b/gi, good: "Present" },
+  // "Feb2010" → "Feb 2010" (insert missing space after a month abbreviation)
+  {
+    bad: /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)(\d{4})\b/g,
+    good: "$1 $2",
+  },
+];
+
+export function fixCommonTypos(text: string): string {
+  if (!text) return text;
+  let out = text;
+  for (const t of TYPO_FIXES) out = out.replace(t.bad, t.good);
+  return out;
+}
+
 export function improveBulletWithActionVerb(bullet: string): string {
-  let result = bullet.trim();
+  // Start by normalising common typos (Leaded → Led, "till date" → Present, etc.)
+  let result = fixCommonTypos(bullet).trim();
   const cleaned = result.replace(/^[•\-*]\s*/, "");
   const prefix = result.match(/^([•\-*]\s*)/)?.[1] || "";
 
@@ -82,7 +109,7 @@ export function improveBulletWithMetricPlaceholder(bullet: string): string {
 }
 
 export function improveSummaryStructure(summary: string, skills: string[]): string {
-  let result = summary.trim();
+  let result = fixCommonTypos(summary).trim();
   if (!result) return result;
 
   // Remove first person

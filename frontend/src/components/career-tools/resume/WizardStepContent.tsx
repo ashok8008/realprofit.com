@@ -16,6 +16,8 @@ import type { WizardStep, FlowState } from "./constants";
 import type { ResumeData, Experience, Education, AiSuggestion } from "./types";
 import type { ScoreSuggestion } from "@/lib/career-tools/resume/score";
 import { smartRewriteBullets, smartRewriteSummary, AI_FREE_TOTAL } from "@/lib/career-tools/smartSuggestions";
+import { normalizeDate, isPresentDate } from "@/lib/career-tools/resume/dateNormalize";
+import { fixCommonTypos } from "@/lib/career-tools/resume/improve";
 
 interface WizardStepContentProps {
   wizardStep: WizardStep;
@@ -75,6 +77,23 @@ export function WizardStepContent(props: WizardStepContentProps) {
   const updateExperience = (id: string, field: string, value: string | boolean) => setData(prev => ({ ...prev, experience: prev.experience.map(e => (e.id || "") === id ? { ...e, [field]: value } : e) }));
   const removeExperience = (id: string) => setData(prev => ({ ...prev, experience: prev.experience.filter(e => (e.id || "") !== id) }));
   const moveExperience = (id: string, dir: "up" | "down") => setData(prev => { const idx = prev.experience.findIndex(e => (e.id || "") === id); if ((dir === "up" && idx <= 0) || (dir === "down" && idx >= prev.experience.length - 1)) return prev; const arr = [...prev.experience]; const swap = dir === "up" ? idx - 1 : idx + 1; [arr[idx], arr[swap]] = [arr[swap], arr[idx]]; return { ...prev, experience: arr }; });
+
+  /** Run on "Done editing" — normalises dates, cleans typos in the title,
+   *  and auto-toggles the "current" flag if the user typed "till date" etc. */
+  const finishEditingExperience = (id: string) => {
+    setData(prev => ({
+      ...prev,
+      experience: prev.experience.map(e => {
+        if ((e.id || "") !== id) return e;
+        const cleanTitle = fixCommonTypos(e.title || "").trim();
+        const startDate = normalizeDate(e.startDate || "");
+        const isCurrent = e.current || isPresentDate(e.endDate || "");
+        const endDate = isCurrent ? "Present" : normalizeDate(e.endDate || "");
+        return { ...e, title: cleanTitle, startDate, endDate, current: isCurrent };
+      }),
+    }));
+    setEditingExpId(null);
+  };
   const addEducation = () => { const id = Date.now().toString(); setData(prev => ({ ...prev, education: [...prev.education, { id, school: "", degree: "", field: "", startDate: "", endDate: "" }] })); setEditingEduId(id); };
   const updateEducation = (id: string, field: string, value: string) => setData(prev => ({ ...prev, education: prev.education.map(e => (e.id || "") === id ? { ...e, [field]: value } : e) }));
   const removeEducation = (id: string) => setData(prev => ({ ...prev, education: prev.education.filter(e => (e.id || "") !== id) }));
@@ -84,6 +103,7 @@ export function WizardStepContent(props: WizardStepContentProps) {
   const removeCertification = (c: string) => setData(prev => ({ ...prev, certifications: prev.certifications.filter(x => x !== c) }));
 
   const summaryWordCount = data.summary.trim().split(/\s+/).filter(Boolean).length;
+  const summaryCharCount = data.summary.trim().length;
 
   switch (wizardStep) {
     case "header":
@@ -152,7 +172,7 @@ export function WizardStepContent(props: WizardStepContentProps) {
                         )}
                       </div>
                     </div>
-                    <div className="mt-4 flex justify-end"><button onClick={() => setEditingExpId(null)} className="h-9 px-4 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700" data-testid={`done-exp-${exp.id!}`}>Done editing</button></div>
+                    <div className="mt-4 flex justify-end"><button onClick={() => finishEditingExperience(exp.id!)} className="h-9 px-4 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700" data-testid={`done-exp-${exp.id!}`}>Done editing</button></div>
                   </div>
                 );
               }
@@ -163,7 +183,7 @@ export function WizardStepContent(props: WizardStepContentProps) {
                       <h3 className="text-base font-bold text-zinc-900">{exp.title || "Untitled"}{exp.company && `, ${exp.company}`}</h3>
                       <div className="flex items-center gap-3 mt-1 text-sm text-zinc-500">
                         {exp.location && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {exp.location}</span>}
-                        {(exp.startDate || exp.endDate) && <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {exp.startDate} - {exp.current ? "Current" : exp.endDate}</span>}
+                        {(exp.startDate || exp.endDate) && <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {normalizeDate(exp.startDate)} – {exp.current ? "Present" : (normalizeDate(exp.endDate) || "—")}</span>}
                       </div>
                       {exp.description && <p className="mt-2 text-sm text-zinc-500 line-clamp-3 whitespace-pre-line">{exp.description}</p>}
                     </div>
@@ -302,9 +322,39 @@ export function WizardStepContent(props: WizardStepContentProps) {
 
           <div className="flex justify-between items-center mb-2">
             <Label className={labelClass}>Your Summary</Label>
-            <span className={`text-sm ${summaryWordCount > 50 && summaryWordCount <= 100 ? "text-emerald-600" : summaryWordCount > 100 ? "text-amber-600" : "text-zinc-400"}`}>{summaryWordCount} words</span>
+            <span
+              className={`text-sm font-medium ${
+                summaryCharCount > 600
+                  ? "text-red-600"
+                  : summaryCharCount > 500
+                    ? "text-amber-600"
+                    : summaryCharCount >= 200
+                      ? "text-emerald-600"
+                      : "text-zinc-400"
+              }`}
+              data-testid="summary-char-counter"
+            >
+              {summaryCharCount}/500 chars
+            </span>
           </div>
           <Textarea className="min-h-[140px] p-4 text-sm bg-white border-zinc-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Experienced professional with..." value={data.summary} onChange={e => setData(prev => ({ ...prev, summary: e.target.value }))} data-testid="personal-summary" />
+          {summaryCharCount > 500 && (
+            <div
+              className={`mt-2 flex items-start gap-2 rounded-md border px-3 py-2 text-xs ${
+                summaryCharCount > 600
+                  ? "border-red-200 bg-red-50 text-red-700"
+                  : "border-amber-200 bg-amber-50 text-amber-700"
+              }`}
+              data-testid="summary-length-warning"
+            >
+              <Sparkles className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+              <span>
+                {summaryCharCount > 600
+                  ? "Your summary is too long — this hurts your ATS score. Trim to 4 lines."
+                  : "Recruiters spend 6 seconds on a resume. Keep your summary under 4 lines."}
+              </span>
+            </div>
+          )}
           <div className="flex gap-2 mt-3">
             <Button variant="outline" onClick={() => { const imp = smartRewriteSummary(data.summary, data.skills); if (imp !== data.summary) { setData(p => ({ ...p, summary: imp })); toast({ title: "Improved!" }); } }} disabled={!data.summary.trim()} className="h-9 text-xs gap-1 bg-teal-50 border-teal-200 text-teal-700" data-testid="smart-improve-summary-btn"><Wand2 className="w-3 h-3" /> Smart Improve</Button>
             <span className={`text-xs font-bold px-2 py-0.5 rounded-full self-center ${aiRemaining > 0 ? "bg-violet-100 text-violet-600" : "bg-zinc-100 text-zinc-400"}`}>{aiRemaining}/{AI_FREE_TOTAL} AI uses</span>

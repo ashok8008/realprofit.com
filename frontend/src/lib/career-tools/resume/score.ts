@@ -314,10 +314,92 @@ function scoreATS(data: ResumeData, suggestions: ScoreSuggestion[]): CategorySco
     suggestions.push({ message: `Missing standard ATS sections: ${missingHeadings.join(", ")}`, fix: "ATS systems expect Experience and Skills sections", points: 2, severity: "high", category: "ats" });
   }
 
-  // Our templates are clean/ATS-safe, so we give benefit of the doubt
-  // But note the assumption
-  if (score === 10) {
-    // Great — no issues
+  // ── Grammar / typo checks across summary + all experience descriptions ──
+  // Each match deducts 1 point (max 3 deducted for grammar), so a clean
+  // resume still keeps its 10-point ceiling.
+  const corpus = [
+    data.summary,
+    ...data.experience.map((e) => `${e.title}\n${e.description}`),
+  ].join("\n");
+  const COMMON_TYPOS: { bad: RegExp; suggest: string; label: string }[] = [
+    { bad: /\bleaded\b/i, suggest: "Led", label: "\"Leaded\" → use \"Led\"" },
+    { bad: /\bcontinues\s+improvement\b/i, suggest: "continuous improvement", label: "\"continues improvement\" → \"continuous improvement\"" },
+    { bad: /\bresponsible\s+for\b/i, suggest: "Owned / Drove / Managed", label: "Replace \"Responsible for\" with an action verb (Owned, Drove, Managed)" },
+    { bad: /\btill\s*date\b/i, suggest: "Present", label: "\"till date\" → \"Present\"" },
+    { bad: /\btill\s*now\b/i, suggest: "Present", label: "\"till now\" → \"Present\"" },
+  ];
+  let grammarDeducted = 0;
+  for (const t of COMMON_TYPOS) {
+    if (t.bad.test(corpus) && grammarDeducted < 3) {
+      score -= 1;
+      grammarDeducted += 1;
+      suggestions.push({
+        message: t.label,
+        fix: `Search-and-replace with "${t.suggest}". One-click fix available.`,
+        points: 1,
+        severity: "medium",
+        category: "ats",
+        fixAction: { type: "smart-improve" },
+      });
+    }
+  }
+
+  // ── Date-format checks ("Feb2010" with no space) ──
+  const hasUnspacedDate = data.experience.some((e) =>
+    /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)\d{4}\b/i.test(
+      `${e.startDate} ${e.endDate}`,
+    ),
+  );
+  if (hasUnspacedDate) {
+    score -= 1;
+    suggestions.push({
+      message: "Date is missing a space (e.g. \"Feb2010\")",
+      fix: "Use \"Feb 2010\" with a space — ATS systems may fail to parse otherwise.",
+      points: 1,
+      severity: "medium",
+      category: "ats",
+      fixAction: { type: "focus", tab: "experience" },
+    });
+  }
+
+  // ── Job-title hygiene: titles should not start with sentence preambles ──
+  const dirtyTitle = data.experience.find((e) =>
+    /^(working|worked|responsible)\b/i.test(e.title || ""),
+  );
+  if (dirtyTitle) {
+    score -= 2;
+    suggestions.push({
+      message: `Job title looks like a sentence: "${dirtyTitle.title.slice(0, 50)}..."`,
+      fix: "The Title field should be just the role (e.g. \"Project Manager\"). Move the sentence into Description.",
+      points: 2,
+      severity: "high",
+      category: "ats",
+      fixAction: { type: "focus", tab: "experience" },
+    });
+  }
+
+  // ── Executive-summary length penalty ──
+  // Recruiters scan summaries for ~6s. Soft warning at 500, deduction at 600+.
+  const summaryLen = (data.summary || "").trim().length;
+  if (summaryLen > 600) {
+    score -= 2;
+    suggestions.push({
+      message: `Summary is ${summaryLen} characters — too long for ATS / recruiter scan`,
+      fix: "Trim to 4–5 lines (~500 characters). Lead with role + years + 1 measurable win.",
+      points: 2,
+      severity: "high",
+      category: "ats",
+      fixAction: { type: "focus", tab: "summary" },
+    });
+  } else if (summaryLen > 500) {
+    suggestions.push({
+      message: `Summary is ${summaryLen} characters — keep under 500 for the 6-second recruiter scan`,
+      fix: "Aim for 4 lines max. Lead with role + years + one measurable win.",
+      points: 1,
+      severity: "low",
+      category: "ats",
+      fixAction: { type: "focus", tab: "summary" },
+    });
   }
 
   return { score: Math.max(score, 0), max: 10 };
