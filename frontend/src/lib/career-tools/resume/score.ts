@@ -379,22 +379,25 @@ function scoreATS(data: ResumeData, suggestions: ScoreSuggestion[]): CategorySco
   }
 
   // ── Executive-summary length penalty ──
-  // Recruiters scan summaries for ~6s. Soft warning at 500, deduction at 600+.
-  const summaryLen = (data.summary || "").trim().length;
-  if (summaryLen > 600) {
+  // ATS systems prefer 3–5 sentences (≈80 words). Soft warning at 80, deduction at 150+.
+  const summaryWordCount = (data.summary || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean).length;
+  if (summaryWordCount > 150) {
     score -= 2;
     suggestions.push({
-      message: `Summary is ${summaryLen} characters — too long for ATS / recruiter scan`,
-      fix: "Trim to 4–5 lines (~500 characters). Lead with role + years + 1 measurable win.",
+      message: `Summary is ${summaryWordCount} words — too long for ATS / recruiter scan`,
+      fix: "Trim to 3–5 sentences (≈80 words). Lead with role + years + 1 measurable win.",
       points: 2,
       severity: "high",
       category: "ats",
       fixAction: { type: "focus", tab: "summary" },
     });
-  } else if (summaryLen > 500) {
+  } else if (summaryWordCount > 80) {
     suggestions.push({
-      message: `Summary is ${summaryLen} characters — keep under 500 for the 6-second recruiter scan`,
-      fix: "Aim for 4 lines max. Lead with role + years + one measurable win.",
+      message: `Summary is ${summaryWordCount} words — keep under 80 for the 6-second recruiter scan`,
+      fix: "Aim for 3–5 sentences. Lead with role + years + one measurable win.",
       points: 1,
       severity: "low",
       category: "ats",

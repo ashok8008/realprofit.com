@@ -297,12 +297,32 @@ export function WizardStepContent(props: WizardStepContentProps) {
           <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5 mb-6">
             <h3 className="text-sm font-bold text-zinc-900 mb-3 flex items-center gap-2"><Sparkles className="w-4 h-4 text-blue-600" /> Prewritten options</h3>
             {summaryOptions.length === 0 ? (
-              <div className="text-center py-4">
-                <p className="text-sm text-zinc-500 mb-3">Let AI generate 3 professional summary options based on your profile.</p>
-                <button onClick={generateSummaryOptions} disabled={summaryGenLoading || aiRemaining <= 0} className="h-10 px-6 rounded-full bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-40 inline-flex items-center gap-2" data-testid="generate-summary-btn">
-                  {summaryGenLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                  Generate My Summary
-                </button>
+              <div className="text-center py-4" data-testid="prewritten-empty">
+                {aiRemaining <= 0 ? (
+                  <div data-testid="ai-exhausted-summary" className="space-y-2">
+                    <p className="text-sm font-medium text-zinc-900">
+                      You&rsquo;ve used your {AI_FREE_TOTAL} free AI improvements.
+                    </p>
+                    <p className="text-xs text-zinc-600">
+                      Upgrade to Pro for unlimited AI → <span className="font-semibold text-blue-700">$9/mo</span>
+                    </p>
+                    <button
+                      disabled
+                      className="h-10 px-6 rounded-full bg-zinc-200 text-zinc-400 text-sm font-medium inline-flex items-center gap-2 cursor-not-allowed"
+                      data-testid="generate-summary-btn"
+                    >
+                      <Sparkles className="w-4 h-4" /> Generate My Summary (limit reached)
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-sm text-zinc-500 mb-3">Let AI generate 3 professional summary options based on your profile.</p>
+                    <button onClick={generateSummaryOptions} disabled={summaryGenLoading} className="h-10 px-6 rounded-full bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 disabled:opacity-40 inline-flex items-center gap-2" data-testid="generate-summary-btn">
+                      {summaryGenLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                      Generate My Summary
+                    </button>
+                  </>
+                )}
               </div>
             ) : (
               <div className="space-y-3" data-testid="summary-options">
@@ -324,24 +344,24 @@ export function WizardStepContent(props: WizardStepContentProps) {
             <Label className={labelClass}>Your Summary</Label>
             <span
               className={`text-sm font-medium ${
-                summaryCharCount > 600
+                summaryWordCount > 150
                   ? "text-red-600"
-                  : summaryCharCount > 500
+                  : summaryWordCount > 80
                     ? "text-amber-600"
-                    : summaryCharCount >= 200
+                    : summaryWordCount > 0
                       ? "text-emerald-600"
                       : "text-zinc-400"
               }`}
               data-testid="summary-char-counter"
             >
-              {summaryCharCount}/500 chars
+              {summaryWordCount} words
             </span>
           </div>
           <Textarea className="min-h-[140px] p-4 text-sm bg-white border-zinc-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Experienced professional with..." value={data.summary} onChange={e => setData(prev => ({ ...prev, summary: e.target.value }))} data-testid="personal-summary" />
-          {summaryCharCount > 500 && (
+          {summaryWordCount > 80 && (
             <div
               className={`mt-2 flex items-start gap-2 rounded-md border px-3 py-2 text-xs ${
-                summaryCharCount > 600
+                summaryWordCount > 150
                   ? "border-red-200 bg-red-50 text-red-700"
                   : "border-amber-200 bg-amber-50 text-amber-700"
               }`}
@@ -349,15 +369,31 @@ export function WizardStepContent(props: WizardStepContentProps) {
             >
               <Sparkles className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
               <span>
-                {summaryCharCount > 600
-                  ? "Your summary is too long — this hurts your ATS score. Trim to 4 lines."
-                  : "Recruiters spend 6 seconds on a resume. Keep your summary under 4 lines."}
+                {summaryWordCount > 150
+                  ? `Your summary is ${summaryWordCount} words — too long. ATS systems prefer 3–5 sentences. Use Smart Improve to shorten it.`
+                  : "Recruiters spend 6 seconds on a resume. Keep your summary under 80 words for best ATS score."}
               </span>
             </div>
           )}
-          <div className="flex gap-2 mt-3">
-            <Button variant="outline" onClick={() => { const imp = smartRewriteSummary(data.summary, data.skills); if (imp !== data.summary) { setData(p => ({ ...p, summary: imp })); toast({ title: "Improved!" }); } }} disabled={!data.summary.trim()} className="h-9 text-xs gap-1 bg-teal-50 border-teal-200 text-teal-700" data-testid="smart-improve-summary-btn"><Wand2 className="w-3 h-3" /> Smart Improve</Button>
-            <span className={`text-xs font-bold px-2 py-0.5 rounded-full self-center ${aiRemaining > 0 ? "bg-violet-100 text-violet-600" : "bg-zinc-100 text-zinc-400"}`}>{aiRemaining}/{AI_FREE_TOTAL} AI uses</span>
+          <div className="flex gap-2 mt-3 items-center flex-wrap">
+            <Button
+              variant="outline"
+              onClick={() => { const imp = smartRewriteSummary(data.summary, data.skills); if (imp !== data.summary) { setData(p => ({ ...p, summary: imp })); toast({ title: "Improved!" }); } }}
+              disabled={!data.summary.trim() || aiRemaining <= 0}
+              className="h-9 text-xs gap-1 bg-teal-50 border-teal-200 text-teal-700 disabled:bg-zinc-100 disabled:text-zinc-400 disabled:border-zinc-200"
+              data-testid="smart-improve-summary-btn"
+              title={aiRemaining <= 0 ? "Upgrade to Pro for unlimited AI improvements" : "Improve your summary with one click"}
+            >
+              <Wand2 className="w-3 h-3" /> Smart Improve
+            </Button>
+            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${aiRemaining > 0 ? "bg-violet-100 text-violet-600" : "bg-zinc-100 text-zinc-400"}`}>
+              {aiRemaining}/{AI_FREE_TOTAL} AI uses
+            </span>
+            {aiRemaining <= 0 && (
+              <span className="text-[11px] text-zinc-500" data-testid="ai-exhausted-inline">
+                · <span className="font-medium text-blue-700">Upgrade to Pro for unlimited</span>
+              </span>
+            )}
           </div>
         </div>
       );

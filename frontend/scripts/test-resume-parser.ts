@@ -68,5 +68,24 @@ eq("Echidna description merged from Project Details section",
   (result.experience[0]?.description || "").includes("dashboards"),
   true);
 
+console.log("\n[parseCertifications]");
+const certSection = [
+  {
+    heading: "Certifications",
+    startIndex: 0,
+    content:
+      "PMP (Project Management Professional) Certification from PMI (Project Management Institute, Inc.)\n" +
+      "PMI Member ID: 2036651\n" +
+      "PMP ID: 1451526\n" +
+      "CSM (Certified Scrum Master) Certification from Scrum Alliance\n" +
+      "Scrum Alliance Member ID: 000162650\n" +
+      "CSM ID: 171267\n",
+  },
+];
+const certResult = mapSectionsToResumeData(certSection, certSection.map(s => `${s.heading}\n${s.content}`).join("\n\n"));
+eq("2 certification cards (was 6 line items)", certResult.certifications.length, 2);
+eq("PMP card formatted", certResult.certifications[0], "PMP — Project Management Professional · PMI · ID: 1451526");
+eq("CSM card formatted", certResult.certifications[1], "CSM — Certified Scrum Master · Scrum Alliance · ID: 171267");
+
 console.log(`\nResults: ${pass} passed, ${fail} failed\n`);
 process.exit(fail > 0 ? 1 : 0);

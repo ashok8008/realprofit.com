@@ -316,6 +316,80 @@ function parseEducationEntries(content: string) {
   return entries;
 }
 
+/**
+ * Parse a "Certifications" section into structured, deduped display strings.
+ *
+ * Handles the common pattern where a single cert spans 3 lines:
+ *   "PMP (Project Management Professional) Certification from PMI"
+ *   "PMI Member ID: 2036651"
+ *   "PMP ID: 1451526"
+ * → ONE display string: "PMP — Project Management Professional · PMI · ID: 1451526"
+ *
+ * Detection: a NEW certification starts when a line contains a known cert
+ * acronym (PMP, CSM, AWS, CPA, CFA, CISSP, PRINCE2, ITIL, etc.) OR is followed
+ * by "Certification from" / "Certified". Subsequent "Member ID:" / "ID:" /
+ * "Credential ID:" lines attach to the most recent cert.
+ */
+const CERT_ACRONYM_RE =
+  /\b(PMP|CSM|CSPO|PSM|AWS|CCNA|CCNP|CCSP|CISSP|CISA|CISM|CPA|CFA|CFP|PE|EIT|ITIL|PRINCE2|TOGAF|SAFe|MCSE|MCSD|RHCE|RHCSA|PHR|SPHR|SHRM|Six\s*Sigma|Lean|Green\s*Belt|Black\s*Belt)\b/i;
+
+function parseCertifications(content: string): string[] {
+  const lines = content
+    .split("\n")
+    .map((l) => l.replace(/^[•\-*]\s*/, "").trim())
+    .filter((l) => l.length > 1);
+
+  // Each "group" = [headerLine, ...extraLines]
+  const groups: { header: string; extras: string[] }[] = [];
+  for (const line of lines) {
+    const looksLikeHeader = CERT_ACRONYM_RE.test(line) || /Certification\s+from/i.test(line);
+    const looksLikeAttachment =
+      /^(PMI\s+)?(Member\s+ID|Cert(?:ification)?\s+ID|Credential\s+ID|ID|License\s+(?:no|number)|License)\s*[:#]/i.test(line) ||
+      /^[A-Z]{3,4}\s+ID\s*[:#]/i.test(line); // "PMP ID: 1451526", "CSM ID: 171267"
+    if (looksLikeHeader && !looksLikeAttachment) {
+      groups.push({ header: line, extras: [] });
+    } else if (groups.length > 0) {
+      groups[groups.length - 1].extras.push(line);
+    } else {
+      // Orphan line before any header — keep as a standalone entry
+      groups.push({ header: line, extras: [] });
+    }
+  }
+
+  return groups.map((g) => formatCertification(g.header, g.extras));
+}
+
+function formatCertification(header: string, extras: string[]): string {
+  // Pull out a clean "Name" + optional "Issuer" + "ID" from the lines.
+  // Header example: "PMP (Project Management Professional) Certification from PMI (Project Management Institute, Inc.)"
+  const issuerMatch = header.match(/(?:Certification\s+from|Issued\s+by|from)\s+(.+?)(?:\s*\(|$)/i);
+  const acronymMatch = header.match(CERT_ACRONYM_RE);
+  const longMatch = header.match(/\(([^)]+)\)/);
+  // Build display name: "PMP — Project Management Professional"
+  let name = header
+    .replace(/\s*Certification\s+from.+$/i, "")
+    .replace(/\s*Issued\s+by.+$/i, "")
+    .replace(/\s*\(([^)]+)\)\s*$/, "") // strip trailing parens
+    .replace(/\s*Certification\b/gi, "") // drop the word "Certification"
+    .trim();
+  if (acronymMatch && longMatch) {
+    name = `${acronymMatch[0].toUpperCase()} — ${longMatch[1].trim()}`;
+  }
+  // Pull primary credential ID from extras (e.g. "PMP ID: 1451526")
+  let credId = "";
+  for (const e of extras) {
+    const m = e.match(/(?:Cert(?:ification)?\s+ID|Credential\s+ID|^[A-Z]{3,4}\s+ID|^\s*ID)\s*[:#]\s*(\S+)/i);
+    if (m) { credId = m[1].replace(/[.,]$/, ""); break; }
+  }
+  const issuer = issuerMatch
+    ? issuerMatch[1].replace(/[.,]$/, "").trim()
+    : "";
+  const parts: string[] = [name];
+  if (issuer) parts.push(issuer);
+  if (credId) parts.push(`ID: ${credId}`);
+  return parts.join(" · ");
+}
+
 function parseSkills(content: string): string[] {
   const skills: Set<string> = new Set();
   const lines = content.split("\n").map(l => l.trim()).filter(Boolean);
@@ -364,8 +438,15 @@ export function mapSectionsToResumeData(sections: ParsedSection[], rawText: stri
         break;
       case "certifications": case "awards": case "projects":
       case "languages": case "volunteer": case "interests":
-        section.content.split("\n").map(l => l.replace(/^[•\-*]\s*/, "").trim())
-          .filter(l => l.length > 1).forEach(l => certifications.push(l));
+        if (type === "certifications") {
+          // Structured cert parser — merge follow-up "Member ID: ..." / "ID: ..."
+          // lines into the preceding cert's display string so users see ONE
+          // card per cert (e.g. PMP + CSM = 2 cards, not 6 line items).
+          parseCertifications(section.content).forEach((c) => certifications.push(c));
+        } else {
+          section.content.split("\n").map(l => l.replace(/^[•\-*]\s*/, "").trim())
+            .filter(l => l.length > 1).forEach(l => certifications.push(l));
+        }
         break;
       default:
         if (!section.heading && sections.indexOf(section) === 0) {

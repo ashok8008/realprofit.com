@@ -433,6 +433,62 @@ def _parse_ai_response(raw: str, fallback_skills: List[str]) -> dict:
         }
 
 
+def _reconcile_keyword_matches(
+    missing: List[str],
+    found: List[str],
+    resume_text: str,
+) -> tuple[List[str], List[str]]:
+    """
+    Post-process the AI's keyword analysis with a substring sweep over the
+    resume text. The AI tends to flag keywords as "missing" even when the
+    resume contains a longer phrase that includes them
+    (e.g. resume says "risk management plan" but AI marks "Risk Management" missing).
+
+    For each missing keyword, if any token-overlap exists in the resume text
+    (case-insensitive, tolerates plural / 's), move it from missing → found.
+    Also bumps the resulting match_pct in the caller.
+    """
+    if not missing:
+        return [], list(found)
+    text = resume_text.lower()
+    out_missing: List[str] = []
+    moved: List[str] = []
+    for kw in missing:
+        k = kw.strip().lower()
+        if not k:
+            continue
+        # Direct substring
+        if k in text:
+            moved.append(kw)
+            continue
+        # Tolerate trailing s / plural variants
+        if k.endswith("s") and k[:-1] in text:
+            moved.append(kw); continue
+        if (k + "s") in text:
+            moved.append(kw); continue
+        # Tolerate "management" matching "managed" / "managing"
+        if k.endswith("management") and k.replace("management", "manag") in text:
+            moved.append(kw); continue
+        # Multi-word: every word must appear (within 30 chars of each other)
+        words = [w for w in k.split() if len(w) > 2]
+        if len(words) >= 2 and all(w in text for w in words):
+            # Check proximity — at least one ordered run within ~80 chars
+            first_idx = text.find(words[0])
+            if first_idx >= 0:
+                window = text[first_idx : first_idx + 200]
+                if all(w in window for w in words):
+                    moved.append(kw); continue
+        out_missing.append(kw)
+    # Dedupe found + moved while preserving order
+    new_found = list(found)
+    seen = {f.lower() for f in new_found}
+    for m in moved:
+        if m.lower() not in seen:
+            new_found.append(m)
+            seen.add(m.lower())
+    return out_missing, new_found
+
+
 def _normalize_ats_result(result_data: dict) -> dict:
     """Normalize AI result into validated ATSCheckResponse-compatible dict."""
     categories = []
@@ -493,6 +549,31 @@ async def ats_check(request: ATSCheckRequest):
     response = await get_ai_response(ATS_SYSTEM_PROMPT, user_msg)
     result_data = _parse_ai_response(response, request.skills)
     result = _normalize_ats_result(result_data)
+
+    # Substring-aware keyword reconciliation: the AI marks keywords as missing
+    # even when the resume contains a longer phrase that includes them
+    # ("risk management plan" → AI says "Risk Management" is missing).
+    # We fix that here AND bump the Keyword Match category score proportionally.
+    kw = result["keyword_analysis"]
+    new_missing, new_found = _reconcile_keyword_matches(
+        kw.get("missing", []), kw.get("found", []), resume_text,
+    )
+    moved_count = len(kw.get("missing", [])) - len(new_missing)
+    if moved_count > 0:
+        kw["missing"] = new_missing
+        kw["found"] = new_found[:15]
+        # Recompute match_pct
+        total = max(1, len(new_found) + len(new_missing))
+        kw["match_pct"] = min(100, int(round((len(new_found) / total) * 100)))
+        # Bump the Keyword Match category score
+        for cat in result["categories"]:
+            if cat["name"] == "Keyword Match":
+                cat["score"] = min(cat["max_score"], cat["score"] + min(5, moved_count))
+                cat["status"] = "pass" if cat["score"] >= cat["max_score"] * 0.8 else cat["status"]
+                # Recompute overall_score
+                break
+        # Recompute overall score from categories
+        result["overall_score"] = min(100, sum(c["score"] for c in result["categories"]))
 
     # Cache to MongoDB
     await db.ats_checks.update_one(
