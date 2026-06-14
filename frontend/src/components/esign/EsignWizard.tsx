@@ -90,6 +90,9 @@ export function EsignWizard({ initialDoc }: Props = {}) {
     })) || []
   );
   const [submitting, setSubmitting] = useState(false);
+  // Self-sign: when ON + exactly 1 signer + that signer == the user, send()
+  // routes the user straight to the signing page instead of emailing them.
+  const [selfSign, setSelfSign] = useState(false);
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   // Gate useAutosave's first write until the restore effect has run — otherwise
   // the empty initial state can clobber the saved snapshot on mount.
@@ -404,8 +407,18 @@ export function EsignWizard({ initialDoc }: Props = {}) {
           label: f.label,
         })),
       });
-      const res = await esignApi.send(doc.id);
+      const ownerEmail = (user?.email || "").toLowerCase();
+      const isSelfSignEligible =
+        selfSign &&
+        signers.length === 1 &&
+        signers[0].email.trim().toLowerCase() === ownerEmail;
+      const res = await esignApi.send(doc.id, isSelfSignEligible);
       clearAutosave(ESIGN_AUTOSAVE_KEY);
+      if (isSelfSignEligible && res.self_sign_url) {
+        toast({ title: "Ready to sign", description: "Opening signing page…" });
+        router.push(res.self_sign_url);
+        return;
+      }
       toast({ title: `Sent to ${res.recipients} signer(s)`, description: "Email invitations are on the way." });
       router.push("/tools/esign/dashboard");
     } catch (e: any) {
@@ -605,17 +618,48 @@ export function EsignWizard({ initialDoc }: Props = {}) {
         )}
 
         {step === 2 && (
-          <WizardStepSigners
-            signers={signers}
-            setSigners={setSigners}
-            signingOrder={signingOrder}
-            setSigningOrder={setSigningOrder}
-            dragIdx={dragIdx}
-            setDragIdx={setDragIdx}
-            onAddSigner={addSigner}
-            onUpdateSigner={updateSigner}
-            onRemoveSigner={removeSigner}
-          />
+          <>
+            <WizardStepSigners
+              signers={signers}
+              setSigners={setSigners}
+              signingOrder={signingOrder}
+              setSigningOrder={setSigningOrder}
+              dragIdx={dragIdx}
+              setDragIdx={setDragIdx}
+              onAddSigner={addSigner}
+              onUpdateSigner={updateSigner}
+              onRemoveSigner={removeSigner}
+            />
+            {/* Self-sign affordance: only meaningful when the lone signer IS
+                 the logged-in user. Saves an email round-trip. */}
+            {user &&
+              signers.length === 1 &&
+              signers[0].email.trim().toLowerCase() === (user.email || "").toLowerCase() && (
+                <div className="max-w-3xl mx-auto mt-4">
+                  <label
+                    className="flex items-start gap-3 p-4 bg-[#FAF5EE] border border-[#C8A96E] rounded-xl cursor-pointer hover:bg-[#F4ECD9]"
+                    data-testid="self-sign-toggle"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selfSign}
+                      onChange={(e) => setSelfSign(e.target.checked)}
+                      className="mt-0.5 w-4 h-4 accent-[#0B3D3D]"
+                      data-testid="self-sign-checkbox"
+                    />
+                    <div>
+                      <div className="text-sm font-semibold text-[#0B3D3D]">
+                        Sign this myself — skip the email step
+                      </div>
+                      <div className="text-xs text-stone-700 mt-1">
+                        We&apos;ll take you straight to the signing page once you click <b>Send</b>.
+                        No email round-trip, and you can download the signed PDF immediately.
+                      </div>
+                    </div>
+                  </label>
+                </div>
+              )}
+          </>
         )}
 
         {step === 3 && (doc || (!user && file)) && (
@@ -691,7 +735,7 @@ export function EsignWizard({ initialDoc }: Props = {}) {
               data-testid="wizard-send"
               className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-[#0B3D3D] rounded-md hover:bg-[#165252] disabled:opacity-40"
             >
-              <Send className="w-4 h-4" /> {submitting ? "Sending…" : "Send for signing"}
+              <Send className="w-4 h-4" /> {submitting ? "Sending…" : selfSign ? "Sign now" : "Send for signing"}
             </button>
           )}
         </div>

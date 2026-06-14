@@ -153,10 +153,11 @@ export const esignApi = {
       body: JSON.stringify(body),
     }),
 
-  send: (id: string) =>
-    json<{ status: string; recipients: number }>(`/api/esign/documents/${id}/send`, {
-      method: "POST",
-    }),
+  send: (id: string, selfSign?: boolean) =>
+    json<{ status: string; recipients: number; self_sign_url?: string | null }>(
+      `/api/esign/documents/${id}/send${selfSign ? "?self_sign=true" : ""}`,
+      { method: "POST" },
+    ),
 
   void: (id: string) =>
     json<{ status: string }>(`/api/esign/documents/${id}/void`, { method: "POST" }),

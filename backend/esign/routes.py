@@ -253,6 +253,7 @@ async def delete_document(doc_id: str, request: Request, session: AsyncSession =
 
 @router.post("/documents/{doc_id}/send")
 async def send_document(doc_id: str, request: Request, background: BackgroundTasks,
+                         self_sign: bool = False,
                          session: AsyncSession = Depends(get_session)):
     user = await get_current_user(request)
     doc = await _load_doc(session, doc_id, owner_id=str(user["_id"]))
@@ -288,6 +289,17 @@ async def send_document(doc_id: str, request: Request, background: BackgroundTas
     await session.commit()
 
     expiry_str = doc.expires_at.strftime("%b %d, %Y") if doc.expires_at else None
+    # Self-sign branch: owner is signing this themselves. Skip emailing them
+    # and return the signing token so the frontend can route them directly to
+    # the signing page (no inbox round-trip).
+    self_sign_url = None
+    owner_email = (user.get("email") or "").lower()
+    if self_sign and len(doc.signers) == 1 and doc.signers[0].email.lower() == owner_email:
+        single = doc.signers[0]
+        self_sign_url = f"/sign/{raw_tokens[str(single.id)]}"
+        # Don't email the owner — they're going straight in
+        to_notify = []
+
     for s in to_notify:
         sign_url = f"{app_url}/sign/{raw_tokens[str(s.id)]}"
         background.add_task(
@@ -297,7 +309,7 @@ async def send_document(doc_id: str, request: Request, background: BackgroundTas
             role=s.role,
         )
 
-    return {"status": "sent", "recipients": len(to_notify)}
+    return {"status": "sent", "recipients": len(to_notify), "self_sign_url": self_sign_url}
 
 
 @router.post("/documents/{doc_id}/void")

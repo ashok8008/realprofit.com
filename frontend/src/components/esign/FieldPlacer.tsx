@@ -41,7 +41,16 @@ export function FieldPlacer({ pdfUrl, signers, fields, onChange, activeSignerId,
 
   const activeSigner = signers.find((s) => s.id === activeSignerId) || signers[0];
 
+  // After a drag finishes, the synthetic `click` event still fires on the
+  // parent page — without this guard it creates a duplicate field at the
+  // release position. The ref is set on mouseup and consumed once.
+  const suppressNextClickRef = useRef(false);
+
   const handlePageClick = (page: number, e: React.MouseEvent<HTMLDivElement>) => {
+    if (suppressNextClickRef.current) {
+      suppressNextClickRef.current = false;
+      return;
+    }
     if (!activeSigner) return;
     const rect = (e.currentTarget as HTMLDivElement).getBoundingClientRect();
     const xFrac = (e.clientX - rect.left) / rect.width;
@@ -67,28 +76,56 @@ export function FieldPlacer({ pdfUrl, signers, fields, onChange, activeSignerId,
     onChange(fields.filter((f) => f._localId !== localId));
   };
 
-  // Drag-to-move support
-  const [dragging, setDragging] = useState<{ localId: string; startX: number; startY: number; origX: number; origY: number } | null>(null);
+  // Drag-to-move support — page-aware (multi-page PDFs were sometimes using
+  // page 1's rect for fields on page 2/3, causing wildly wrong drops).
+  const [dragging, setDragging] = useState<{
+    localId: string;
+    page: number;
+    startX: number;
+    startY: number;
+    origX: number;
+    origY: number;
+    moved: boolean;
+  } | null>(null);
   const draggingRef = useRef(dragging);
   draggingRef.current = dragging;
 
   useEffect(() => {
     if (!dragging) return;
+    const DRAG_THRESHOLD_PX = 3; // ignore micro-jitters during placement clicks
     const handleMove = (e: MouseEvent) => {
       const d = draggingRef.current;
       if (!d) return;
-      const pageEl = document.querySelector(`[data-testid^="pdf-page-"]`) as HTMLDivElement | null;
+      // Resolve the SPECIFIC page the field belongs to — not "the first page".
+      const pageEl = document.querySelector(
+        `[data-testid="pdf-page-${d.page}"]`,
+      ) as HTMLDivElement | null;
       if (!pageEl) return;
       const rect = pageEl.getBoundingClientRect();
-      const dx = (e.clientX - d.startX) / rect.width;
-      const dy = (e.clientY - d.startY) / rect.height;
+      const dxPx = e.clientX - d.startX;
+      const dyPx = e.clientY - d.startY;
+      if (!d.moved && Math.hypot(dxPx, dyPx) < DRAG_THRESHOLD_PX) return;
+      if (!d.moved) {
+        d.moved = true;
+        draggingRef.current = d;
+      }
+      const dx = dxPx / rect.width;
+      const dy = dyPx / rect.height;
       const f = fields.find((x) => x._localId === d.localId);
       if (!f) return;
       const newX = Math.max(0, Math.min(1 - f.width, d.origX + dx));
       const newY = Math.max(0, Math.min(1 - f.height, d.origY + dy));
-      onChange(fields.map((x) => (x._localId === d.localId ? { ...x, x: newX, y: newY } : x)));
+      onChange(
+        fields.map((x) => (x._localId === d.localId ? { ...x, x: newX, y: newY } : x)),
+      );
     };
-    const handleUp = () => setDragging(null);
+    const handleUp = () => {
+      const d = draggingRef.current;
+      // If the drag actually moved, the next synthetic click on the parent page
+      // would otherwise create a duplicate field. Swallow it.
+      if (d && d.moved) suppressNextClickRef.current = true;
+      setDragging(null);
+    };
     window.addEventListener("mousemove", handleMove);
     window.addEventListener("mouseup", handleUp);
     return () => {
@@ -179,9 +216,16 @@ export function FieldPlacer({ pdfUrl, signers, fields, onChange, activeSignerId,
                       e.stopPropagation();
                       setDragging({
                         localId: f._localId || "",
+                        page: p.pageNumber,
                         startX: e.clientX, startY: e.clientY,
                         origX: f.x, origY: f.y,
+                        moved: false,
                       });
+                    }}
+                    onClick={(e) => {
+                      // Clicking ON a field must NEVER bubble up to the page
+                      // and create another field beneath it.
+                      e.stopPropagation();
                     }}
                     style={{
                       position: "absolute",

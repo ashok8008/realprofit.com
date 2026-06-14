@@ -473,8 +473,12 @@ export function InvoiceApp() {
     }
   };
 
+  // Mobile: the side-by-side editor+preview destroys small screens. Stack the
+  // sidebar above on `<md`, and hide the live preview behind a toggle on `<lg`.
+  const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
+
   return (
-    <div className="h-screen flex bg-[#F5F3EE] overflow-hidden" data-testid="invoice-app">
+    <div className="min-h-screen lg:h-screen flex flex-col lg:flex-row bg-[#F5F3EE] lg:overflow-hidden" data-testid="invoice-app">
       {/* Sidebar */}
       <InvoiceSidebar
         activeTab={activeTab} setActiveTab={setActiveTab}
@@ -484,8 +488,22 @@ export function InvoiceApp() {
       />
 
       {/* Main content */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex flex-col lg:flex-row lg:overflow-hidden">
         <div className="flex-1 overflow-y-auto">
+          {/* Mobile "Preview" toggle — only on editor tab, only below lg */}
+          {activeTab === "editor" && (
+            <div className="lg:hidden sticky top-0 z-10 bg-white border-b border-stone-200 px-4 py-2 flex items-center justify-between">
+              <span className="text-xs uppercase tracking-wider text-stone-500 font-medium">Invoice editor</span>
+              <button
+                type="button"
+                onClick={() => setMobilePreviewOpen(true)}
+                data-testid="mobile-preview-toggle"
+                className="text-xs px-3 py-1.5 rounded-md bg-[#0B3D3D] text-white font-medium"
+              >
+                Preview
+              </button>
+            </div>
+          )}
           {/* Tab content (top tab strip removed — left sidebar is the only nav) */}
           {activeTab === "editor" && (
             <InvoiceEditor
@@ -547,11 +565,43 @@ export function InvoiceApp() {
           )}
         </div>
 
-        {/* Preview — only show on editor tab */}
+        {/* Preview — desktop only side-by-side; on mobile shown as a sheet via toggle */}
         {activeTab === "editor" && (
-          <InvoicePreviewPanel inv={inv} onPrint={handlePrint} onDownloadPDF={handleDownloadPDF} />
+          <div className="hidden lg:flex">
+            <InvoicePreviewPanel inv={inv} onPrint={handlePrint} onDownloadPDF={handleDownloadPDF} />
+          </div>
         )}
       </div>
+
+      {/* Mobile preview sheet */}
+      {activeTab === "editor" && mobilePreviewOpen && (
+        <div
+          className="lg:hidden fixed inset-0 z-50 bg-black/40 flex items-end"
+          onClick={() => setMobilePreviewOpen(false)}
+          data-testid="mobile-preview-sheet"
+        >
+          <div
+            className="w-full bg-white rounded-t-2xl max-h-[92vh] overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-4 py-3 border-b border-stone-200 flex items-center justify-between">
+              <span className="text-sm font-semibold text-stone-900">Preview</span>
+              <button
+                type="button"
+                onClick={() => setMobilePreviewOpen(false)}
+                className="text-stone-500 hover:text-stone-900 text-2xl leading-none px-2"
+                data-testid="mobile-preview-close"
+                aria-label="Close preview"
+              >
+                ×
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              <InvoicePreviewPanel inv={inv} onPrint={handlePrint} onDownloadPDF={handleDownloadPDF} />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Client Modal */}
       {clientModal.open && (

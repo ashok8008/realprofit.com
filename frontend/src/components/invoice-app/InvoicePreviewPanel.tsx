@@ -18,7 +18,7 @@ export function InvoicePreviewPanel({ inv, onPrint, onDownloadPDF }: PreviewProp
   const outstanding = Math.max(0, totals.total - paidTotal);
 
   return (
-    <div className="w-[400px] flex-shrink-0 bg-[#F5F3EE] border-l border-[#E2DDD4] h-screen sticky top-0 flex flex-col overflow-hidden invoice-preview-panel" data-testid="invoice-preview-panel">
+    <div className="w-full lg:w-[400px] flex-shrink-0 bg-[#F5F3EE] lg:border-l border-[#E2DDD4] lg:h-screen lg:sticky lg:top-0 flex flex-col lg:overflow-hidden invoice-preview-panel" data-testid="invoice-preview-panel">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-[#E2DDD4] bg-white">
         <h3 className="text-sm font-bold text-[#1C1B18]">Preview</h3>

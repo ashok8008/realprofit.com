@@ -20,7 +20,7 @@ export function InvoiceSidebar({ activeTab, setActiveTab, currency, setCurrency,
   const nav = (tab: Tab) => () => setActiveTab(tab);
 
   return (
-    <aside className="w-[220px] flex-shrink-0 bg-[#0B3D3D] flex flex-col h-screen sticky top-0 overflow-y-auto" data-testid="invoice-sidebar">
+    <aside className="w-full lg:w-[220px] flex-shrink-0 bg-[#0B3D3D] flex flex-col lg:h-screen lg:sticky lg:top-0 lg:overflow-y-auto" data-testid="invoice-sidebar">
       {/* Logo */}
       <div className="px-5 pt-5 pb-4 border-b border-white/10">
         <Link href="/" className="block">

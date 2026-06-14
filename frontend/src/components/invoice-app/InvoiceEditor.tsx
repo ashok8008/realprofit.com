@@ -117,7 +117,7 @@ export function InvoiceEditor({
       {/* Invoice Details */}
       <div className={section}>
         <p className={fst}>Invoice Details</p>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div><label className={lbl}>Invoice Number</label><input className={inp} value={inv.invoice_number} onChange={e => set("invoice_number", e.target.value)} data-testid="inv-number" /></div>
           <div><label className={lbl}>Invoice Date</label><input type="date" className={inp} value={inv.date} onChange={e => set("date", e.target.value)} data-testid="inv-date" /></div>
           <div><label className={lbl}>Due Date</label><input type="date" className={inp} value={inv.due_date} onChange={e => set("due_date", e.target.value)} data-testid="inv-due-date" /></div>
@@ -150,7 +150,7 @@ export function InvoiceEditor({
             <p className="text-[10px] text-[#C4C0B6] mt-0.5">PNG, JPEG, WebP or SVG (max 2MB)</p>
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div><label className={lbl}>Business Name</label><input className={inp} value={inv.business_name} onChange={e => set("business_name", e.target.value)} data-testid="biz-name" /></div>
           <div><label className={lbl}>Email</label><input type="email" className={inp} value={inv.business_email} onChange={e => set("business_email", e.target.value)} data-testid="biz-email" /></div>
           <div><label className={lbl}>Phone</label><input className={inp} value={inv.business_phone} onChange={e => set("business_phone", e.target.value)} data-testid="biz-phone" /></div>
@@ -171,7 +171,7 @@ export function InvoiceEditor({
             </select>
           </div>
         )}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div><label className={lbl}>Client Name</label><input className={inp} value={inv.client_name} onChange={e => set("client_name", e.target.value)} data-testid="client-name" /></div>
           <div><label className={lbl}>Company</label><input className={inp} value={inv.client_company} onChange={e => set("client_company", e.target.value)} data-testid="client-company" /></div>
           <div className="col-span-2"><label className={lbl}>Email</label><input type="email" className={inp} value={inv.client_email} onChange={e => set("client_email", e.target.value)} data-testid="client-email" /></div>
@@ -183,27 +183,31 @@ export function InvoiceEditor({
       {/* Line Items */}
       <div className={section}>
         <p className={fst}>Line Items</p>
-        <div className="grid grid-cols-[1fr_60px_70px_80px_80px_32px] gap-2 text-[10px] font-bold text-[#6E6B63] uppercase tracking-wider mb-2 px-1">
-          <span>Description</span><span>Qty</span><span>Unit</span><span>Rate</span><span>Amount</span><span></span>
-        </div>
-        {inv.items.map(item => (
-          <div key={item.id} className="grid grid-cols-[1fr_60px_70px_80px_80px_32px] gap-2 mb-2 items-center" data-testid={`line-item-${item.id}`}>
-            <input className={inp} placeholder="Description" value={item.description} onChange={e => setItem(item.id, "description", e.target.value)} />
-            <input type="number" min="0" step="0.5" className={inp + " text-center"} value={item.qty} onChange={e => setItem(item.id, "qty", parseFloat(e.target.value) || 0)} />
-            <select className={inp + " px-1"} value={item.unit} onChange={e => setItem(item.id, "unit", e.target.value)}>
-              {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
-            </select>
-            <input type="number" min="0" step="0.01" className={inp + " text-right"} value={item.rate} onChange={e => setItem(item.id, "rate", parseFloat(e.target.value) || 0)} />
-            <span className="text-sm font-semibold text-[#1C1B18] text-right pr-1">{sym}{(item.qty * item.rate).toFixed(2)}</span>
-            <button onClick={() => removeItem(item.id)} className="w-7 h-7 rounded flex items-center justify-center text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors"><X className="w-3.5 h-3.5" /></button>
+        <div className="-mx-2 overflow-x-auto sm:overflow-x-visible sm:mx-0 px-2 sm:px-0">
+          <div className="min-w-[560px] sm:min-w-0">
+            <div className="grid grid-cols-[1fr_60px_70px_80px_80px_32px] gap-2 text-[10px] font-bold text-[#6E6B63] uppercase tracking-wider mb-2 px-1">
+              <span>Description</span><span>Qty</span><span>Unit</span><span>Rate</span><span>Amount</span><span></span>
+            </div>
+            {inv.items.map(item => (
+              <div key={item.id} className="grid grid-cols-[1fr_60px_70px_80px_80px_32px] gap-2 mb-2 items-center" data-testid={`line-item-${item.id}`}>
+                <input className={inp} placeholder="Description" value={item.description} onChange={e => setItem(item.id, "description", e.target.value)} />
+                <input type="number" min="0" step="0.5" className={inp + " text-center"} value={item.qty} onChange={e => setItem(item.id, "qty", parseFloat(e.target.value) || 0)} />
+                <select className={inp + " px-1"} value={item.unit} onChange={e => setItem(item.id, "unit", e.target.value)}>
+                  {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                </select>
+                <input type="number" min="0" step="0.01" className={inp + " text-right"} value={item.rate} onChange={e => setItem(item.id, "rate", parseFloat(e.target.value) || 0)} />
+                <span className="text-sm font-semibold text-[#1C1B18] text-right pr-1">{sym}{(item.qty * item.rate).toFixed(2)}</span>
+                <button onClick={() => removeItem(item.id)} className="w-7 h-7 rounded flex items-center justify-center text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors"><X className="w-3.5 h-3.5" /></button>
+              </div>
+            ))}
           </div>
-        ))}
+        </div>
         <button onClick={addItem} className="mt-2 w-full border-2 border-dashed border-[#E2DDD4] rounded-lg py-2.5 text-sm font-semibold text-[#6E6B63] hover:border-[#0B3D3D] hover:text-[#0B3D3D] transition-colors flex items-center justify-center gap-1.5" data-testid="add-item-btn"><Plus className="w-4 h-4" /> Add Item</button>
       </div>
 
       {/* Discount / Tax / Totals */}
       <div className={section}>
-        <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
           <div>
             <label className={lbl}>Discount</label>
             <div className="flex gap-1.5">
@@ -214,7 +218,7 @@ export function InvoiceEditor({
               <input type="number" min="0" className={inp + " flex-1"} value={inv.discount_value} onChange={e => set("discount_value", parseFloat(e.target.value) || 0)} data-testid="discount-value" />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div><label className={lbl}>Tax Label</label><input className={inp} value={inv.tax_label} onChange={e => set("tax_label", e.target.value)} /></div>
             <div><label className={lbl}>Tax Rate (%)</label><input type="number" min="0" step="0.1" className={inp} value={inv.tax_rate} onChange={e => set("tax_rate", parseFloat(e.target.value) || 0)} data-testid="tax-rate" /></div>
           </div>
@@ -232,7 +236,7 @@ export function InvoiceEditor({
       {/* Notes & Terms */}
       <div className={section}>
         <p className={fst}>Notes & Terms</p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div><label className={lbl}>Notes</label><textarea className={inp + " min-h-[80px] resize-y"} placeholder="Additional notes..." value={inv.notes} onChange={e => set("notes", e.target.value)} data-testid="inv-notes" /></div>
           <div><label className={lbl}>Payment Terms</label><textarea className={inp + " min-h-[80px] resize-y"} placeholder="Net 30, etc." value={inv.payment_terms} onChange={e => set("payment_terms", e.target.value)} data-testid="inv-terms" /></div>
         </div>
@@ -263,7 +267,7 @@ export function InvoiceEditor({
           />
         </div>
         <p className="text-xs text-[#6E6B63] mb-3">Optional — shown to clients when no payment link is set, so they can make an ACH / bank transfer / PayPal payment.</p>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div><label className={lbl}>Bank Name</label><input className={inp} placeholder="Chase, Wells Fargo..." value={inv.bank_details?.bank_name || ""} onChange={e => set("bank_details", { ...(inv.bank_details || EMPTY_BANK_DETAILS), bank_name: e.target.value })} data-testid="bank-name" /></div>
           <div><label className={lbl}>Account Holder</label><input className={inp} placeholder="As on the bank account" value={inv.bank_details?.account_holder || ""} onChange={e => set("bank_details", { ...(inv.bank_details || EMPTY_BANK_DETAILS), account_holder: e.target.value })} data-testid="bank-holder" /></div>
           <div><label className={lbl}>Account Number / IBAN</label><input className={inp} placeholder="123456789" value={inv.bank_details?.account_number || ""} onChange={e => set("bank_details", { ...(inv.bank_details || EMPTY_BANK_DETAILS), account_number: e.target.value })} data-testid="bank-account" /></div>
