@@ -12,6 +12,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
 import os
+import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 from db import init_db
 from auth import router as auth_router, seed_admin
@@ -205,6 +209,26 @@ async def get_ai_response(system_message: str, user_message: str) -> str:
         raise HTTPException(status_code=500, detail="LLM integration not available")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+async def get_gemini_json(system_message: str, user_message: str) -> str:
+    """
+    Get a JSON-only response from Gemini 2.5 Flash via the Emergent LLM key.
+    Gemini handles messy multi-line resume text far better than regex parsers
+    or smaller models — used for resume import to dramatically reduce missing
+    fields and duplicate entries.
+    """
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+
+    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="LLM API key not configured")
+    chat = LlmChat(
+        api_key=api_key,
+        session_id=f"resume-parse-{os.urandom(8).hex()}",
+        system_message=system_message,
+    ).with_model("gemini", "gemini-2.5-flash")
+    return await chat.send_message(UserMessage(text=user_message))
 
 # ============================================================
 # Endpoints
@@ -583,6 +607,109 @@ async def ats_check(request: ATSCheckRequest):
     )
 
     return ATSCheckResponse(**result)
+
+
+RESUME_PARSE_SYSTEM = """You are a precise resume parser. Convert a raw resume into strict JSON.
+
+OUTPUT JSON SHAPE (return ONLY this JSON, no markdown, no commentary):
+{
+  "personalDetails": {
+    "name": "Full name from the resume",
+    "email": "primary email or empty string",
+    "phone": "primary phone or empty string",
+    "location": "City, State/Country only (NEVER a list of skills)",
+    "linkedin": "linkedin.com/in/... or empty string",
+    "website": "portfolio URL or empty string",
+    "title": "current job title or empty string"
+  },
+  "summary": "Professional summary in 3-5 sentences, max 80 words. If the resume has a long career-objective paragraph, condense it.",
+  "experience": [
+    {
+      "title": "Job role only — e.g. 'Project Manager'. NEVER include 'Working as' or company name here.",
+      "company": "Company name only — e.g. 'Echidna Software Pvt Ltd'",
+      "location": "City of the role",
+      "startDate": "Mon YYYY format, e.g. 'Sep 2014'",
+      "endDate": "Mon YYYY OR 'Present' if current",
+      "current": true_or_false,
+      "description": "1-4 bullet-point achievements joined by newlines. Action-verb-led. Concise."
+    }
+  ],
+  "education": [
+    {
+      "degree": "e.g. 'Master of Computer Applications (MCA)'",
+      "school": "Institution name",
+      "location": "City",
+      "startYear": "YYYY or empty",
+      "endYear": "YYYY or empty"
+    }
+  ],
+  "skills": ["skill1", "skill2"],
+  "certifications": [
+    "PMP — Project Management Professional · PMI · ID: 1451526"
+  ]
+}
+
+RULES (must follow ALL):
+- DEDUPE jobs. If the same role appears in both a Career Summary and a Project Details section, output ONE entry per company with the richest description.
+- Job titles must be the ROLE ONLY ("Project Manager"), never the sentence ("Working as Project Manager in X").
+- Dates: "Sept" → "Sep". "till date"/"till now"/"to date" → "Present". "Feb2010" → "Feb 2010". Use en-dash for ranges in description text only, dates fields stay split.
+- Location must be a city. NEVER put skills/keywords in the location field.
+- Certifications: merge multi-line "Cert + Member ID + Cert ID" into one display string in the format above.
+- Skills: extract individual skills as separate strings. Merge versions ("NT", "2000", "Windows XP" → "Windows XP/NT/2000" if originally together).
+- Summary: rewrite if > 80 words. Strict limit.
+- Return ONLY valid JSON. No prose, no markdown fences."""
+
+
+class ResumeParseRequest(BaseModel):
+    text: str
+
+
+class ResumeParseResponse(BaseModel):
+    data: dict
+    source: str  # "gemini" or "fallback"
+
+
+@app.post("/api/career-tools/parse-resume", response_model=ResumeParseResponse)
+async def parse_resume(request: ResumeParseRequest):
+    """
+    AI-powered resume parser. Uses Gemini 2.5 Flash to convert raw resume text
+    into clean, deduped, normalized ResumeData JSON. The frontend keeps its
+    regex-based parser as a fallback for the rare case Gemini fails to return
+    valid JSON.
+    """
+    text = (request.text or "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="Empty resume text")
+    if len(text) > 30000:
+        text = text[:30000]
+
+    try:
+        raw = await get_gemini_json(RESUME_PARSE_SYSTEM, text)
+        # Strip any accidental markdown fences
+        raw = raw.strip()
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[-1]
+            if raw.endswith("```"):
+                raw = raw[: raw.rfind("```")]
+            raw = raw.strip()
+            if raw.startswith("json"):
+                raw = raw[4:].strip()
+        data = json.loads(raw)
+        # Hard-cap summary at 80 words even if Gemini disobeys
+        summary = (data.get("summary") or "").strip()
+        if summary:
+            words = summary.split()
+            if len(words) > 80:
+                data["summary"] = " ".join(words[:80]).rstrip(",;") + "."
+        return ResumeParseResponse(data=data, source="gemini")
+    except json.JSONDecodeError as je:
+        logger.warning("Gemini returned non-JSON: %s", str(je)[:200])
+        raise HTTPException(status_code=502, detail="AI parser returned invalid JSON — use fallback")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("parse-resume failed")
+        raise HTTPException(status_code=500, detail=f"Resume parse failed: {e}")
 
 
 @app.post("/api/career-tools/resume-draft", response_model=ResumeDraftResponse)

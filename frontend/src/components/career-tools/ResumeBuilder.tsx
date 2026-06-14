@@ -157,10 +157,18 @@ export function ResumeBuilder() {
 
   const handleTextImport = useCallback((text: string) => {
     setImportSource("text"); setFlowState("processing"); setProcessingStep(0);
-    setTimeout(() => {
-      try { const { parseText } = require("@/lib/career-tools/resume/import/textParser"); const r = parseText(text); setData(r.data); setConfidences(r.confidences); setTimeout(() => setFlowState("welcome"), 4000); }
-      catch { toast({ title: "Parse failed", variant: "destructive" }); setFlowState("entry"); }
-    }, 100);
+    (async () => {
+      try {
+        const { parseText } = await import("@/lib/career-tools/resume/import/textParser");
+        const r = await parseText(text);
+        setData(r.data);
+        setConfidences(r.confidences);
+        setTimeout(() => setFlowState("welcome"), 4000);
+      } catch {
+        toast({ title: "Parse failed", variant: "destructive" });
+        setFlowState("entry");
+      }
+    })();
   }, [toast]);
 
   const handleReset = () => { if (confirm("Clear all resume data?")) { setData(defaultResumeData); clearStorage(STORAGE_KEY); clearStorage("resume_meta"); setHasSavedDraft(false); setFlowState("entry"); setConfidences([]); setTemplate("clean"); setOnboardLevel(""); setOnboardYears(""); setOnboardIndustries([]); setAtsResult(null); toast({ title: "Cleared" }); } };
