@@ -29,7 +29,18 @@ export const metadata: Metadata = {
   keywords:
     "financial calculators, salary guide, tax calculator, savings planner, resume builder, career tools, personal finance",
   authors: [{ name: "RealProfits" }],
-  robots: "index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1",
+  robots: {
+    index: true,
+    follow: true,
+    nocache: false,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-snippet": -1,
+      "max-image-preview": "large",
+      "max-video-preview": -1,
+    },
+  },
   openGraph: {
     siteName: SITE_NAME,
     type: "website",
