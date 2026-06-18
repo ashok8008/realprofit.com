@@ -34,7 +34,9 @@ export type SitemapId =
   | "invoice-templates"
   | "contract-templates"
   | "articles"
-  | "tax";
+  | "tax"
+  | "calculators"
+  | "state-tools";
 
 export interface SitemapSectionMeta {
   id: SitemapId;
@@ -51,6 +53,8 @@ export const SITEMAP_SECTIONS: SitemapSectionMeta[] = [
   { id: "guides",             defaultChangefreq: "weekly",  defaultPriority: 0.7 },
   { id: "articles",           defaultChangefreq: "weekly",  defaultPriority: 0.6 },
   { id: "tax",                defaultChangefreq: "monthly", defaultPriority: 0.7 },
+  { id: "calculators",        defaultChangefreq: "monthly", defaultPriority: 0.8 },
+  { id: "state-tools",        defaultChangefreq: "monthly", defaultPriority: 0.7 },
 ];
 
 function nowIso(): string {
@@ -159,6 +163,25 @@ export function getTaxEntries(): SitemapEntry[] {
     .map((tt) => entry(`/tax-tools/${tt.slug}`, m));
 }
 
+export function getCalculatorEntries(): SitemapEntry[] {
+  const m = meta("calculators");
+  // calculators data file ships 40 entries; one URL per slug
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { calculators } = require("@/data/calculators") as { calculators: { slug: string }[] };
+  return calculators.map((c) => entry(`/calculators/${c.slug}`, m));
+}
+
+export function getStateToolEntries(): SitemapEntry[] {
+  const m = meta("state-tools");
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { US_STATES } = require("@/data/pseo/us-states") as { US_STATES: { slug: string }[] };
+  return taxTools
+    .filter((tt) => tt.section !== "calculators")
+    .flatMap((tt) =>
+      US_STATES.map((s) => entry(`/tax-tools/${s.slug}/${tt.slug}`, m)),
+    );
+}
+
 export const SECTION_LOADERS: Record<SitemapId, () => SitemapEntry[]> = {
   core: getCoreEntries,
   guides: getGuidesEntries,
@@ -167,6 +190,8 @@ export const SECTION_LOADERS: Record<SitemapId, () => SitemapEntry[]> = {
   "contract-templates": getContractTemplateEntries,
   articles: getArticlesEntries,
   tax: getTaxEntries,
+  calculators: getCalculatorEntries,
+  "state-tools": getStateToolEntries,
 };
 
 /** Sub-sitemap URLs (used by the index). */

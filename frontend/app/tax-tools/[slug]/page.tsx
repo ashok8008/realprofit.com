@@ -44,4 +44,21 @@ export async function generateMetadata({
   };
 }
 
-export { default } from "@/views/tax-tools/TaxToolDetail";
+export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
+  const { ToolSchema } = await import("@/components/seo/ToolSchema");
+  const TaxToolDetail = (await import("@/views/tax-tools/TaxToolDetail")).default;
+  const { slug } = await params;
+  const tool = taxTools.find((t) => t.slug === slug);
+  return (
+    <>
+      {tool && (
+        <ToolSchema
+          path={`/tax-tools/${tool.slug}`}
+          name={tool.name}
+          description={tool.description}
+        />
+      )}
+      <TaxToolDetail />
+    </>
+  );
+}
